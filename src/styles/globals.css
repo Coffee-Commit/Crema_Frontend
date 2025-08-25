@@ -7,31 +7,28 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-} */
-
-/* 기본 리셋 및 전역 설정 */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 html,
 body {
-  height: 100%;
-  font-family: var(--font-sans);
-  background-color: var(--color-surface);
-  color: var(--color-text-primary);
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 :focus-visible {
   @apply focus-ring;
+}
+
+.container {
+  max-width: var(--container-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
 }

@@ -8,7 +8,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <main className="container h-full">{children}</main>
+      </body>
     </html>
   )
 }
