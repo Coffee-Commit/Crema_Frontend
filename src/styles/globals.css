@@ -2,11 +2,6 @@
 @import './theme.css';
 @import './utilities.css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 * {
   -webkit-tap-highlight-color: transparent;
 }
@@ -16,21 +11,12 @@ body {
   height: 100vh;
   margin: 0;
   padding: 0;
+  background-color: var(--color-bg-default);
   overflow-x: hidden;
   overflow-y: scroll;
   scrollbar-gutter: stable;
-  font-family:
-    var(--font-pretendard),
-    'Pretendard Variable' sans-serif;
+  font-family: var(--font-pretendard), sans-serif;
 }
 :focus-visible {
   @apply focus-ring;
-}
-
-.container {
-  max-width: var(--container-width);
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: var(--container-padding);
-  padding-right: var(--container-padding);
 }

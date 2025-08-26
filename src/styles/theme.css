@@ -1,12 +1,83 @@
 @theme {
   /* Container */
   --container-width: 1320px;
-  --container-padding: 24px;
+  --container-padding-lg: 24px; /* 데스크탑 */
+  --container-padding-sm: 16px; /* 모바일 */
+  --login-container-width: 408px;
 
-  /* Grid */
+  /*  Grid */
   --spacing-gutter: 16px;
 
-  /* 여백 단위 */
-  --spacing-82: 82.5px;
-  --spacing-300: 300px;
+  /* Spacing scale */
+  --spacing-2: 2px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-10: 10px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-72: 72px;
+  --spacing-80: 80px;
+  --spacing-96: 96px;
+  --spacing-120: 120px;
+  --spacing-82: 82.5px; /* 특별 spacing */
+  --spacing-300: 300px; /* 특별 spacing */
+
+  /* Shape scale (Radius) */
+  --radius-0: 0px;
+  --radius-4: 4px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-24: 24px;
+  --radius-28: 28px;
+  --radius-32: 32px;
+  --radius-full: 9999px;
+
+  /* Color Semantic */
+  /* Brand */
+  --color-kakao-bg: #fee500;
+  --color-google-bg: #ffffff;
+  --color-google-border: #e1e2e4;
+
+  /* Label */
+  --color-label-active: #a2421e; /* ✅ 오타 수정 */
+  --color-label-primary: #e45d2a;
+  --color-label-error: #dc2626;
+  --color-label-deep: #282828;
+  --color-label-strong: #434344;
+  --color-label-default: #5f5f60;
+  --color-label-subtle: #7c7c7d;
+
+  /* Fill */
+  --color-fill-active: #a2421e;
+  --color-fill-primary: #e45d2a;
+  --color-fill-disabled: #e1e2e4;
+  --color-fill-white: #ffffff;
+
+  /* Border */
+  --color-border-strong: #434344;
+  --color-border-medium: #7c7c7d;
+  --color-border-light: #cdcecf;
+  --color-border-subtle: #e1e2e4;
+  --color-border-subtler: #ebeced;
+  --color-border-primary: #e45d2a;
+
+  /* Background */
+  --color-bg-default: #ffffff;
+  --color-bg-plain: #f6f6f7;
+
+  /* Opacity */
+  --color-opacity-deep: rgba(0, 0, 0, 0.87);
+  --color-opacity-strong: rgba(0, 0, 0, 0.7);
+  --color-opacity-medium: rgba(0, 0, 0, 0.55);
+  --color-opacity-light: rgba(0, 0, 0, 0.38);
+  --color-opacity-subtle: rgba(0, 0, 0, 0.12);
 }
