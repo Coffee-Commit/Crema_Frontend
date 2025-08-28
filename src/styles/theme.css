@@ -117,28 +117,27 @@
   --color-opacity-subtle: var(--color-opacity-12);
 
   /* Spacing  */
-  --spacing-none: 0px;
-  --spacing-7xs: 2px;
-  --spacing-6xs: 4px;
-  --spacing-5xs: 8px;
-  --spacing-4xs: 12px;
-  --spacing-3xs: 16px;
-  --spacing-2xs: 20px;
-  --spacing-xs: 24px;
-  --spacing-sm: 28px;
-  --spacing-md: 32px;
-  --spacing-lg: 36px;
-  --spacing-xl: 40px;
-  --spacing-2xl: 44px;
-  --spacing-3xl: 48px;
-  --spacing-4xl: 52px;
-  --spacing-5xl: 56px;
-  --spacing-6xl: 60px;
-  --spacing-7xl: 64px;
-
-  --spacing-10: 10px; /* 정의X but 쓰임 */
-  --spacing-82: 82.5px; /* 특별 spacing */
-  --spacing-300: 300px; /* 특별 spacing */
+  --spacing-spacing-none: 0px;
+  --spacing-spacing-7xs: 2px;
+  --spacing-spacing-6xs: 4px;
+  --spacing-spacing-5xs: 8px;
+  --spacing-spacing-4xs: 12px;
+  --spacing-spacing-3xs: 16px;
+  --spacing-spacing-2xs: 20px;
+  --spacing-spacing-xs: 24px;
+  --spacing-spacing-sm: 28px;
+  --spacing-spacing-md: 32px;
+  --spacing-spacing-lg: 36px;
+  --spacing-spacing-xl: 40px;
+  --spacing-spacing-2xl: 44px;
+  --spacing-spacing-3xl: 48px;
+  --spacing-spacing-4xl: 52px;
+  --spacing-spacing-5xl: 56px;
+  --spacing-spacing-6xl: 60px;
+  --spacing-spacing-7xl: 64px;
+  --spacing-spacing-10: 10px; /* 예외 */
+  --spacing-spacing-82: 82.5px; /* 예외 */
+  --spacing-spacing-300: 300px; /* 예외 */
 
   /* Radius */
   --radius-none: 0px;
