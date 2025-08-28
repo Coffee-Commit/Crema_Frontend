@@ -1,10 +1,14 @@
 'use client'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
-import SearchBarSub from '@/components/ui/SearchBar.tsx/SearchBarSub'
+import SearchBarSub from '@/components/ui/SearchBar/SearchBarSub'
+import RoleBadge from '@/components/ui/Badges/RoleBadge'
+import KeywordTag from '@/components/ui/Tags/KeywordTag'
 
 export default function Page() {
-  const handleSearch = (value: string) => {}
+  const handleSearch = (value: string) => {} // 서치바
+  const user1 = { role: null } // 롤뱃지
+  const user2 = { role: 'guide' as const } // 롤뱃지
 
   return (
     <>
@@ -183,6 +187,20 @@ export default function Page() {
           {/* 반응형 - 부모 컨테이너에 맞춤 */}
           <div className="w-[300px]">
             <SearchBarSub onSubmit={handleSearch} />
+          </div>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
+          <div className="flex gap-4">
+            <RoleBadge role={user1.role} /> {/* 후배 */}
+            <RoleBadge role={user2.role} /> {/* 선배 */}
+          </div>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
+          <div className="flex gap-4">
+            <KeywordTag>여덟글자까지가능</KeywordTag>
+            <KeywordTag className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]">
+              여덟글자까지가능
+            </KeywordTag>
           </div>
         </div>
       </section>
