@@ -1,39 +1,191 @@
 'use client'
-// import { useState } from 'react'
-// import { Button } from '@/components/ui/Button'
-// import { Input } from '@/components/ui/Input'
-// import { Modal } from '@/components/ui/Modal'
+import CircleButton from '@/components/ui/Buttons/CircleButton'
+import SquareButton from '@/components/ui/Buttons/SquareButton'
+import SearchBarSub from '@/components/ui/SearchBar.tsx/SearchBarSub'
 
 export default function Page() {
-  // const [open, setOpen] = useState(false)
+  const handleSearch = (value: string) => {}
 
-  // return (
-  //   <main className="py-3unit container space-y-4">
-  //     <h1 className="text-2xl font-bold">🧪 컴포넌트 테스트</h1>
-
-  //     <section className="space-y-2">
-  //       <Button onClick={() => setOpen(true)}>모달 열기</Button>
-  //       <Input
-  //         label="이메일"
-  //         placeholder="you@example.com"
-  //       />
-  //     </section>
-
-  //     <Modal
-  //       open={open}
-  //       onClose={() => setOpen(false)}
-  //       title="모달 테스트"
-  //     >
-  //       <p>Tailwind v4 테마 기반 모달입니다.</p>
-  //     </Modal>
-  //   </main>
-  // )
   return (
-    <section className="gap-gutter grid grid-cols-12">
-      <div className="col-span-3 h-40 bg-red-200">카드1</div>
-      <div className="col-span-3 h-40 bg-blue-200">카드2</div>
-      <div className="col-span-3 h-40 bg-green-200">카드3</div>
-      <div className="col-span-3 h-40 bg-yellow-200">카드4</div>
-    </section>
+    <>
+      <section className="gap-gutter grid grid-cols-12">
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-red-200">
+          <CircleButton
+            variant="primary"
+            size="sm"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="primary"
+            size="md"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="primary"
+            size="lg"
+          >
+            텍스트
+          </CircleButton>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-blue-200">
+          <CircleButton
+            variant="secondary"
+            size="sm"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="secondary"
+            size="md"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="secondary"
+            size="lg"
+          >
+            텍스트
+          </CircleButton>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-green-200">
+          <CircleButton
+            variant="tertiary"
+            size="sm"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="tertiary"
+            size="md"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="tertiary"
+            size="lg"
+          >
+            텍스트
+          </CircleButton>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
+          <CircleButton
+            variant="disabled"
+            size="sm"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="disabled"
+            size="md"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="disabled"
+            size="lg"
+          >
+            텍스트
+          </CircleButton>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-red-200">
+          <SquareButton
+            variant="primary"
+            size="sm"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="primary"
+            size="md"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="primary"
+            size="lg"
+          >
+            텍스트
+          </SquareButton>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-blue-200">
+          <SquareButton
+            variant="secondary"
+            size="sm"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="secondary"
+            size="md"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="secondary"
+            size="lg"
+          >
+            텍스트
+          </SquareButton>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-green-200">
+          <SquareButton
+            variant="tertiary"
+            size="sm"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="tertiary"
+            size="md"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="tertiary"
+            size="lg"
+          >
+            텍스트
+          </SquareButton>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
+          <SquareButton
+            variant="disabled"
+            size="sm"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="disabled"
+            size="md"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="disabled"
+            size="lg"
+          >
+            텍스트
+          </SquareButton>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
+          {/* 기본 사용 (전체 width) */}
+          <SearchBarSub onSubmit={handleSearch} />
+
+          {/* 고정된 사이즈 */}
+          <SearchBarSub
+            width="250px"
+            height="48px"
+            onSubmit={handleSearch}
+          />
+
+          {/* 반응형 - 부모 컨테이너에 맞춤 */}
+          <div className="w-[300px]">
+            <SearchBarSub onSubmit={handleSearch} />
+          </div>
+        </div>
+      </section>
+    </>
   )
 }

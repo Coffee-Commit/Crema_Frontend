@@ -23,6 +23,3 @@ body {
     Roboto,
     sans-serif;
 }
-:focus-visible {
-  @apply focus-ring;
-}
