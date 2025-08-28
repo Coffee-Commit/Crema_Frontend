@@ -65,6 +65,9 @@
     font: 500 14px/14px var(--font-pretendard);
   }
 
+  .font-label5-bold {
+    font: 700 12px/12px var(--font-pretendard);
+  }
   .font-label5-semibold {
     font: 600 12px/12px var(--font-pretendard);
   }
