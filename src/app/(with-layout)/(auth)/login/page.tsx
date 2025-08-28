@@ -12,8 +12,8 @@ export default function LoginPage() {
       <Header />
       <section className="flex flex-1 items-center justify-center">
         <div className="loginContainer">
-          <div className="flex w-full flex-col items-center justify-center gap-56">
-            <div className="flex flex-col items-center gap-12">
+          <div className="gap-spacing-5xl flex w-full flex-col items-center justify-center">
+            <div className="gap-spacing-4xs flex flex-col items-center">
               <h1 className="text-label-deep font-title2-bold text-center">
                 크레마
               </h1>
@@ -21,12 +21,12 @@ export default function LoginPage() {
                 내게 꼭 맞는 대화 한 잔
               </p>
             </div>
-            <div className="flex w-full flex-col gap-16">
+            <div className="gap-spacing-3xs flex w-full flex-col">
               <SocialButton type="kakao" />
               <SocialButton type="google" />
             </div>
           </div>
-          <p className="text-label-subtle font-caption3 flex items-center gap-2">
+          <p className="text-label-subtle font-caption3 gap-spacing-7xs flex items-center">
             <a
               href="#"
               className="text-label-default"

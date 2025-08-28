@@ -136,24 +136,7 @@
   --spacing-6xl: 60px;
   --spacing-7xl: 64px;
 
-  /* Spacing scale */
-  --spacing-2: 2px;
-  --spacing-4: 4px;
-  --spacing-8: 8px;
-  --spacing-10: 10px;
-  --spacing-12: 12px;
-  --spacing-16: 16px;
-  --spacing-20: 20px;
-  --spacing-24: 24px;
-  --spacing-32: 32px;
-  --spacing-40: 40px;
-  --spacing-48: 48px;
-  --spacing-56: 56px;
-  --spacing-64: 64px;
-  --spacing-72: 72px;
-  --spacing-80: 80px;
-  --spacing-96: 96px;
-  --spacing-120: 120px;
+  --spacing-10: 10px; /* 정의X but 쓰임 */
   --spacing-82: 82.5px; /* 특별 spacing */
   --spacing-300: 300px; /* 특별 spacing */
 
