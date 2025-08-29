@@ -1,11 +1,133 @@
-@utility container {
-  margin-inline: auto;
-  padding-inline: 1rem;
-  max-width: 1280px;
-}
+@layer utilities {
+  /*  타이포 Utilities */
+  .font-display1 {
+    font: 600 40px/56px var(--font-pretendard);
+  }
+  .font-display2 {
+    font: 700 32px/48px var(--font-pretendard);
+  }
 
-@utility focus-ring {
-  outline: none;
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--color-brand) 35%, transparent);
+  .font-title1 {
+    font: 700 32px/48px var(--font-pretendard);
+  }
+  .font-title2-bold {
+    font: 700 24px/36px var(--font-pretendard);
+  }
+  .font-title2-medium {
+    font: 500 24px/36px var(--font-pretendard);
+  }
+  .font-title3 {
+    font: 700 20px/24px var(--font-pretendard);
+  }
+  .font-title4 {
+    font: 700 16px/19px var(--font-pretendard);
+  }
+
+  .font-heading1 {
+    font: 600 32px/48px var(--font-pretendard);
+  }
+  .font-heading2 {
+    font: 700 24px/24px var(--font-pretendard);
+  }
+
+  .font-body1 {
+    font: 400 16px/24px var(--font-pretendard);
+  }
+  .font-body2 {
+    font: 600 14px/17px var(--font-pretendard);
+  }
+
+  .font-label1-semibold {
+    font: 600 20px/20px var(--font-pretendard);
+  }
+  .font-label1-regular {
+    font: 400 20px/20px var(--font-pretendard);
+  }
+  .font-label2 {
+    font: 700 18px/18px var(--font-pretendard);
+  }
+  .font-label3 {
+    font: 500 16px/16px var(--font-pretendard);
+  }
+  .font-label4-bold {
+    font: 700 14px/14px var(--font-pretendard);
+  }
+  .font-label4-semibold {
+    font: 600 14px/14px var(--font-pretendard);
+  }
+  .font-label4-medium {
+    font: 500 14px/14px var(--font-pretendard);
+  }
+
+  .font-label5-bold {
+    font: 700 12px/12px var(--font-pretendard);
+  }
+  .font-label5-semibold {
+    font: 600 12px/12px var(--font-pretendard);
+  }
+  .font-label5-medium {
+    font: 500 12px/12px var(--font-pretendard);
+  }
+
+  .font-caption1 {
+    font: 500 16px/19px var(--font-pretendard);
+  }
+  .font-caption2-bold {
+    font: 700 14px/14px var(--font-pretendard);
+  }
+  .font-caption2-medium {
+    font: 500 14px/14px var(--font-pretendard);
+  }
+  .font-caption3 {
+    font: 400 12px/18px var(--font-pretendard);
+  }
+
+  /*  미디어쿼리 Utilities */
+  @media (min-width: 360px) and (max-width: 767px) {
+    html,
+    body {
+      -ms-overflow-style: none; /* IE & Edge */
+      scrollbar-width: none; /* Firefox */
+    }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      display: none; /* Chrome, Safari */
+    }
+
+    .container {
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: var(--container-padding-sm);
+      padding-right: var(--container-padding-sm);
+    }
+    .loginContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 100%;
+      padding-top: 56px;
+      padding-bottom: 50px;
+      gap: 112px;
+    }
+  }
+
+  @media (min-width: 1024px) and (max-width: 1920px) {
+    .container {
+      max-width: var(--container-width);
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: var(--container-padding-lg);
+      padding-right: var(--container-padding-lg);
+    }
+    .loginContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: var(--login-container-width);
+      padding: 56px 24px 50px 24px;
+      gap: 112px;
+      border: 1px solid var(--color-border-light);
+    }
+  }
 }
