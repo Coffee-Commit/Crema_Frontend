@@ -10,268 +10,267 @@ import KeywordTag from '@/components/ui/Tags/KeywordTag'
 
 export default function Page() {
   const handleSearch = (value: string) => {
-    console.log('검색어:', value) // ✅ value 사용 처리
+    console.log('검색어:', value)
   }
 
-  const user1 = { role: null } // 롤뱃지
-  const user2 = { role: 'guide' as const } // 롤뱃지
+  const user1 = { role: null }
+  const user2 = { role: 'guide' as const }
 
   return (
-    <>
-      <section className="gap-gutter grid grid-cols-12">
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-red-200">
+    <section className="gap-gutter grid grid-cols-12 py-10">
+      {/* Circle Buttons Group */}
+      <div className="col-span-12 flex flex-wrap gap-4 rounded-xl bg-red-200 p-4">
+        <div className="flex flex-col gap-2">
           <CircleButton
             variant="primary"
             size="sm"
           >
-            텍스트
+            primary-sm
           </CircleButton>
           <CircleButton
             variant="primary"
             size="md"
           >
-            텍스트
+            primary-md
           </CircleButton>
           <CircleButton
             variant="primary"
             size="lg"
           >
-            텍스트
+            primary-lg
           </CircleButton>
           <CircleButton
             variant="primary"
             size="xl"
           >
-            텍스트
+            primary-xl
           </CircleButton>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-blue-200">
+        <div className="flex flex-col gap-2">
           <CircleButton
             variant="secondary"
             size="sm"
           >
-            텍스트
+            secondary-sm
           </CircleButton>
           <CircleButton
             variant="secondary"
             size="md"
           >
-            텍스트
+            secondary-md
           </CircleButton>
           <CircleButton
             variant="secondary"
             size="lg"
           >
-            텍스트
+            secondary-lg
           </CircleButton>
           <CircleButton
             variant="secondary"
             size="xl"
           >
-            텍스트
+            secondary-xl
           </CircleButton>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-green-200">
+        <div className="flex flex-col gap-2">
           <CircleButton
             variant="tertiary"
             size="sm"
           >
-            텍스트
+            tertiary-sm
           </CircleButton>
           <CircleButton
             variant="tertiary"
             size="md"
           >
-            텍스트
+            tertiary-md
           </CircleButton>
           <CircleButton
             variant="tertiary"
             size="lg"
           >
-            텍스트
+            tertiary-lg
           </CircleButton>
           <CircleButton
             variant="tertiary"
             size="xl"
           >
-            텍스트
+            tertiary-xl
           </CircleButton>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
+        <div className="flex flex-col gap-2">
           <CircleButton
             variant="disabled"
             size="sm"
           >
-            텍스트
+            disabled-sm
           </CircleButton>
           <CircleButton
             variant="disabled"
             size="md"
           >
-            텍스트
+            disabled-md
           </CircleButton>
           <CircleButton
             variant="disabled"
             size="lg"
           >
-            텍스트
+            disabled-lg
           </CircleButton>
           <CircleButton
             variant="disabled"
             size="xl"
           >
-            텍스트
+            disabled-xl
           </CircleButton>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-red-200">
+      </div>
+
+      {/* Square Buttons Group */}
+      <div className="col-span-12 flex flex-wrap gap-4 rounded-xl bg-blue-200 p-4">
+        <div className="flex flex-col gap-2">
           <SquareButton
             variant="primary"
             size="xs"
           >
-            텍스트
+            primary-xs
           </SquareButton>
           <SquareButton
             variant="primary"
             size="sm"
           >
-            텍스트
+            primary-sm
           </SquareButton>
           <SquareButton
             variant="primary"
             size="md"
           >
-            텍스트
+            primary-md
           </SquareButton>
           <SquareButton
             variant="primary"
             size="lg"
           >
-            텍스트
+            primary-lg
           </SquareButton>
           <SquareButton
             variant="primary"
             size="xl"
           >
-            텍스트
+            primary-xl
           </SquareButton>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-blue-200">
+        <div className="flex flex-col gap-2">
           <SquareButton
             variant="secondary"
             size="sm"
           >
-            텍스트
+            secondary-sm
           </SquareButton>
           <SquareButton
             variant="secondary"
             size="md"
           >
-            텍스트
+            secondary-md
           </SquareButton>
           <SquareButton
             variant="secondary"
             size="lg"
           >
-            텍스트
+            secondary-lg
           </SquareButton>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-green-200">
+        <div className="flex flex-col gap-2">
           <SquareButton
             variant="tertiary"
             size="sm"
           >
-            텍스트
+            tertiary-sm
           </SquareButton>
           <SquareButton
             variant="tertiary"
             size="md"
           >
-            텍스트
+            tertiary-md
           </SquareButton>
           <SquareButton
             variant="tertiary"
             size="lg"
           >
-            텍스트
+            tertiary-lg
           </SquareButton>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
+        <div className="flex flex-col gap-2">
           <SquareButton
             variant="disabled"
             size="sm"
           >
-            텍스트
+            disabled-sm
           </SquareButton>
           <SquareButton
             variant="disabled"
             size="md"
           >
-            텍스트
+            disabled-md
           </SquareButton>
           <SquareButton
             variant="disabled"
             size="lg"
           >
-            텍스트
+            disabled-lg
           </SquareButton>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
-          {/* 기본 사용 (전체 width) */}
+      </div>
+
+      {/* SearchBars Group */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <SearchBarSub onSubmit={handleSearch} />
+        <SearchBarSub
+          width="250px"
+          height="48px"
+          onSubmit={handleSearch}
+        />
+        <div className="w-[300px]">
           <SearchBarSub onSubmit={handleSearch} />
-
-          {/* 고정된 사이즈 */}
-          <SearchBarSub
-            width="250px"
-            height="48px"
-            onSubmit={handleSearch}
-          />
-
-          {/* 반응형 - 부모 컨테이너에 맞춤 */}
-          <div className="w-[300px]">
-            <SearchBarMain onSubmit={handleSearch} />
-          </div>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
-          {/* 기본 사용 (전체 width) */}
+        <SearchBarMain onSubmit={handleSearch} />
+        <SearchBarMain
+          width="624px"
+          height="56px"
+          onSubmit={handleSearch}
+        />
+        <div className="w-[300px]">
           <SearchBarMain onSubmit={handleSearch} />
+        </div>
+      </div>
 
-          {/* 고정된 사이즈 */}
-          <SearchBarMain
-            width="624px"
-            height="56px"
-            onSubmit={handleSearch}
-          />
+      {/* Badges */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <div className="flex gap-4">
+          <RoleBadge role={user1.role} />
+          <RoleBadge role={user2.role} />
+          <InfoBadge>상세</InfoBadge>
+        </div>
+      </div>
 
-          {/* 반응형 - 부모 컨테이너에 맞춤 */}
-          <div className="w-[300px]">
-            <SearchBarMain onSubmit={handleSearch} />
-          </div>
+      {/* Keyword Tags */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <div className="flex gap-4">
+          <KeywordTag>여덟글자까지가능</KeywordTag>
+          <KeywordTag className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]">
+            여덟글자까지가능
+          </KeywordTag>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
-          <div className="flex gap-4">
-            <RoleBadge role={user1.role} /> {/* 후배 */}
-            <RoleBadge role={user2.role} /> {/* 선배 */}
-            <InfoBadge>상세</InfoBadge>
-          </div>
+        <div className="flex gap-4">
+          <KeywordTag size="lg">여덟글자까지가능</KeywordTag>
+          <KeywordTag
+            size="lg"
+            className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]"
+          >
+            여덟글자까지가능
+          </KeywordTag>
         </div>
-        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
-          <div className="flex gap-4">
-            <KeywordTag>여덟글자까지가능</KeywordTag>
-            <KeywordTag className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]">
-              여덟글자까지가능
-            </KeywordTag>
-          </div>
-          <div className="flex gap-4">
-            <KeywordTag size="lg">여덟글자까지가능</KeywordTag>
-            <KeywordTag
-              size="lg"
-              className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]"
-            >
-              여덟글자까지가능
-            </KeywordTag>
-          </div>
-        </div>
-      </section>
-    </>
+      </div>
+    </section>
   )
 }
