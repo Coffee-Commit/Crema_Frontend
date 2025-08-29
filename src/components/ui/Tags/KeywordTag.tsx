@@ -1,17 +1,42 @@
+import clsx from 'clsx'
 import { ReactNode } from 'react'
+
+type KeywordTagSize = 'md' | 'lg'
 
 interface KeywordTagProps {
   children: ReactNode
   className?: string
+  size?: KeywordTagSize
+}
+
+const SIZE_STYLES: Record<KeywordTagSize, string> = {
+  md: `
+    h-fit
+    px-[var(--spacing-spacing-5xs)] 
+    py-[var(--spacing-spacing-5xs)] 
+    font-label5-semibold
+  `,
+  lg: `
+    h-fit
+    px-[var(--spacing-spacing-5xs)] 
+    py-[var(--spacing-spacing-4xs)] 
+    font-label4-semibold
+  `,
 }
 
 export default function KeywordTag({
   children,
+  size = 'md',
   className = '',
 }: KeywordTagProps) {
   return (
     <span
-      className={`font-label5-medium md:font-label4-medium inline-flex h-[28px] items-center justify-center rounded-[var(--radius-2xs)] bg-[var(--color-label-white)] px-[var(--spacing-spacing-4xs)] py-[var(--spacing-spacing-7xs)] text-[var(--color-label-default)] md:h-[22px] md:px-[var(--spacing-spacing-5xs)] md:py-[var(--spacing-spacing-7xs)] ${className} `}
+      className={clsx(
+        'inline-flex items-center justify-center rounded-[var(--radius-2xs)]',
+        'bg-[var(--color-label-white)] text-[var(--color-label-default)]',
+        SIZE_STYLES[size],
+        className,
+      )}
     >
       {children}
     </span>

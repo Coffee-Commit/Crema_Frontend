@@ -1,9 +1,11 @@
 'use client'
 
+import InfoBadge from '@/components/ui/Badges/InfoBadge'
 import RoleBadge from '@/components/ui/Badges/RoleBadge'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import SearchBarSub from '@/components/ui/SearchBar/SearchBarSub'
+import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
 
 export default function Page() {
@@ -36,6 +38,12 @@ export default function Page() {
           >
             텍스트
           </CircleButton>
+          <CircleButton
+            variant="primary"
+            size="xl"
+          >
+            텍스트
+          </CircleButton>
         </div>
         <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-blue-200">
           <CircleButton
@@ -53,6 +61,12 @@ export default function Page() {
           <CircleButton
             variant="secondary"
             size="lg"
+          >
+            텍스트
+          </CircleButton>
+          <CircleButton
+            variant="secondary"
+            size="xl"
           >
             텍스트
           </CircleButton>
@@ -76,6 +90,12 @@ export default function Page() {
           >
             텍스트
           </CircleButton>
+          <CircleButton
+            variant="tertiary"
+            size="xl"
+          >
+            텍스트
+          </CircleButton>
         </div>
         <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
           <CircleButton
@@ -96,8 +116,20 @@ export default function Page() {
           >
             텍스트
           </CircleButton>
+          <CircleButton
+            variant="disabled"
+            size="xl"
+          >
+            텍스트
+          </CircleButton>
         </div>
         <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-red-200">
+          <SquareButton
+            variant="primary"
+            size="xs"
+          >
+            텍스트
+          </SquareButton>
           <SquareButton
             variant="primary"
             size="sm"
@@ -113,6 +145,12 @@ export default function Page() {
           <SquareButton
             variant="primary"
             size="lg"
+          >
+            텍스트
+          </SquareButton>
+          <SquareButton
+            variant="primary"
+            size="xl"
           >
             텍스트
           </SquareButton>
@@ -190,19 +228,45 @@ export default function Page() {
 
           {/* 반응형 - 부모 컨테이너에 맞춤 */}
           <div className="w-[300px]">
-            <SearchBarSub onSubmit={handleSearch} />
+            <SearchBarMain onSubmit={handleSearch} />
+          </div>
+        </div>
+        <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
+          {/* 기본 사용 (전체 width) */}
+          <SearchBarMain onSubmit={handleSearch} />
+
+          {/* 고정된 사이즈 */}
+          <SearchBarMain
+            width="624px"
+            height="56px"
+            onSubmit={handleSearch}
+          />
+
+          {/* 반응형 - 부모 컨테이너에 맞춤 */}
+          <div className="w-[300px]">
+            <SearchBarMain onSubmit={handleSearch} />
           </div>
         </div>
         <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
           <div className="flex gap-4">
             <RoleBadge role={user1.role} /> {/* 후배 */}
             <RoleBadge role={user2.role} /> {/* 선배 */}
+            <InfoBadge>상세</InfoBadge>
           </div>
         </div>
         <div className="col-span-3 flex flex-col flex-wrap gap-4 bg-yellow-200">
           <div className="flex gap-4">
             <KeywordTag>여덟글자까지가능</KeywordTag>
             <KeywordTag className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]">
+              여덟글자까지가능
+            </KeywordTag>
+          </div>
+          <div className="flex gap-4">
+            <KeywordTag size="lg">여덟글자까지가능</KeywordTag>
+            <KeywordTag
+              size="lg"
+              className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]"
+            >
               여덟글자까지가능
             </KeywordTag>
           </div>
