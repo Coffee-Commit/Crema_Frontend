@@ -1,5 +1,5 @@
-import { ButtonHTMLAttributes, ReactNode } from 'react'
 import clsx from 'clsx'
+import { ButtonHTMLAttributes, ReactNode } from 'react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'disabled'
 type ButtonSize = 'sm' | 'md' | 'lg'

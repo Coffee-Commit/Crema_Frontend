@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { Search } from 'lucide-react'
+import { useState } from 'react'
 
 interface SearchBarSubProps {
   placeholder?: string

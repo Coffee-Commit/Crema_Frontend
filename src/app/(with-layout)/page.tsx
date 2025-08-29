@@ -1,12 +1,16 @@
 'use client'
+
+import RoleBadge from '@/components/ui/Badges/RoleBadge'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import SearchBarSub from '@/components/ui/SearchBar/SearchBarSub'
-import RoleBadge from '@/components/ui/Badges/RoleBadge'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
 
 export default function Page() {
-  const handleSearch = (value: string) => {} // 서치바
+  const handleSearch = (value: string) => {
+    console.log('검색어:', value) // ✅ value 사용 처리
+  }
+
   const user1 = { role: null } // 롤뱃지
   const user2 = { role: 'guide' as const } // 롤뱃지
 

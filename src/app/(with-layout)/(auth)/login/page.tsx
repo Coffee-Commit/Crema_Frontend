@@ -2,10 +2,10 @@
 
 import Header from '@/components/layout/Header'
 import SocialButton from '@/components/ui/Buttons/SocialButton'
-import { useAuthStore } from '@/store/useAuthStore'
+// import { useAuthStore } from '@/store/useAuthStore'
 
 export default function LoginPage() {
-  const { isLoggedIn, login, logout } = useAuthStore()
+  // const { isLoggedIn, login, logout } = useAuthStore()
 
   return (
     <main className="flex min-h-screen flex-col">

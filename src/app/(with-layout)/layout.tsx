@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+
 import '@/styles/globals.css'
+
 import { pretendard } from '@/components/fonts'
 
 export default function RootLayout({
