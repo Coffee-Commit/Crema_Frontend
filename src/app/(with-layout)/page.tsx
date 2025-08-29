@@ -4,8 +4,8 @@ import InfoBadge from '@/components/ui/Badges/InfoBadge'
 import RoleBadge from '@/components/ui/Badges/RoleBadge'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
-import SearchBarSub from '@/components/ui/SearchBar/SearchBarSub'
 import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
+import SearchBarSub from '@/components/ui/SearchBar/SearchBarSub'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
 
 export default function Page() {
