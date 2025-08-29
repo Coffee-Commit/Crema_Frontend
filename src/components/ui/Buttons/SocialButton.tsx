@@ -41,7 +41,7 @@ export default function SocialButton({
   return (
     <button
       onClick={onClick}
-      className={`font-label3 gap-spacing-5xs px-spacing-10 py-spacing-10 flex h-12 w-full cursor-pointer items-center justify-center rounded-sm transition duration-150 hover:brightness-95 active:brightness-95 ${bg} ${text} ${border ?? ''} `}
+      className={`font-label3-medium gap-spacing-5xs px-spacing-10 py-spacing-10 flex h-12 w-full cursor-pointer items-center justify-center rounded-sm transition duration-150 hover:brightness-95 active:brightness-95 ${bg} ${text} ${border ?? ''} `}
     >
       <Image
         src={src}

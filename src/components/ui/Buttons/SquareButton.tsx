@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { ButtonHTMLAttributes, ReactNode } from 'react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'disabled'
-type ButtonSize = 'sm' | 'md' | 'lg'
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
 interface ButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'disabled'> {
@@ -43,9 +43,11 @@ const VARIANT_STYLES: Record<ButtonVariant, string> = {
 }
 
 const SIZE_STYLES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-[var(--spacing-spacing-3xs)] text-label4-medium',
-  md: 'h-10 px-[var(--spacing-spacing-2xs)] text-label4-medium',
-  lg: 'h-12 px-[var(--spacing-spacing-2xs)] text-label3',
+  xs: 'h-[32px] px-[var(--spacing-spacing-4xs)] font-label4-medium',
+  sm: 'h-[36px] px-[var(--spacing-spacing-3xs)] font-label4-medium',
+  md: 'h-[40px] px-[var(--spacing-spacing-2xs)] font-label4-medium',
+  lg: 'h-[44px] px-[var(--spacing-spacing-2xs)] font-label3-semibold',
+  xl: 'h-[48px] px-[var(--spacing-spacing-2xs)] font-label1-semibold',
 }
 
 export default function SquareButton({
@@ -62,9 +64,12 @@ export default function SquareButton({
       type="button"
       disabled={isDisabled}
       className={clsx(
-        'inline-flex w-fit cursor-pointer items-center justify-center rounded-[var(--radius-2xs)] transition-all duration-150',
+        'inline-flex w-fit cursor-pointer items-center justify-center transition-all duration-150',
         VARIANT_STYLES[variant],
         SIZE_STYLES[size],
+        size === 'xl'
+          ? 'rounded-[var(--radius-xs)]'
+          : 'rounded-[var(--radius-2xs)]',
         className,
       )}
       {...props}

@@ -10,6 +10,7 @@
   --color-gray-300: #e1e2e4;
   --color-gray-200: #ebeced;
   --color-gray-100: #f6f6f7;
+  --color-gray-50: #fafafa;
 
   /* Orange */
   --color-orange-900: #602712;
@@ -92,8 +93,10 @@
   --color-fill-hoobae-green: var(--color-green-400);
   --color-fill-sunbae-yellow: var(--color-yellow-500);
   --color-fill-banner-yellow: var(--color-yellow-100);
+  --color-fill-light: var(--color-gray-400);
   --color-fill-disabled: var(--color-gray-300);
   --color-fill-input-gray: var(--color-gray-100);
+  --color-fill-footer-gray: var(--color-gray-50);
   --color-fill-white: var(--color-white);
 
   /* Border - Primitive 색상 참조 */

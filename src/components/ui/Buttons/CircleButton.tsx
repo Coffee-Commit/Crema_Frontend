@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { ButtonHTMLAttributes, ReactNode } from 'react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'disabled'
-type ButtonSize = 'sm' | 'md' | 'lg'
+type ButtonSize = 'sm' | 'md' | 'lg' | 'xl'
 
 interface ButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'disabled'> {
@@ -43,9 +43,10 @@ const VARIANT_STYLES: Record<ButtonVariant, string> = {
 }
 
 const SIZE_STYLES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-[var(--spacing-spacing-3xs)] text-label4-medium',
-  md: 'h-10 px-[var(--spacing-spacing-2xs)] text-label4-medium',
-  lg: 'h-12 px-[var(--spacing-spacing-2xs)] text-label3',
+  sm: 'h-[32px] px-[var(--spacing-spacing-4xs)] font-label4-medium',
+  md: 'h-[36px] px-[var(--spacing-spacing-3xs)] font-label4-medium',
+  lg: 'h-[40px] px-[var(--spacing-spacing-2xs)] font-label4-medium',
+  xl: 'h-[48px] px-[var(--spacing-spacing-2xs)] font-label3-semibold',
 }
 
 export default function CircleButton({
