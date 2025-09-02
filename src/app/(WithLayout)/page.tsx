@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 
+import ScrollReveal from '@/components/common/ScrollReveal'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
 import {
   HeroCard,
@@ -9,7 +10,6 @@ import {
 } from '@/components/ui/Cards/MainCards'
 import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
-import ScrollReveal from '@/components/common/ScrollReveal'
 
 export default function HomePage() {
   const handleSearch = (value: string) => {
