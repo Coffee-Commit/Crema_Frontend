@@ -158,6 +158,15 @@
   --radius-3xl: 32px;
   --radius-circle: 999px;
 
+  /* Shadow */
+  --shadow-dropdown: 0 4px 10px 0 rgba(0, 0, 0, 0.12);
+  --shadow-card:
+    0 0 4px 0 rgba(95, 95, 96, 0.12),
+    0 2px 8px 0 rgba(95, 95, 96, 0.08);
+  --shadow-emphasize:
+    0 0 1.5px 0 var(--Opacity-light, rgba(0, 0, 0, 0.38)),
+    0 4px 12px 0 rgba(0, 0, 0, 0.04);
+
   /* Container */
   --container-width: 1320px;
   --container-padding-lg: 24px; /* 데스크탑 */

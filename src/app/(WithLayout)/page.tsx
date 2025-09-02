@@ -8,6 +8,7 @@ import {
   HeroCard,
   FeatureCard,
 } from '@/components/ui/Cards/MainCards'
+import UploadCarousel from '@/components/ui/Crousel/UploadCarousel'
 import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
 
@@ -15,6 +16,63 @@ export default function HomePage() {
   const handleSearch = (value: string) => {
     console.log('검색어:', value)
   }
+
+  const cardData = [
+    {
+      title:
+        '공대생이 디자이너가 되기까지, 파란만장한 취업기이이이이이이이이이이이이이이이이이ㅣ이잉ㄹㄴ미ㅏㄴㅇㄹ;ㅣㅏㄴ얼;ㅣ망널;밍ㄴ라ㅓㅣㅣ',
+      subtitle: 'n년차 프로덕트 디자이너',
+      tags: [
+        '다섯글자면',
+        '다섯글자',
+        '여덟글자여덟글자',
+        '다섯글자면',
+        '다섯글자',
+      ],
+      rating: 5.0,
+      reviewCount: 12,
+      menteeCount: 34, // ✅ 커피챗한 멘티 수
+      mentorName: '선배닉네임',
+      profileImage: '/images/profile1.png',
+    },
+    {
+      title: '스타트업 이직 성공기, 실패와 배움의 기록',
+      subtitle: '3년차 프론트엔드 개발자',
+      tags: ['스타트업', '면접', '실패극복'],
+      rating: 4.8,
+      reviewCount: 20,
+      menteeCount: 34, // ✅ 커피챗한 멘티 수
+      mentorName: '개발선배',
+      profileImage: '/images/profile2.png',
+    },
+    {
+      title: '비전공자에서 코딩테스트 합격까지',
+      subtitle: '2년차 백엔드 개발자',
+      tags: ['비전공자', '코딩테스트', '합격기'],
+      rating: 4.9,
+      reviewCount: 30,
+      menteeCount: 34, // ✅ 커피챗한 멘티 수
+      mentorName: '백엔드형',
+    },
+    {
+      title: '비전공자에서 코딩테스트 합격까지2',
+      subtitle: '2년차 백엔드 개발자',
+      tags: ['비전공자', '코딩테스트', '합격기'],
+      rating: 4.9,
+      reviewCount: 30,
+      menteeCount: 34, // ✅ 커피챗한 멘티 수
+      mentorName: '백엔드형',
+    },
+    {
+      title: '비전공자에서 코딩테스트 합격까지3',
+      subtitle: '2년차 백엔드 개발자',
+      tags: ['비전공자', '코딩테스트', '합격기'],
+      rating: 4.9,
+      reviewCount: 30,
+      menteeCount: 34, // ✅ 커피챗한 멘티 수
+      mentorName: '백엔드형',
+    },
+  ]
   return (
     <main className="w-full">
       {/* 헤더 이후 Hero Section */}
@@ -34,11 +92,13 @@ export default function HomePage() {
                 onSubmit={handleSearch}
               />
               <div className="mt-spacing-xs gap-spacing-3xs flex flex-wrap justify-start">
-                <KeywordTag>추천 태그</KeywordTag>
-                <KeywordTag>비전공자</KeywordTag>
-                <KeywordTag>코딩테스트</KeywordTag>
-                <KeywordTag>연봉</KeywordTag>
-                <KeywordTag>디자이너</KeywordTag>
+                <KeywordTag variant="primary">추천 태그</KeywordTag>
+                <KeywordTag variant="secondary">비전공자</KeywordTag>
+                <KeywordTag variant="secondary">
+                  코딩테스트
+                </KeywordTag>
+                <KeywordTag variant="secondary">연봉</KeywordTag>
+                <KeywordTag variant="secondary">디자이너</KeywordTag>
               </div>
             </div>
           </div>
@@ -111,41 +171,23 @@ export default function HomePage() {
 
       {/* 최근 업로드 섹션 */}
       <ScrollReveal>
-        <section className="px-[var(--container-padding-sm)] py-[var(--spacing-spacing-xl)] lg:px-[var(--container-padding-lg)]">
+        <section className="md: py-spacing-6xl px-container-padding-sm py-spacing-spacing-xl container">
           <div className="mx-auto max-w-[var(--container-width)]">
-            <h2 className="font-title3 mb-[var(--spacing-spacing-sm)] text-[var(--color-label-strong)]">
+            <h2 className="font-heading1 mb-spacing-3xl text-label-deep">
               최근에 올라왔어요
             </h2>
-            <div className="grid grid-cols-1 gap-[var(--spacing-gutter)] md:grid-cols-2 lg:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-[var(--radius-xs)] border border-[var(--color-border-subtle)] p-[var(--spacing-spacing-4xs)]"
-                >
-                  <div className="mb-[var(--spacing-spacing-4xs)] h-[120px] rounded-[var(--radius-2xs)] bg-[var(--color-fill-disabled)]" />
-                  <p className="font-body2 mb-[var(--spacing-spacing-5xs)] text-[var(--color-label-default)]">
-                    긍정적인 디자이너가 되기까지, 채용과정의 전반적인
-                    이야이이이이야기
-                  </p>
-                  <div className="flex flex-wrap gap-[var(--spacing-spacing-6xs)]">
-                    <KeywordTag>디자인</KeywordTag>
-                    <KeywordTag>포트폴리오</KeywordTag>
-                    <KeywordTag>면접</KeywordTag>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <UploadCarousel cards={cardData} />
           </div>
         </section>
       </ScrollReveal>
 
       {/* CTA 섹션 */}
       <ScrollReveal>
-        <section className="bg-[var(--color-fill-banner-yellow)] px-[var(--container-padding-sm)] py-[var(--spacing-spacing-xl)] lg:px-[var(--container-padding-lg)]">
-          <div className="mx-auto flex max-w-[var(--container-width)] flex-col items-center justify-between gap-[var(--spacing-spacing-md)] md:flex-row">
+        <section className="bg-fill-tooltip-orange px-container-padding-sm py-spacing-spacing-xl lg:px-container-padding-lg">
+          <div className="md: p-spacing-sm md: container flex flex-col items-center justify-center md:flex-row md:gap-[160px]">
             <div className="text-center md:text-left">
-              <h3 className="font-title3 mb-[var(--spacing-spacing-5xs)] text-[var(--color-label-strong)]">
-                당신의 이야기, 누군가에게는 꼭 필요한 단서일지도
+              <h3 className="font-title2-medium text-label-deep mb-spacing-xs">
+                당신의 이야기, 누군가에게는 <br />꼭 필요한 단서일지도
                 몰라요!
               </h3>
               <CircleButton
@@ -156,10 +198,10 @@ export default function HomePage() {
               </CircleButton>
             </div>
             <Image
-              src="/img/footer-illustration.svg"
+              src="/images/mainBg05.png"
               alt="커피"
-              width={120}
-              height={120}
+              width={212}
+              height={145}
             />
           </div>
         </section>

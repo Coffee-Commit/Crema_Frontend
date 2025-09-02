@@ -55,7 +55,7 @@ export default function UserDropdownMenu() {
 
       {/* 드롭다운 메뉴 */}
       {open && (
-        <div className="px-spacing-4xs py-spacing-5xs gap-spacing-4xs rounded-2xs border-border-subtler bg-fill-white absolute right-0 z-10 mt-4 flex w-[125px] flex-col border shadow-md">
+        <div className="px-spacing-4xs py-spacing-5xs gap-spacing-4xs rounded-2xs border-border-subtler bg-fill-white shadow-dropdown absolute right-0 z-10 mt-4 flex w-[125px] flex-col border">
           <button
             onClick={() => {
               router.push('/mypage')
