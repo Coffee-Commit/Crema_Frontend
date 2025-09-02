@@ -1,54 +1,46 @@
 'use client'
 
+import { Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+import SquareButton from '@/components/ui/Buttons/SquareButton'
+import UserDropdownMenu from '@/components/ui/Menus/UserDropdownMenu'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export default function Header() {
-  const { isLoggedIn, logout } = useAuthStore()
   const router = useRouter()
+  const { user, isLoggedIn } = useAuthStore()
 
   return (
-    <header className="border-border-light bg-bg-default border-b">
+    <header className="flex h-[68px] w-full items-center justify-between">
       <div className="container flex h-14 items-center justify-between">
         {/* 로고 + 가이드 */}
-        <div className="gap-spacing-3xs flex items-center">
-          <span className="text-label-primary font-title3">
-            Crema
-          </span>
+        <div className="gap-spacing-xs flex items-center">
+          <span className="text-label-deep font-title3">Crema</span>
           <span className="font-body2 text-label-default hidden md:inline">
-            가이드 찾기
+            선배 찾기
+          </span>
+          <span className="font-label4-semibold text-label-strong bg-fill-tooltip-orange rounded-xs px-spacing-4xs py-spacing-6xs relative">
+            궁금할 땐 선배에게! 경험을 나누는 대화, 지금 시작해요.
+            <span className="border-r-fill-tooltip-orange absolute left-0 top-1/2 h-0 w-0 -translate-x-[95%] -translate-y-1/2 border-y-[4px] border-r-[5px] border-y-transparent"></span>
           </span>
         </div>
 
         {/* 로그인 여부에 따라 다르게 */}
-        {isLoggedIn ? (
-          <div className="gap-spacing-3xs flex items-center">
-            <button className="text-label-subtle">
-              <span className="i-lucide-bell h-5 w-5" />
-            </button>
-            <div className="rounded-circle bg-border-medium h-6 w-6" />
-            <button className="px-spacing-4xs rounded-sm bg-green-400 py-0.5 text-xs text-white">
-              루키
-            </button>
-            <button
-              onClick={logout}
-              className="ml-spacing-4xs text-label-subtle text-xs underline"
-            >
-              로그아웃
-            </button>
+        {isLoggedIn && user ? (
+          <div className="gap-spacing-xs flex items-center">
+            <Bell className="text-label-strong h-[26px] w-[26px]" />
+            <UserDropdownMenu />
           </div>
         ) : (
-          <div className="gap-spacing-3xs flex items-center">
-            <span className="px-spacing-3xs font-caption1 bg-label-primary rounded-xl py-1 text-white">
-              nnn명의 루키가 당신의 경험을 기다리고 있어요!
-            </span>
-            <button
+          <div className="gap-spacing-xs flex items-center">
+            <SquareButton
               onClick={() => router.push('/login')} // ✅ 로그인 페이지 이동
-              className="rounded-xs px-spacing-xs border-border-light border bg-white py-1 text-sm"
+              variant="tertiary"
+              size="md"
             >
               로그인
-            </button>
+            </SquareButton>
           </div>
         )}
       </div>

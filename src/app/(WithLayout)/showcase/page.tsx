@@ -14,7 +14,7 @@ export default function Page() {
   }
 
   const user1 = { role: null }
-  const user2 = { role: 'guide' as const }
+  const user2 = { role: 'GUIDE' as const }
 
   return (
     <section className="gap-gutter grid grid-cols-12 py-10">
@@ -255,21 +255,7 @@ export default function Page() {
 
       {/* Keyword Tags */}
       <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
-        <div className="flex gap-4">
-          <KeywordTag>여덟글자까지가능</KeywordTag>
-          <KeywordTag className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]">
-            여덟글자까지가능
-          </KeywordTag>
-        </div>
-        <div className="flex gap-4">
-          <KeywordTag size="lg">여덟글자까지가능</KeywordTag>
-          <KeywordTag
-            size="lg"
-            className="text-[var(--color-label-white)] [background:var(--color-fill-primary)]"
-          >
-            여덟글자까지가능
-          </KeywordTag>
-        </div>
+        <KeywordTag>여덟글자까지가능</KeywordTag>
       </div>
     </section>
   )

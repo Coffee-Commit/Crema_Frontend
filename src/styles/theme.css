@@ -90,9 +90,12 @@
   --color-fill-active: var(--color-orange-700);
   --color-fill-primary: var(--color-orange-500);
   --color-fill-tooltip-orange: var(--color-orange-200);
+  --color-fill-selected-orange: var(--color-orange-50);
+  --color-fill-timer-red: var(--color-red-500);
   --color-fill-hoobae-green: var(--color-green-400);
   --color-fill-sunbae-yellow: var(--color-yellow-500);
   --color-fill-banner-yellow: var(--color-yellow-100);
+  --color-fill-medium: var(--color-gray-600);
   --color-fill-light: var(--color-gray-400);
   --color-fill-disabled: var(--color-gray-300);
   --color-fill-input-gray: var(--color-gray-100);
@@ -154,6 +157,15 @@
   --radius-2xl: 28px;
   --radius-3xl: 32px;
   --radius-circle: 999px;
+
+  /* Shadow */
+  --shadow-dropdown: 0 4px 10px 0 rgba(0, 0, 0, 0.12);
+  --shadow-card:
+    0 0 4px 0 rgba(95, 95, 96, 0.12),
+    0 2px 8px 0 rgba(95, 95, 96, 0.08);
+  --shadow-emphasize:
+    0 0 1.5px 0 var(--Opacity-light, rgba(0, 0, 0, 0.38)),
+    0 4px 12px 0 rgba(0, 0, 0, 0.04);
 
   /* Container */
   --container-width: 1320px;

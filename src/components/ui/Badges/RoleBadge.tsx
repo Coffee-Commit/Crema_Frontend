@@ -1,11 +1,11 @@
 'use client'
 
 interface RoleBadgeProps {
-  role: 'guide' | null
+  role: 'GUIDE' | 'ROOKIE' | null
 }
 
 export default function RoleBadge({ role }: RoleBadgeProps) {
-  const isGuide = role === 'guide'
+  const isGuide = role === 'GUIDE'
 
   return (
     <span
