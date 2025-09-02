@@ -1,5 +1,7 @@
 import Image from 'next/image'
 
+import { useAuthStore } from '@/store/useAuthStore'
+
 type SocialType = 'google' | 'kakao'
 
 interface SocialButtonProps {
@@ -32,15 +34,13 @@ const CONFIG: Record<
   },
 }
 
-export default function SocialButton({
-  type,
-  onClick,
-}: SocialButtonProps) {
+export default function SocialButton({ type }: SocialButtonProps) {
+  const login = useAuthStore((s) => s.login)
   const { label, src, bg, text, border } = CONFIG[type]
 
   return (
     <button
-      onClick={onClick}
+      onClick={() => login(type)}
       className={`font-label3-medium gap-spacing-5xs px-spacing-10 py-spacing-10 flex h-12 w-full cursor-pointer items-center justify-center rounded-sm transition duration-150 hover:brightness-95 active:brightness-95 ${bg} ${text} ${border ?? ''} `}
     >
       <Image

@@ -1,6 +1,5 @@
 'use client'
 
-import Header from '@/components/layout/Header'
 import SocialButton from '@/components/ui/Buttons/SocialButton'
 // import { useAuthStore } from '@/store/useAuthStore'
 
@@ -9,7 +8,6 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <Header />
       <section className="flex flex-1 items-center justify-center">
         <div className="loginContainer">
           <div className="gap-spacing-5xl flex w-full flex-col items-center justify-center">
