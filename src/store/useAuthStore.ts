@@ -62,6 +62,10 @@ export const useAuthStore = create<State>((set) => ({
 
   // 로그인 시작
   login: (provider) => {
+    console.log(
+      'NEXT_PUBLIC_API_URL:',
+      process.env.NEXT_PUBLIC_API_URL,
+    )
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/${provider}`
   },
 
