@@ -14,7 +14,7 @@ export default function Page() {
   }
 
   const user1 = { role: null }
-  const user2 = { role: 'guide' as const }
+  const user2 = { role: 'GUIDE' as const }
 
   return (
     <section className="gap-gutter grid grid-cols-12 py-10">

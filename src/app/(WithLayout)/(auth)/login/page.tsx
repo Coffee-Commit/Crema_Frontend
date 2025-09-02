@@ -1,10 +1,22 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+
 import SocialButton from '@/components/ui/Buttons/SocialButton'
-// import { useAuthStore } from '@/store/useAuthStore'
+import SquareButton from '@/components/ui/Buttons/SquareButton'
+import { useAuthStore } from '@/store/useAuthStore'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { isLoggedIn, login } = useAuthStore()
   // const { isLoggedIn, login, logout } = useAuthStore()
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      router.push('/') // 로그인되면 메인페이지 이동
+    }
+  }, [isLoggedIn, router])
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -22,6 +34,14 @@ export default function LoginPage() {
             <div className="gap-spacing-3xs flex w-full flex-col">
               <SocialButton type="kakao" />
               <SocialButton type="google" />
+              <SquareButton
+                className="w-full rounded-sm"
+                size="lg"
+                variant="primary"
+                onClick={() => login()}
+              >
+                일반 로그인 (목데이터)
+              </SquareButton>
             </div>
           </div>
           <p className="text-label-subtle font-caption3 gap-spacing-7xs flex items-center">

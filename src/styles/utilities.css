@@ -36,6 +36,9 @@
   .font-body2 {
     font: 600 14px/17px var(--font-pretendard);
   }
+  .font-body3 {
+    font: 400 14px/17px var(--font-pretendard);
+  }
 
   .font-label1-semibold {
     font: 600 20px/20px var(--font-pretendard);

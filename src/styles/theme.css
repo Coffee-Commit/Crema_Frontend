@@ -90,9 +90,12 @@
   --color-fill-active: var(--color-orange-700);
   --color-fill-primary: var(--color-orange-500);
   --color-fill-tooltip-orange: var(--color-orange-200);
+  --color-fill-selected-orange: var(--color-orange-50);
+  --color-fill-timer-red: var(--color-red-500);
   --color-fill-hoobae-green: var(--color-green-400);
   --color-fill-sunbae-yellow: var(--color-yellow-500);
   --color-fill-banner-yellow: var(--color-yellow-100);
+  --color-fill-medium: var(--color-gray-600);
   --color-fill-light: var(--color-gray-400);
   --color-fill-disabled: var(--color-gray-300);
   --color-fill-input-gray: var(--color-gray-100);
