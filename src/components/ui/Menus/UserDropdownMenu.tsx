@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 
 import RoleBadge from '@/components/ui/Badges/RoleBadge'
@@ -8,11 +9,12 @@ import { useAuthStore } from '@/store/useAuthStore'
 
 export default function UserDropdownMenu() {
   const { user, logout } = useAuthStore()
-  const name = user?.nickname ?? '홍길동'
+  const name = user?.nickname ?? '사용자'
   const role = user?.role ?? null
 
   const [open, setOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   // 바깥 클릭 시 닫기
   useEffect(() => {
@@ -54,24 +56,42 @@ export default function UserDropdownMenu() {
       {/* 드롭다운 메뉴 */}
       {open && (
         <div className="px-spacing-4xs py-spacing-5xs gap-spacing-4xs rounded-2xs border-border-subtler bg-fill-white absolute right-0 z-10 mt-4 flex w-[125px] flex-col border shadow-md">
-          <button className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px]">
+          <button
+            onClick={() => {
+              router.push('/mypage')
+              setOpen(false)
+            }}
+            className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px] text-start"
+          >
             마이페이지
           </button>
 
           {role === 'ROOKIE' && (
-            <button className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px]">
+            <button
+              onClick={() => {
+                router.push('/guideapply')
+                setOpen(false)
+              }}
+              className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px] text-start"
+            >
               선배 신청하기
             </button>
           )}
           {role === 'GUIDE' && (
-            <button className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px]">
+            <button
+              onClick={() => {
+                router.push('/mycoffeechat')
+                setOpen(false)
+              }}
+              className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px] text-start"
+            >
               나의 커피챗
             </button>
           )}
 
           <button
             onClick={logout}
-            className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px]"
+            className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px] text-start"
           >
             로그아웃
           </button>
