@@ -8,6 +8,7 @@ pipeline {
         REPO_NAME = 'coffee'
         IMAGE_NAME = 'crema-frontend'
         INFRA_REPO_URL = 'git@github.com:Coffee-Commit/Crema_Infra.git'
+        API_URL = 'https://dev-api-coffeechat.kro.kr'
     }
 
     stages {
@@ -39,7 +40,7 @@ pipeline {
                         def fullImageName = "${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:${imageTag}"
 
                         echo "Building Docker image: ${fullImageName}"
-                        sh "docker build -t ${fullImageName} ."
+                        sh "docker build --build-arg NEXT_PUBLIC_API_URL=${env.API_URL} -t ${fullImageName} ."
 
                         echo "Pushing Docker image: ${fullImageName}"
                         sh "docker push ${fullImageName}"
