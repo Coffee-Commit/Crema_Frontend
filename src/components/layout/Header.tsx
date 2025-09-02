@@ -1,9 +1,12 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+
 import { useAuthStore } from '@/store/useAuthStore'
 
 export default function Header() {
-  const { isLoggedIn, login, logout } = useAuthStore()
+  const { isLoggedIn, logout } = useAuthStore()
+  const router = useRouter()
 
   return (
     <header className="border-border-light bg-bg-default border-b">
@@ -41,7 +44,7 @@ export default function Header() {
               nnn명의 루키가 당신의 경험을 기다리고 있어요!
             </span>
             <button
-              onClick={login}
+              onClick={() => router.push('/login')} // ✅ 로그인 페이지 이동
               className="rounded-xs px-spacing-xs border-border-light border bg-white py-1 text-sm"
             >
               로그인
