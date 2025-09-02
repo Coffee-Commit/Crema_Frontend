@@ -74,6 +74,9 @@
   .font-label5-medium {
     font: 500 12px/12px var(--font-pretendard);
   }
+  .font-label5-regular {
+    font: 400 12px/12px var(--font-pretendard);
+  }
 
   .font-caption1 {
     font: 500 16px/19px var(--font-pretendard);

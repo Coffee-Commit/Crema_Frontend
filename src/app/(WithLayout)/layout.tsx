@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import '@/styles/globals.css'
 
 import { pretendard } from '@/components/fonts'
+import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
 
 export default function RootLayout({
@@ -17,7 +18,8 @@ export default function RootLayout({
     >
       <body>
         <Header />
-        <main className="container h-full">{children}</main>
+        <main>{children}</main>
+        <Footer />
       </body>
     </html>
   )
