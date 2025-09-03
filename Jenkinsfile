@@ -8,7 +8,7 @@ pipeline {
         REPO_NAME = 'coffee'
         IMAGE_NAME = 'crema-frontend'
         INFRA_REPO_URL = 'git@github.com:Coffee-Commit/Crema_Infra.git'
-        API_URL = 'https://dev-api-coffeechat.kro.kr'
+        API_URL = 'https://coffeechat.kro.kr'
     }
 
     stages {
