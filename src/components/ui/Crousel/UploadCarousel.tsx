@@ -13,7 +13,7 @@ interface UploadCarouselProps {
     rating: number
     reviewCount: number
     mentorName: string
-    profileImage?: string
+    profileImage?: string | null
   }[]
 }
 

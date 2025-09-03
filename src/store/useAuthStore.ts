@@ -153,14 +153,40 @@ export const useAuthStore = create<State>((set) => ({
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/${provider}`
   },
 
+  // // 로그아웃
+  // logout: async () => {
+  //   try {
+  //     await api.post('/api/auth/logout')
+  //     set({ user: null, isLoggedIn: false })
+  //     window.location.href = '/login'
+  //   } catch (e) {
+  //     console.error('로그아웃 실패:', e)
+  //   }
+  // },
+
   // 로그아웃
   logout: async () => {
     try {
-      await api.post('/api/auth/logout')
+      const currentUser = useAuthStore.getState().user
+
+      // 목데이터 로그인일 경우
+      if (currentUser?.provider === 'mock') {
+        set({ user: null, isLoggedIn: false })
+        window.location.href = '/'
+        return
+      }
+
+      // 실제 로그인일 경우 → 서버에도 로그아웃 요청
+      const res = await api.post('/api/auth/logout')
+      console.log('서버 로그아웃 응답:', res.data)
+
       set({ user: null, isLoggedIn: false })
-      window.location.href = '/login'
+      window.location.href = '/'
     } catch (e) {
       console.error('로그아웃 실패:', e)
+      // 혹시 서버 로그아웃 실패해도 상태는 초기화
+      set({ user: null, isLoggedIn: false })
+      window.location.href = '/'
     }
   },
 
