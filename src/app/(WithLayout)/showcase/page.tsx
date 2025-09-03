@@ -4,6 +4,10 @@ import InfoBadge from '@/components/ui/Badges/InfoBadge'
 import RoleBadge from '@/components/ui/Badges/RoleBadge'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
+import CategoryFilter from '@/components/ui/Filters/CategoryFilter'
+import JobFieldFilter from '@/components/ui/Filters/JobFieldFilter'
+import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
+import TextFieldCounter from '@/components/ui/Inputs/TextFieldCounter'
 import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
 import SearchBarSub from '@/components/ui/SearchBar/SearchBarSub'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
@@ -256,6 +260,50 @@ export default function Page() {
       {/* Keyword Tags */}
       <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
         <KeywordTag>여덟글자까지가능</KeywordTag>
+      </div>
+
+      {/* Filter groups */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <JobFieldFilter />
+        <CategoryFilter />
+      </div>
+
+      {/* TextArea */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <TextAreaCounter
+          placeholder="사전 전달 내용을 작성해주세요. 자세할수록 선배가 참고하기에 용이합니다."
+          maxLength={2000}
+        />
+        <TextAreaCounter
+          placeholder="사전 전달 내용을 작성해주세요. 자세할수록 선배가 참고하기에 용이합니다."
+          maxLength={60}
+        />
+      </div>
+
+      {/* TextField */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        {/* 기본 */}
+        <TextFieldCounter
+          placeholder="닉네임 입력값"
+          maxLength={10}
+          helperText="이미 사용 중인 닉네임입니다."
+        />
+
+        {/* 비활성 */}
+        <TextFieldCounter
+          placeholder="닉네임 입력값"
+          maxLength={10}
+          status="disabled"
+          helperText="이미 사용 중인 닉네임입니다."
+        />
+
+        {/* 에러 */}
+        <TextFieldCounter
+          placeholder="닉네임 입력값"
+          maxLength={10}
+          status="error"
+          helperText="이미 사용 중인 닉네임입니다."
+        />
       </div>
     </section>
   )

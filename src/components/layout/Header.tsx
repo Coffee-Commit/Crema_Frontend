@@ -16,7 +16,12 @@ export default function Header() {
       <div className="container flex h-14 items-center justify-between">
         {/* 로고 + 가이드 */}
         <div className="gap-spacing-xs flex items-center">
-          <span className="text-label-deep font-title3">Crema</span>
+          <span
+            className="text-label-deep font-title3 cursor-pointer"
+            onClick={() => router.push('/')}
+          >
+            Crema
+          </span>
           <span className="font-body2 text-label-default hidden md:inline">
             선배 찾기
           </span>
