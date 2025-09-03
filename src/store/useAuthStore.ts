@@ -66,7 +66,7 @@
 //       'NEXT_PUBLIC_API_URL:',
 //       process.env.NEXT_PUBLIC_API_URL,
 //     )
-//     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/${provider}`
+//     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/oauth2/authorization/${provider}`
 //   },
 
 //   // 로그아웃
@@ -146,7 +146,7 @@ export const useAuthStore = create<State>((set) => ({
 
   // 실제 로그인 시작
   login: (provider) => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/${provider}`
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/oauth2/authorization/${provider}`
   },
 
   // // 로그아웃
