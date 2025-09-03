@@ -146,10 +146,6 @@ export const useAuthStore = create<State>((set) => ({
 
   // 실제 로그인 시작
   login: (provider) => {
-    console.log(
-      'NEXT_PUBLIC_API_URL:',
-      process.env.NEXT_PUBLIC_API_URL,
-    )
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/${provider}`
   },
 
@@ -164,7 +160,7 @@ export const useAuthStore = create<State>((set) => ({
   //   }
   // },
 
-  // 로그아웃
+  // 로그아웃 - 목데이터 추가 버전
   logout: async () => {
     try {
       const currentUser = useAuthStore.getState().user
