@@ -4,13 +4,23 @@ import InfoBadge from '@/components/ui/Badges/InfoBadge'
 import RoleBadge from '@/components/ui/Badges/RoleBadge'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
+import DetailedExperienceCard from '@/components/ui/Cards/DetailedExperienceCard'
+import ExperienceCard from '@/components/ui/Cards/ExperienceCard'
+import OverallRatingCard from '@/components/ui/Cards/OverallRatingCard'
+import OverviewCard from '@/components/ui/Cards/OverviewCard'
+import ReviewCard from '@/components/ui/Cards/ReviewCard'
+import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
 import CategoryFilter from '@/components/ui/Filters/CategoryFilter'
 import JobFieldFilter from '@/components/ui/Filters/JobFieldFilter'
 import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
 import TextFieldCounter from '@/components/ui/Inputs/TextFieldCounter'
+import Pagination from '@/components/ui/Paginations/Pagination'
 import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
 import SearchBarSub from '@/components/ui/SearchBar/SearchBarSub'
+import CircleTag from '@/components/ui/Tags/CircleTag'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
+import NumberTag from '@/components/ui/Tags/NumberTag'
+import LabeledToggle from '@/components/ui/Toggle/LabledToggle'
 
 export default function Page() {
   const handleSearch = (value: string) => {
@@ -262,6 +272,35 @@ export default function Page() {
         <KeywordTag>여덟글자까지가능</KeywordTag>
       </div>
 
+      {/* Circle Tags */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <CircleTag variant="primary">대상</CircleTag>
+        <CircleTag variant="secondary">대상</CircleTag>
+        <CircleTag variant="outline">대상</CircleTag>
+        <CircleTag variant="light">대상</CircleTag>
+        <CircleTag variant="disabled">대상</CircleTag>
+      </div>
+
+      {/* Nuumber Tags */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <NumberTag value={12} />
+        <NumberTag value={3} />
+        <NumberTag
+          value={120}
+          max={99}
+        />{' '}
+        {/* 99+ 로 표시 */}
+      </div>
+
+      {/* Toggle Switch */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <LabeledToggle
+          label="커피챗 공개 여부"
+          checked={true}
+          onChange={(val) => console.log('토글 상태:', val)}
+        />
+      </div>
+
       {/* Filter groups */}
       <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
         <JobFieldFilter />
@@ -304,6 +343,104 @@ export default function Page() {
           status="error"
           helperText="이미 사용 중인 닉네임입니다."
         />
+      </div>
+
+      {/* Pagination */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <Pagination total={10} />
+      </div>
+
+      {/* Card - OvrallRatingCard */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <OverallRatingCard
+          type="star"
+          title="별점"
+          rating={4.5}
+          reviewCount={10}
+        />
+        <OverallRatingCard
+          type="experience"
+          title="가장 도움이 된 경험"
+          label="오늘의집 최종 합격"
+          progress={80}
+          iconSize={18}
+        />
+      </div>
+
+      {/* Card - ExperienceCard */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <ExperienceCard
+          title="실내디자인에서 ‘실내’ 빼기"
+          description="작은 프로젝트 경험을 설득력 있게 담는 것부터 시작해서 포트폴리오를 완성했어요"
+          tag="직무 전환"
+        />
+      </div>
+
+      {/* Card - OverviewCard */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <OverviewCard
+          items={[
+            {
+              label: '대상',
+              content: '전공과 다른 직무를 준비하는 취준생',
+            },
+            {
+              label: '상황',
+              content: '“내가 이 길을 가도 괜찮을까?” 고민될 때',
+            },
+            {
+              label: '내용',
+              content:
+                '비전공자로서 겪은 현실적인 어려움과 성장 경험',
+            },
+          ]}
+        />
+      </div>
+
+      {/* Card - DetailedExperienceCard */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <DetailedExperienceCard
+          title="경험 별 도움된 비율"
+          className="w-full max-w-[625px]"
+          items={[
+            { label: '실내디자인에서 ‘실내’ 빼기', progress: 60 },
+            {
+              label: '전공자 사이에서 살아남기 : 면접 편',
+              progress: 60,
+            },
+            { label: '비전공자의 포트폴리오 완성기', progress: 60 },
+            {
+              label: '오늘의집 최종 합격',
+              progress: 60,
+              iconSrc: '/icons/awardIcon.svg',
+            },
+            {
+              label: '서류부터 면접까지 탈락만 30회+@  ',
+              progress: 60,
+            },
+            {
+              label: '전공자 사이에서 살아남기 : 회사 편',
+              progress: 60,
+            },
+          ]}
+        />
+      </div>
+
+      {/* Card - ReviewCard */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <ReviewCard
+          rating={4.5}
+          text="리뷰내용 스포일러 방지하기 위해 최대 100자로 제한 리뷰내용 스포일러 방지하기 위해 최대 100자로 제한 리뷰내용 스포일러 방지하기 위해 최대 100자로 제한 리뷰내용 스포일러 방지하기 위해 최대 100자로 제한 리뷰내용 스포일러 방지하기 위해 최대 100자로 제한"
+          nickname="익명**"
+          date="2025.08.23"
+          className="w-[840px]"
+        />
+      </div>
+
+      {/* Card - FileUploadCard.tsx */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <FileUploadCard className="w-[600px]" />
+        <FileUploadCard className="w-full max-w-[800px]" />
       </div>
     </section>
   )
