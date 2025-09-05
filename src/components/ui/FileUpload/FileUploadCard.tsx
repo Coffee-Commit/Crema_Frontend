@@ -4,16 +4,16 @@ import clsx from 'clsx'
 import Image from 'next/image'
 import { useState } from 'react'
 
+import SquareButton from '@/components/ui/Buttons/SquareButton'
+
 type FileStatus = 'empty' | 'pending' | 'completed'
 
 interface FileUploadCardProps {
   className?: string
-  multiple?: boolean
 }
 
 export default function FileUploadCard({
   className,
-  multiple = false,
 }: FileUploadCardProps) {
   const [status, setStatus] = useState<FileStatus>('empty')
   const [files, setFiles] = useState<File[]>([])
@@ -49,77 +49,89 @@ export default function FileUploadCard({
           <p className="font-body2 text-label-subtle">
             아직 등록한 파일이 없습니다.
           </p>
-          <label className="bg-fill-primary px-spacing-lg py-spacing-2xs font-label4-semibold text-label-white cursor-pointer rounded-md">
-            파일 등록
-            <input
-              type="file"
-              accept="application/pdf*"
-              multiple={multiple}
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </label>
+          <SquareButton
+            variant="primary"
+            size="md"
+          >
+            <label>
+              파일 등록
+              <input
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </label>
+          </SquareButton>
         </div>
       )}
 
       {/* PENDING 상태 */}
       {status === 'pending' && (
         <>
-          <div className="bg-fill-disabled p-spacing-2xs flex items-center justify-between rounded">
-            <span className="font-body3 text-label-strong">
-              {files[0]?.name ?? '재직증명서 [pdf, 10MB]'}
-            </span>
-            <div className="flex items-center gap-2">
+          <div className="rounded-2xs flex items-center justify-between">
+            <div className="py-spacing-4xs px-spacing-3xs bg-fill-disabled rounded-2xs border-border-subtle flex w-[564px] items-center justify-between border">
+              <span className="font-caption2-medium text-label-strong truncate">
+                {files.map((f) => f.name).join(', ')}
+              </span>
               <Image
-                src="/icons/checkboxGray.svg"
+                src="/images/buttons/checkboxGray.png"
                 alt="checkbox"
                 width={18}
                 height={18}
               />
-              <span className="text-label-subtle font-caption3">
-                인증 대기중
-              </span>
             </div>
+            <SquareButton
+              variant="disabled"
+              size="md"
+            >
+              인증 대기중
+            </SquareButton>
           </div>
-          <p className="mt-spacing-xs font-caption3 text-label-error">
-            제출하신 파일을 확인 중입니다.
-            <br />
-            인증은 평균 1~2일 내로 완료됩니다.
-          </p>
+
+          <div className="gap-spacing-5xs font-caption2-medium text-label-primary flex w-full flex-col text-center">
+            <p>제출하신 파일을 확인 중입니다.</p>
+            <p>인증은 평균 1~2일 내로 완료됩니다.</p>
+          </div>
         </>
       )}
 
       {/* COMPLETED 상태 */}
       {status === 'completed' && (
         <>
-          <div className="bg-fill-disabled p-spacing-2xs flex items-center justify-between rounded">
-            <span className="font-body3 text-label-strong">
-              {files[0]?.name ?? '재직증명서 [pdf, 10MB]'}
-            </span>
-            <div className="flex items-center gap-2">
+          <div className="rounded-2xs flex items-center justify-between">
+            <div className="py-spacing-4xs px-spacing-3xs bg-fill-disabled rounded-2xs border-border-subtle flex w-[564px] items-center justify-between border">
+              <span className="font-caption2-medium text-label-strong truncate">
+                {files.map((f) => f.name).join(', ')}
+              </span>
               <Image
-                src="/icons/checkboxPrimary.svg"
+                src="/images/buttons/checkboxPrimary.png"
                 alt="checkbox"
                 width={18}
                 height={18}
               />
-              <label className="border-border-subtle px-spacing-sm py-spacing-2xs font-label4-semibold text-label-strong cursor-pointer rounded border">
+            </div>
+            <SquareButton
+              variant="tertiary"
+              size="md"
+            >
+              <label>
                 파일 변경
                 <input
                   type="file"
                   accept="application/pdf"
-                  multiple={multiple}
+                  multiple
                   className="hidden"
                   onChange={handleFileChange}
                 />
               </label>
-            </div>
+            </SquareButton>
           </div>
-          <p className="mt-spacing-xs font-caption3 text-label-error">
-            재직 인증이 완료되었습니다.
-            <br />
-            파일 변경 시, 인증 절차가 다시 진행됩니다.
-          </p>
+          <div className="gap-spacing-5xs font-caption2-medium text-label-primary flex w-full flex-col text-center">
+            <p>재직 인증이 완료되었습니다.</p>
+            <p>파일 변경시, 인증 절차가 다시 진행됩니다.</p>
+          </div>
         </>
       )}
     </div>

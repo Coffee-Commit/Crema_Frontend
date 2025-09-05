@@ -31,8 +31,10 @@ const VARIANT_STYLES: Record<ButtonVariant, string> = {
     bg-[var(--color-fill-white)] 
     text-[var(--color-label-default)] 
     border border-[var(--color-border-subtle)]
-    hover:brightness-110
-    active:brightness-90
+    hover:bg-[var(--color-label-primary)] 
+    hover:text-[var(--color-fill-white)] 
+    active:bg-[var(--color-label-primary)] 
+    active:text-[var(--color-fill-white)] 
   `,
   disabled: `
     bg-[var(--color-fill-disabled)] 

@@ -21,6 +21,7 @@ import CircleTag from '@/components/ui/Tags/CircleTag'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
 import NumberTag from '@/components/ui/Tags/NumberTag'
 import LabeledToggle from '@/components/ui/Toggle/LabledToggle'
+import Banner from '@/components/layout/Banner'
 
 export default function Page() {
   const handleSearch = (value: string) => {
@@ -439,8 +440,32 @@ export default function Page() {
 
       {/* Card - FileUploadCard.tsx */}
       <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
-        <FileUploadCard className="w-[600px]" />
-        <FileUploadCard className="w-full max-w-[800px]" />
+        <FileUploadCard className="w-[756px]" />
+      </div>
+
+      {/* Banner.tsx */}
+      <div className="col-span-12 flex flex-col flex-wrap gap-4 rounded-xl bg-yellow-200 p-4">
+        <Banner
+          categories={[
+            '디자인',
+            '직무 전환',
+            '포트폴리오',
+            '자소서',
+            '면접',
+            '합격 경험',
+            '실무',
+          ]}
+          title="실내디자인이나 프로덕트 디자인이나 같은 디자인 아닌가요?"
+          rating={4.5}
+          reviewCount={10}
+          keywords={[
+            '당연히아님',
+            '비전공자',
+            '서류광탈',
+            '편한분위기',
+            '인테리어전문불가',
+          ]}
+        />
       </div>
     </section>
   )
