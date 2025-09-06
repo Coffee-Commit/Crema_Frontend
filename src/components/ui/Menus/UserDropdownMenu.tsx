@@ -31,6 +31,18 @@ export default function UserDropdownMenu() {
       document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // 역할에 따른 마이페이지 경로
+  const handleMypageClick = () => {
+    if (role === 'GUIDE') {
+      router.push('/mypage/guide/dashboard')
+    } else if (role === 'ROOKIE') {
+      router.push('/mypage/rookie/dashboard')
+    } else {
+      router.push('/login') // 로그인 안 된 경우
+    }
+    setOpen(false)
+  }
+
   return (
     <div
       className="relative"
@@ -55,12 +67,9 @@ export default function UserDropdownMenu() {
 
       {/* 드롭다운 메뉴 */}
       {open && (
-        <div className="px-spacing-4xs py-spacing-5xs gap-spacing-4xs rounded-2xs border-border-subtler bg-fill-white shadow-dropdown absolute right-0 z-10 mt-4 flex w-[125px] flex-col border">
+        <div className="px-spacing-4xs py-spacing-5xs gap-spacing-4xs rounded-2xs border-border-subtler bg-fill-white shadow-dropdown absolute right-0 z-10 mt-4 flex w-[140px] flex-col border">
           <button
-            onClick={() => {
-              router.push('/mypage')
-              setOpen(false)
-            }}
+            onClick={handleMypageClick}
             className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px] text-start"
           >
             마이페이지
