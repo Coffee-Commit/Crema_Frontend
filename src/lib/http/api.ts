@@ -20,8 +20,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // 인증 실패 → 로그인 페이지로
-      window.location.href = '/login'
+      // 인증 실패 → 로그인 페이지로 (SSR 안전)
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   },

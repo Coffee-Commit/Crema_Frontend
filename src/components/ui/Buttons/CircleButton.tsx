@@ -5,7 +5,7 @@ type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'disabled'
 type ButtonSize = 'sm' | 'md' | 'lg' | 'xl'
 
 interface ButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'disabled'> {
+  extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
   children: ReactNode
@@ -54,9 +54,10 @@ export default function CircleButton({
   size = 'md',
   children,
   className = '',
+  disabled,
   ...props
 }: ButtonProps) {
-  const isDisabled = variant === 'disabled'
+  const isDisabled = disabled || variant === 'disabled'
 
   return (
     <button
