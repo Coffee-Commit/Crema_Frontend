@@ -118,11 +118,32 @@ type State = {
   mockLogin: () => void // 👈 목데이터 로그인 추가
 }
 
+// 로컬스토리지에서 초기 상태 동기 로드
+function getInitialAuth(): Pick<State, 'user' | 'isLoggedIn'> {
+  if (typeof window === 'undefined')
+    return { user: null, isLoggedIn: false }
+  try {
+    const raw = localStorage.getItem('auth-storage')
+    if (!raw) return { user: null, isLoggedIn: false }
+    const parsed = JSON.parse(raw)
+    const saved = parsed?.state ?? parsed
+    return {
+      user: saved?.user ?? null,
+      isLoggedIn: Boolean(saved?.isLoggedIn),
+    }
+  } catch {
+    return { user: null, isLoggedIn: false }
+  }
+}
+
+const initial = getInitialAuth()
+
 export const useAuthStore = create<State>()(
   persist(
     (set, get) => ({
-      user: null,
-      isLoggedIn: false,
+      // ✅ 첫 렌더부터 저장된 로그인 상태로 시작
+      user: initial.user,
+      isLoggedIn: initial.isLoggedIn,
       loading: false,
 
       // 로그인 상태 확인 + 유저 정보 가져오기
@@ -169,17 +190,17 @@ export const useAuthStore = create<State>()(
           // 목데이터 로그인일 경우
           if (currentUser?.provider === 'mock') {
             set({ user: null, isLoggedIn: false })
-            window.location.href = '/'
+            window.location.assign('/')
             return
           }
 
           await api.post('/api/auth/logout')
           set({ user: null, isLoggedIn: false })
-          window.location.href = '/'
+          window.location.assign('/')
         } catch (e) {
           console.error('로그아웃 실패:', e)
           set({ user: null, isLoggedIn: false })
-          window.location.href = '/'
+          window.location.assign('/')
         }
       },
       // 목데이터 로그인

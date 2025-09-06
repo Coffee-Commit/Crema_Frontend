@@ -22,6 +22,7 @@ export default function MypageSidebar({ user }: { user: User }) {
               width={72}
               height={72}
               className="object-cover"
+              priority
             />
           </div>
           <div className="gap-spacing-3xs flex flex-col">
@@ -56,7 +57,6 @@ export default function MypageSidebar({ user }: { user: User }) {
 
       {/* 네비게이션 */}
       <div className="gap-spacing-xl flex w-full flex-col items-start">
-        {/* 선배 마이페이지 → GUIDE만 접근 */}
         {user.role === 'GUIDE' && (
           <div className="gap-spacing-xs flex w-full flex-col">
             <p className="font-title4 text-label-deep">
@@ -91,7 +91,6 @@ export default function MypageSidebar({ user }: { user: User }) {
           </div>
         )}
 
-        {/* 후배 마이페이지 → ROOKIE & GUIDE 둘 다 접근 가능 */}
         <div className="gap-spacing-xs flex w-full flex-col">
           <p className="font-title4 text-label-deep">
             후배 마이페이지

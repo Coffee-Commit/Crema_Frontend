@@ -1,11 +1,15 @@
 'use client'
 
+import { useState } from 'react'
+
+import ModalStandbyStatus from '@/components/common/ModalStandbyStatus'
+
 import ScheduleTable from '../../_components/Cards/ScheduleTable'
 import StatusCard from '../../_components/Cards/StatusCard'
 
 export default function DashboardPage() {
   const statusData = [
-    { label: '대기 중인 커피챗', count: 5, active: true },
+    { label: '대기 중인 커피챗', count: 5 },
     { label: '예정된 커피챗', count: 0 },
     { label: '완료된 커피챗', count: 0 },
   ]
@@ -34,20 +38,61 @@ export default function DashboardPage() {
     },
   ]
 
+  // 대기 목록 원본
+  const standbyData = [
+    {
+      id: '1',
+      nickname: '차듬박이',
+      applyDate: '25.08.15 오후 20:01',
+      hopeDate: '25.08.26 (화)',
+      hopeTime: '19:00~19:30',
+    },
+    {
+      id: '2',
+      nickname: '아메리카노',
+      applyDate: '25.08.16 오후 18:00',
+      hopeDate: '25.08.28 (목)',
+      hopeTime: '20:00~20:30',
+    },
+  ]
+
+  // 모달에 맞게 변환
+  const applicants = standbyData.map((item) => ({
+    id: item.id,
+    nickname: item.nickname,
+    appliedAt: item.applyDate,
+    preferredDate: item.hopeDate,
+    preferredTime: item.hopeTime,
+    // profileImageUrl: '' // 있으면 추가
+  }))
+
+  // 모달 상태
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalTitle, setModalTitle] = useState('')
+
+  const openStandbyModal = (label: string) => {
+    setModalTitle(label)
+    setIsModalOpen(true)
+  }
+
   return (
-    <div className="gap-spacing-2xl flex flex-col">
+    <div className="flex w-full flex-col gap-[100px]">
       {/* 현황 */}
       <section>
-        <h2 className="font-title3 mb-spacing-md text-label-deep">
+        <h2 className="font-heading2 mb-spacing-3xl text-label-strong">
           커피챗 현황
         </h2>
-        <div className="gap-spacing-md flex">
+        <div className="gap-spacing-xs flex">
           {statusData.map((s) => (
             <StatusCard
               key={s.label}
               label={s.label}
               count={s.count}
-              active={s.active}
+              onClick={
+                s.label === '대기 중인 커피챗'
+                  ? () => openStandbyModal(s.label)
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -55,8 +100,10 @@ export default function DashboardPage() {
 
       {/* 일정 */}
       <section>
-        <div className="mb-spacing-md flex items-center justify-between">
-          <h2 className="font-title3 text-label-deep">커피챗 일정</h2>
+        <div className="mb-spacing-3xl flex items-center justify-between">
+          <h2 className="font-heading2 text-label-strong">
+            커피챗 일정
+          </h2>
           <select className="border-border-subtler font-body3 text-label-default px-spacing-3xs rounded-md border py-[2px]">
             <option value="all">전체</option>
             <option value="waiting">대기 중</option>
@@ -65,6 +112,14 @@ export default function DashboardPage() {
         </div>
         <ScheduleTable items={scheduleData} />
       </section>
+
+      {/* 대기중 모달 */}
+      <ModalStandbyStatus
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        applicants={applicants}
+        title={modalTitle}
+      />
     </div>
   )
 }

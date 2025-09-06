@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -10,6 +11,10 @@ import { useAuthStore } from '@/store/useAuthStore'
 export default function Header() {
   const router = useRouter()
   const { user, isLoggedIn } = useAuthStore()
+
+  // 👇 하이드레이션 미스매치 방지: 마운트 전에는 항상 동일한 UI(스켈레톤)만 렌더
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   return (
     <header className="flex h-[68px] w-full items-center justify-between">
@@ -31,16 +36,30 @@ export default function Header() {
           </span>
         </div>
 
-        {/* 로그인 여부에 따라 다르게 */}
-        {isLoggedIn && user ? (
+        {/* 우측: 마운트 전에는 항상 동일한 스켈레톤으로 SSR/CSR 첫 렌더를 일치시킨다 */}
+        {!mounted ? (
           <div className="gap-spacing-xs flex items-center">
-            <Bell className="text-label-strong h-[26px] w-[26px]" />
+            <div
+              className="bg-fill-disabled h-[26px] w-[26px] rounded-sm"
+              aria-hidden
+            />
+            <div
+              className="bg-fill-disabled h-9 w-[120px] rounded-sm"
+              aria-hidden
+            />
+          </div>
+        ) : isLoggedIn && user ? (
+          <div className="gap-spacing-xs flex items-center">
+            <Bell
+              className="text-label-strong h-[26px] w-[26px]"
+              aria-hidden
+            />
             <UserDropdownMenu />
           </div>
         ) : (
           <div className="gap-spacing-xs flex items-center">
             <SquareButton
-              onClick={() => router.push('/login')} // ✅ 로그인 페이지 이동
+              onClick={() => router.push('/login')}
               variant="tertiary"
               size="md"
             >

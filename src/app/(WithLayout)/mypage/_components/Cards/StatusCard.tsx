@@ -1,38 +1,54 @@
 'use client'
 
 import clsx from 'clsx'
+import { EllipsisVertical } from 'lucide-react'
 
 interface StatusCardProps {
   label: string
   count: number
-  active?: boolean
+  onClick?: () => void
 }
 
 export default function StatusCard({
   label,
   count,
-  active,
+  onClick,
 }: StatusCardProps) {
   return (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : -1}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (!onClick) return
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
       className={clsx(
-        'shadow-card p-spacing-md gap-spacing-xs flex w-[240px] flex-col rounded-md border',
-        active
-          ? 'bg-fill-selected-orange border-fill-primary'
-          : 'bg-fill-white border-border-subtle',
+        'gap-spacing-xs p-spacing-2xs shadow-emphasize group relative',
+        'flex cursor-pointer flex-col justify-center rounded-sm',
+        'transition-colors duration-150',
+        'hover:bg-fill-selected-orange w-full',
       )}
     >
-      <p
+      <EllipsisVertical
         className={clsx(
-          'font-label4-semibold',
-          active
-            ? 'text-label-white bg-fill-primary px-spacing-2xs w-fit rounded-sm py-[2px]'
-            : 'text-label-strong',
+          'right-spacing-2xs top-spacing-2xs absolute',
+          'opacity-0 transition-opacity duration-150',
+          'group-hover:opacity-100',
+          'text-label-default',
         )}
-      >
+        size={24}
+        strokeWidth={2}
+        aria-hidden
+      />
+
+      <span className="font-label3-semibold text-label-deep">
         {label}
-      </p>
-      <span className="font-title1-bold text-label-deep">
+      </span>
+      <span className="font-title2-bold text-label-strong">
         {count}건
       </span>
     </div>
