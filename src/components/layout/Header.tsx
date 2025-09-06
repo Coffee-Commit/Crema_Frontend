@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import UserDropdownMenu from '@/components/ui/Menus/UserDropdownMenu'

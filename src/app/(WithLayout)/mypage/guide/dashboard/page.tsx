@@ -1,7 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import ModalStandbyStatus from '@/components/common/ModalStandbyStatus'
 
@@ -29,11 +28,13 @@ function parseStartEnd(
     const year = 2000 + Number(yy)
     const month = Number(mm) - 1
     const day = Number(dd)
+
     const [rawStart, rawEnd] = preferredTime
       .split('~')
       .map((s) => s.trim())
     const [sh, sm] = rawStart.split(':').map(Number)
     const [eh, em] = rawEnd.split(':').map(Number)
+
     const start = new Date(year, month, day, sh, sm, 0, 0)
     const end = new Date(year, month, day, eh, em, 0, 0)
     if (isNaN(start.getTime()) || isNaN(end.getTime()))
@@ -45,15 +46,14 @@ function parseStartEnd(
 }
 
 export default function DashboardPage() {
-  const router = useRouter()
-  /** ✅ 단일 소스 데이터 (디자인/마크업 안 바꿈) */
+  /** ✅ 단일 소스 데이터 */
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const chats: Chat[] = [
     {
       id: '1',
       nickname: '차듬박이',
       appliedAt: '25.09.15 오후 20:01',
-      preferredDate: '25.09.26 (화)',
+      preferredDate: '25.09.26',
       preferredTime: '19:00~19:30',
       status: 'accepted',
     },
@@ -61,7 +61,7 @@ export default function DashboardPage() {
       id: '2',
       nickname: '아메리카노',
       appliedAt: '25.09.16 오후 18:00',
-      preferredDate: '25.09.28 (목)',
+      preferredDate: '25.09.28',
       preferredTime: '20:00~20:30',
       status: 'rejected',
     },
@@ -69,7 +69,7 @@ export default function DashboardPage() {
       id: '3',
       nickname: '나루토마키',
       appliedAt: '25.09.06 오후 18:00',
-      preferredDate: '25.09.06 (목)',
+      preferredDate: '25.09.06',
       preferredTime: '23:00~23:30',
       status: 'pending',
     },
@@ -77,7 +77,7 @@ export default function DashboardPage() {
       id: '4',
       nickname: '카푸치노',
       appliedAt: '25.08.20 오후 13:40',
-      preferredDate: '25.08.30 (토)',
+      preferredDate: '25.08.30',
       preferredTime: '18:30~19:00',
       status: 'accepted',
     },
@@ -85,7 +85,7 @@ export default function DashboardPage() {
       id: '5',
       nickname: '스타벅스',
       appliedAt: '25.08.20 오후 13:40',
-      preferredDate: '25.09.06 (토)',
+      preferredDate: '25.09.06',
       preferredTime: '15:52~19:00',
       status: 'accepted',
     },
@@ -93,7 +93,7 @@ export default function DashboardPage() {
       id: '6',
       nickname: '스타벅스2',
       appliedAt: '25.08.20 오후 13:40',
-      preferredDate: '25.09.06 (토)',
+      preferredDate: '25.09.06',
       preferredTime: '18:52~23:00',
       status: 'accepted',
     },
@@ -101,7 +101,7 @@ export default function DashboardPage() {
       id: '7',
       nickname: '스타벅스3',
       appliedAt: '25.08.20 오후 13:40',
-      preferredDate: '25.09.06 (토)',
+      preferredDate: '25.09.06',
       preferredTime: '20:52~23:30',
       status: 'accepted',
     },
@@ -109,20 +109,19 @@ export default function DashboardPage() {
       id: '8',
       nickname: '스타벅스4',
       appliedAt: '25.08.20 오후 13:40',
-      preferredDate: '25.09.06 (토)',
-      preferredTime: '19:52~23:00',
+      preferredDate: '25.09.06',
+      preferredTime: '21:52~23:30',
       status: 'accepted',
     },
   ]
 
-  const now = new Date()
+  /** 📌 now를 렌더 시점으로 고정 */
+  const nowRef = useRef(new Date())
 
-  /** 그룹 분류 (요구사항 그대로)
-   * - 대기: pending, rejected
-   * - 예정: accepted & (끝시각 > now)
-   * - 완료: accepted & (끝시각 <= now)
-   */
+  /** 그룹 분류 */
   const group = useMemo(() => {
+    const now = nowRef.current
+
     const pending = chats.filter(
       (c) => c.status === 'pending' || c.status === 'rejected',
     )
@@ -141,9 +140,9 @@ export default function DashboardPage() {
       .map(({ c }) => c)
 
     return { pending, scheduled, done }
-  }, [chats, now])
+  }, [chats])
 
-  /** 현황 카드 (디자인/클래스 변경 없음) */
+  /** 현황 카드 */
   const statusData = [
     {
       key: 'pending',
@@ -158,12 +157,14 @@ export default function DashboardPage() {
     { key: 'done', label: '완료된 커피챗', count: group.done.length },
   ] as const
 
-  /** 일정 섹션: select = 전체/예정/완료 (디자인 유지) */
+  /** 일정 섹션: select = 전체/예정/완료 */
   const [scheduleFilter, setScheduleFilter] = useState<
     'all' | 'scheduled' | 'done'
   >('all')
 
   const scheduleData = useMemo(() => {
+    const now = nowRef.current
+
     const accepted = chats.filter((c) => c.status === 'accepted')
     const withEnd = accepted.map((c) => ({
       c,
@@ -208,16 +209,15 @@ export default function DashboardPage() {
         return now >= openAt && now <= end
       })(),
     }))
-  }, [scheduleFilter, chats, now])
+  }, [scheduleFilter, chats])
 
-  /** ✅ 모달 상태 */
+  /** 모달 상태 */
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalTitle, setModalTitle] = useState('')
   const [modalKey, setModalKey] = useState<
     'pending' | 'scheduled' | 'done'
   >('pending')
 
-  /** 카드 클릭 → 모달 띄우기 (디자인/클래스는 그대로) */
   const openModal = (
     key: 'pending' | 'scheduled' | 'done',
     label: string,
@@ -227,7 +227,7 @@ export default function DashboardPage() {
     setIsModalOpen(true)
   }
 
-  /** 모달에 넘길 applicants: 모달은 “상태 텍스트만” 보여주는 버전 사용 */
+  /** 모달 applicants */
   const applicants = useMemo(() => {
     const source =
       modalKey === 'pending'
@@ -237,7 +237,6 @@ export default function DashboardPage() {
           : group.done
 
     return source.map((c, idx) => ({
-      // key 중복 방지용으로 idx 가미 (실서버에선 id 고유 보장될 수도 있음)
       id: `${c.id}-${idx}`,
       nickname: c.nickname,
       appliedAt: c.appliedAt,
@@ -250,7 +249,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex w-full flex-col gap-[100px]">
-      {/* 현황 (디자인 동일) */}
+      {/* 현황 */}
       <section>
         <h2 className="font-heading2 mb-spacing-3xl text-label-strong">
           커피챗 현황
@@ -261,13 +260,13 @@ export default function DashboardPage() {
               key={s.key}
               label={s.label}
               count={s.count}
-              onClick={() => openModal(s.key, s.label)} // ✅ 클릭 시 모달 오픈
+              onClick={() => openModal(s.key, s.label)}
             />
           ))}
         </div>
       </section>
 
-      {/* 일정 (디자인 동일) */}
+      {/* 일정 */}
       <section>
         <div className="mb-spacing-3xl flex items-center justify-between">
           <h2 className="font-heading2 text-label-strong">
@@ -289,11 +288,14 @@ export default function DashboardPage() {
         </div>
         <ScheduleTable
           items={scheduleData}
-          onEnter={(id) => router.push(`/coffeechatVideo/${id}`)}
+          onEnter={(id) => {
+            // 기본형 라우팅: /coffeechat/[id]
+            window.location.href = `/coffeechatVideo/${id}`
+          }}
         />
       </section>
 
-      {/* ✅ 상태 라벨만 보여주는 모달 (디자인 그대로) */}
+      {/* 상태 라벨 모달 */}
       <ModalStandbyStatus
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
