@@ -39,7 +39,10 @@ export default function Pagination({
 
   return (
     <div
-      className={clsx('gap-spacing-2xs flex items-center', className)}
+      className={clsx(
+        'gap-spacing-2xs flex w-full items-center justify-center',
+        className,
+      )}
     >
       <button
         onClick={() => handleChange(Math.max(1, current - 1))}

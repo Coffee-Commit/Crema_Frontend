@@ -1,8 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 import ModalRespondedStatus from '@/components/common/ModalRespondedStatus' // ✅ 오타 주의!
+
 import ScheduleTable from '../../_components/Cards/ScheduleTable'
 import StatusCard from '../../_components/Cards/StatusCard'
 
@@ -43,6 +45,7 @@ function parseStartEnd(
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   /** ✅ 단일 소스 데이터 (디자인/마크업 안 바꿈) */
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const chats: Chat[] = [
@@ -84,6 +87,30 @@ export default function DashboardPage() {
       appliedAt: '25.08.20 오후 13:40',
       preferredDate: '25.09.06 (토)',
       preferredTime: '15:52~19:00',
+      status: 'accepted',
+    },
+    {
+      id: '6',
+      nickname: '스타벅스2',
+      appliedAt: '25.08.20 오후 13:40',
+      preferredDate: '25.09.06 (토)',
+      preferredTime: '18:52~23:00',
+      status: 'accepted',
+    },
+    {
+      id: '7',
+      nickname: '스타벅스3',
+      appliedAt: '25.08.20 오후 13:40',
+      preferredDate: '25.09.06 (토)',
+      preferredTime: '20:52~23:30',
+      status: 'accepted',
+    },
+    {
+      id: '8',
+      nickname: '스타벅스4',
+      appliedAt: '25.08.20 오후 13:40',
+      preferredDate: '25.09.06 (토)',
+      preferredTime: '19:52~23:00',
       status: 'accepted',
     },
   ]
@@ -262,10 +289,7 @@ export default function DashboardPage() {
         </div>
         <ScheduleTable
           items={scheduleData}
-          onEnter={(id) => {
-            // TODO: 커피챗 방으로 이동 (디자인/마크업 손대지 않음)
-            console.log('enter coffee chat:', id)
-          }}
+          onEnter={(id) => router.push(`/coffeechatVideo/${id}`)}
         />
       </section>
 
