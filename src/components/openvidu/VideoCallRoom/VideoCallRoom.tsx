@@ -10,8 +10,9 @@ import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 import { openViduTestApi } from '@/lib/openvidu/api'
 
 interface VideoCallRoomProps {
-  username: string
-  sessionName: string
+  username?: string
+  sessionName?: string
+  reservationId?: number
 }
 
 const logger = createOpenViduLogger('Room')
@@ -19,6 +20,7 @@ const logger = createOpenViduLogger('Room')
 function VideoCallRoomInner({
   username,
   sessionName,
+  reservationId,
 }: VideoCallRoomProps) {
   const {
     publisher,
@@ -31,6 +33,7 @@ function VideoCallRoomInner({
     isJoining,
     joinSequence,
     joinTestSession,
+    joinSessionByReservation,
     leaveSession,
     clearError,
   } = useOpenViduStore()
@@ -131,13 +134,21 @@ function VideoCallRoomInner({
 
   // 세션 연결 관리 (중복 방지 강화)
   useEffect(() => {
-    // 유효하지 않은 파라미터 체크
-    if (!username || !sessionName) {
+    const isTestMode = !!username && !!sessionName
+    const isProductionMode = !!reservationId
+
+    // 모드 확인
+    if (!isTestMode && !isProductionMode) {
       logger.debug('파라미터 미충족', {
-        username: !!username,
-        sessionName: !!sessionName,
+        hasUsername: !!username,
+        hasSessionName: !!sessionName,
+        hasReservationId: !!reservationId,
       })
       return
+    }
+
+    if (isTestMode && isProductionMode) {
+      logger.warn('양쪽 모드 파라미터가 모두 존재함, 테스트 모드 우선')
     }
 
     // 이미 연결 시도중이거나 연결된 경우 중복 방지
@@ -151,8 +162,9 @@ function VideoCallRoomInner({
       return
     }
 
-    // 동일한 세션 정보인 경우 재연결 방지
+    // 동일한 세션 정보인 경우 재연결 방지 (테스트 모드만)
     if (
+      isTestMode &&
       currentSessionRef.current &&
       currentSessionRef.current.username === username &&
       currentSessionRef.current.sessionName === sessionName &&
@@ -167,16 +179,33 @@ function VideoCallRoomInner({
     const myJoinSeq = joinSeqRef.current
 
     // 세션 정보 업데이트
-    currentSessionRef.current = { username, sessionName }
+    currentSessionRef.current = isTestMode 
+      ? { username: username!, sessionName: sessionName! }
+      : { username: '', sessionName: '' }
     connectionAttempted.current = true
 
-    logger.info('세션 연결 시작', { username, sessionName, joinSeq: myJoinSeq })
+    logger.info('세션 연결 시작', { 
+      mode: isTestMode ? 'test' : 'production',
+      username, 
+      sessionName, 
+      reservationId,
+      joinSeq: myJoinSeq 
+    })
     
-    joinTestSession(username, sessionName)
+    const joinPromise = isTestMode 
+      ? joinTestSession(username!, sessionName!)
+      : joinSessionByReservation(reservationId!)
+
+    joinPromise
       .then(() => {
         // 오래된 요청인지 확인
         if (joinSeqRef.current === myJoinSeq) {
-          logger.debug('세션 연결 성공', { username, sessionName })
+          logger.debug('세션 연결 성공', { 
+            mode: isTestMode ? 'test' : 'production',
+            username, 
+            sessionName,
+            reservationId
+          })
         } else {
           logger.debug('오래된 연결 요청 무시', { myJoinSeq, current: joinSeqRef.current })
         }
@@ -185,14 +214,16 @@ function VideoCallRoomInner({
         // 오래된 요청의 에러는 무시
         if (joinSeqRef.current === myJoinSeq) {
           logger.error('세션 연결 실패', {
+            mode: isTestMode ? 'test' : 'production',
             username,
             sessionName,
+            reservationId,
             error: error.message,
             joinSeq: myJoinSeq,
           })
         }
       })
-  }, [username, sessionName, isJoining, isConnected, connectedUsername, joinSequence, joinTestSession])
+  }, [username, sessionName, reservationId, isJoining, isConnected, connectedUsername, joinSequence, joinTestSession, joinSessionByReservation])
 
   const participantsList = Array.from(participants.values())
 
