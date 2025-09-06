@@ -63,7 +63,7 @@ export default function DashboardPage() {
     appliedAt: item.applyDate,
     preferredDate: item.hopeDate,
     preferredTime: item.hopeTime,
-    // profileImageUrl: '' // 있으면 추가
+    profileImageUrl: '', // 있으면 추가
   }))
 
   // 모달 상태

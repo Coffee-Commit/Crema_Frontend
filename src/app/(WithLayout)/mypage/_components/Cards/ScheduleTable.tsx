@@ -1,80 +1,93 @@
 'use client'
 
-import Image from 'next/image'
-import SquareButton from '@/components/ui/Buttons/SquareButton'
+import clsx from 'clsx'
 
-interface ScheduleItem {
+export type ScheduleItem = {
   id: string
-  profileImageUrl?: string | null
   nickname: string
   date: string
   time: string
-  isActive: boolean
+  isActive: boolean // 전체(all)일 때 과거는 false로 내려옴
+  canJoin: boolean // 시작 5분 전 ~ 종료까지 true
 }
 
-interface ScheduleTableProps {
+export default function ScheduleTable({
+  items,
+  onEnter,
+}: {
   items: ScheduleItem[]
-}
-
-export default function ScheduleTable({ items }: ScheduleTableProps) {
+  onEnter?: (id: string) => void
+}) {
   return (
-    <div className="gap-spacing-xs flex flex-col">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className={`p-spacing-sm flex items-center justify-between rounded-md border ${
-            item.isActive
-              ? 'border-fill-primary bg-fill-white'
-              : 'border-border-subtler bg-fill-disabled'
-          }`}
-        >
-          {/* 좌측 정보 */}
-          <div className="gap-spacing-sm flex items-center">
-            <div className="border-border-subtle bg-fill-disabled flex h-[40px] w-[40px] items-center justify-center overflow-hidden rounded-full border">
-              <Image
-                src={
-                  item.profileImageUrl || '/images/profileMypage.png'
-                }
-                alt="프로필"
-                width={40}
-                height={40}
-                className="object-cover"
-              />
-            </div>
-            <p className="font-body2 text-label-default">
-              {item.nickname}
-            </p>
-          </div>
+    <table className="w-full table-fixed border-collapse text-left">
+      <colgroup>
+        <col className="w-[30%]" />
+        <col className="w-[25%]" />
+        <col className="w-[25%]" />
+        <col className="w-[20%]" />
+      </colgroup>
 
-          {/* 일정 */}
-          <div className="gap-spacing-lg flex items-center">
-            <span className="font-body3 text-label-subtle">
-              {item.date}
-            </span>
-            <span className="font-body3 text-label-subtle">
-              {item.time}
-            </span>
-          </div>
+      <thead className="bg-fill-default">
+        <tr className="h-12">
+          <th className="px-spacing-5xs font-label4-semibold text-label-strong">
+            닉네임
+          </th>
+          <th className="px-spacing-5xs font-label4-semibold text-label-strong">
+            날짜
+          </th>
+          <th className="px-spacing-5xs font-label4-semibold text-label-strong">
+            시간
+          </th>
+          <th className="px-spacing-5xs font-label4-semibold text-label-strong text-right">
+            액션
+          </th>
+        </tr>
+      </thead>
 
-          {/* 버튼 */}
-          <div className="gap-spacing-xs flex items-center">
-            {item.isActive && (
-              <SquareButton
-                variant="primary"
-                size="sm"
-              >
-                커피챗 입장하기
-              </SquareButton>
-            )}
-            <SquareButton
-              variant="secondary"
-              size="sm"
+      <tbody className="[&>tr]:border-border-subtler [&>tr]:border-t">
+        {items.map((item) => {
+          const disabledRow = !item.isActive
+          const canJoin = item.canJoin && item.isActive
+
+          return (
+            <tr
+              key={item.id}
+              className={clsx('h-14', disabledRow && 'opacity-50')}
             >
-              사진자료
-            </SquareButton>
-          </div>
-        </div>
-      ))}
-    </div>
+              <td className="px-spacing-5xs">
+                <span className="font-body3 text-label-default">
+                  {item.nickname}
+                </span>
+              </td>
+              <td className="px-spacing-5xs">
+                <span className="font-body3 text-label-default">
+                  {item.date}
+                </span>
+              </td>
+              <td className="px-spacing-5xs">
+                <span className="font-body3 text-label-default">
+                  {item.time}
+                </span>
+              </td>
+              <td className="px-spacing-5xs text-right">
+                <button
+                  type="button"
+                  disabled={!canJoin}
+                  onClick={() => canJoin && onEnter?.(item.id)}
+                  className={clsx(
+                    'rounded-2xs px-spacing-3xs font-label4-semibold py-[6px]',
+                    canJoin
+                      ? 'bg-fill-selected-orange text-label-deep hover:brightness-95'
+                      : 'bg-fill-disabled text-label-subtle cursor-not-allowed',
+                  )}
+                >
+                  커피챗 입장하기
+                </button>
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
   )
 }
