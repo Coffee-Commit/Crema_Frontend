@@ -27,7 +27,7 @@ function VideoCallRoomContent() {
     })
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
+      <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)]">
         <div className="text-center text-[var(--color-fill-white)]">
           <h2 className="font-title3 mb-[var(--spacing-spacing-6xs)]">
             잘못된 접근
@@ -50,7 +50,7 @@ function VideoCallRoomContent() {
     })
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
+      <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)]">
         <div className="text-center text-[var(--color-fill-white)]">
           <h2 className="font-title3 mb-[var(--spacing-spacing-6xs)]">
             잘못된 파라미터
@@ -80,7 +80,7 @@ export default function VideoCallRoomPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
+        <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)]">
           <div className="text-center text-[var(--color-fill-white)]">
             <div className="mx-auto mb-[var(--spacing-spacing-md)] h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-label-primary)]"></div>
             <p className="font-body2">로딩 중...</p>

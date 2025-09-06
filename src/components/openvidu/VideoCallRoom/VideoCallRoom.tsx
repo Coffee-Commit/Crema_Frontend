@@ -210,7 +210,7 @@ function VideoCallRoomInner({
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
+      <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)]">
         <div className="text-center text-[var(--color-fill-white)]">
           <div className="mb-[var(--spacing-spacing-md)]">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-label-primary)]"></div>
@@ -223,7 +223,7 @@ function VideoCallRoomInner({
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)] p-[var(--spacing-spacing-xs)]">
+      <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)] p-[var(--spacing-spacing-xs)]">
         <div className="w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--color-fill-white)] p-[var(--spacing-spacing-lg)] text-center">
           <div className="mb-[var(--spacing-spacing-md)] text-[var(--color-label-error)]">
             <svg
@@ -254,7 +254,7 @@ function VideoCallRoomInner({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--color-gray-900)]">
+    <div className="flex h-[calc(100vh-68px)] overflow-hidden bg-[var(--color-gray-900)]">
       {/* 메인 비디오 영역 */}
       <div className="flex flex-1">
         {/* 좌측 비디오 영역 */}
@@ -384,7 +384,7 @@ function VideoCallRoomInner({
 const VideoCallRoom = dynamic(() => Promise.resolve(VideoCallRoomInner), {
   ssr: false,
   loading: () => (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
+    <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)]">
       <div className="text-center text-[var(--color-fill-white)]">
         <div className="mx-auto mb-[var(--spacing-spacing-md)] h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-label-primary)]"></div>
         <p className="font-body2">비디오 통화 준비 중...</p>
