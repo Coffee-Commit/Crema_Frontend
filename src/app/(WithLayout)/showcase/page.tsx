@@ -1,5 +1,6 @@
 'use client'
 
+import Banner from '@/components/layout/Banner'
 import InfoBadge from '@/components/ui/Badges/InfoBadge'
 import RoleBadge from '@/components/ui/Badges/RoleBadge'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
@@ -21,7 +22,6 @@ import CircleTag from '@/components/ui/Tags/CircleTag'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
 import NumberTag from '@/components/ui/Tags/NumberTag'
 import LabeledToggle from '@/components/ui/Toggle/LabledToggle'
-import Banner from '@/components/layout/Banner'
 
 export default function Page() {
   const handleSearch = (value: string) => {
