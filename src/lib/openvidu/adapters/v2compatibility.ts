@@ -380,31 +380,94 @@ export class OpenViduV2CompatibilityAdapter
         throw new Error('OpenVidu 인스턴스가 없습니다.')
       }
 
+      // 미디어 장치 사전 확인
+      let actualConfig = { ...config }
+      
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const hasVideoInput = devices.some(device => device.kind === 'videoinput')
+        const hasAudioInput = devices.some(device => device.kind === 'audioinput')
+
+        logger.debug('미디어 장치 확인', {
+          hasVideoInput,
+          hasAudioInput,
+          videoInputCount: devices.filter(d => d.kind === 'videoinput').length,
+          audioInputCount: devices.filter(d => d.kind === 'audioinput').length
+        })
+
+        // 비디오 장치가 없으면 오디오 전용으로 폴백
+        if (!hasVideoInput && config.publishVideo) {
+          logger.warn('비디오 장치 없음, 오디오 전용으로 폴백')
+          actualConfig.publishVideo = false
+          actualConfig.videoSource = false
+        }
+
+        // 오디오 장치가 없으면 비디오 전용으로 폴백
+        if (!hasAudioInput && config.publishAudio) {
+          logger.warn('오디오 장치 없음, 비디오 전용으로 폴백')
+          actualConfig.publishAudio = false
+          actualConfig.audioSource = false
+        }
+      } catch (deviceError) {
+        logger.warn('미디어 장치 열거 실패, 기본 설정 유지', { deviceError })
+      }
+
       // v2 호환성 설정 변환
       const publisherOptions = {
-        audioSource: config.audioSource,
-        videoSource: config.videoSource,
-        publishAudio: config.publishAudio,
-        publishVideo: config.publishVideo,
-        resolution: config.resolution,
-        frameRate: config.frameRate,
-        insertMode: config.insertMode || 'APPEND',
-        mirror: config.mirror !== undefined ? config.mirror : false,
+        audioSource: actualConfig.audioSource,
+        videoSource: actualConfig.videoSource,
+        publishAudio: actualConfig.publishAudio,
+        publishVideo: actualConfig.publishVideo,
+        resolution: actualConfig.resolution,
+        frameRate: actualConfig.frameRate,
+        insertMode: actualConfig.insertMode || 'APPEND',
+        mirror: actualConfig.mirror !== undefined ? actualConfig.mirror : false,
       }
 
       // v3 성능 기능이 활성화된 경우 추가 설정
-      if (featureFlags.enableSimulcast && config.publishVideo) {
+      if (featureFlags.enableSimulcast && actualConfig.publishVideo) {
         ;(publisherOptions as any).simulcast = true
       }
 
-      const publisher = this.openViduInstance.initPublisher(
-        undefined,
-        publisherOptions,
-      )
+      // Publisher 초기화 시도 (에러 발생시 재시도)
+      let publisher: Publisher
+      try {
+        publisher = this.openViduInstance.initPublisher(
+          undefined,
+          publisherOptions,
+        )
+      } catch (initError: any) {
+        // 비디오 장치 관련 에러인 경우 오디오 전용으로 재시도
+        if (
+          initError?.name === 'INPUT_VIDEO_DEVICE_NOT_FOUND' ||
+          initError?.message?.includes('NotFoundError') ||
+          initError?.message?.includes('Requested device not found')
+        ) {
+          logger.warn('비디오 장치 에러로 인한 오디오 전용 재시도', {
+            errorName: initError.name,
+            errorMessage: initError.message
+          })
+          
+          const audioOnlyOptions = {
+            ...publisherOptions,
+            publishVideo: false,
+            videoSource: false
+          }
+          
+          publisher = this.openViduInstance.initPublisher(
+            undefined,
+            audioOnlyOptions,
+          )
+        } else {
+          throw initError
+        }
+      }
 
       const duration = performance.now() - startTime
       logger.debug('Publisher 생성 완료', {
         durMs: Math.round(duration),
+        publishAudio: actualConfig.publishAudio,
+        publishVideo: actualConfig.publishVideo
       })
 
       return publisher
