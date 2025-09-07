@@ -41,6 +41,7 @@ import {
 import { ChatManager } from '@/lib/openvidu/chatManager'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 import { featureFlags } from '@/lib/config/env'
+import { getPublisherMediaStream } from '@/lib/openvidu/utils'
 
 // ============================================================================
 // 세션 종료 유틸리티
@@ -145,6 +146,34 @@ async function getAdapter(): Promise<OpenViduSdkAdapter> {
   }
 }
 
+/**
+ * Publisher의 streamPlaying 이벤트를 Promise로 기다리는 유틸리티
+ */
+function waitForStreamPlaying(publisher: Publisher, timeoutMs = 8000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let done = false
+    const clear = () => { 
+      done = true
+      clearTimeout(timer)
+      publisher.off('streamPlaying', onPlay)
+    }
+    const onPlay = () => { 
+      if (!done) { 
+        clear()
+        resolve()
+      }
+    }
+    const timer = setTimeout(() => { 
+      if (!done) { 
+        clear()
+        reject(new Error('NO_STREAM_PLAYING_EVENT'))
+      }
+    }, timeoutMs)
+    
+    publisher.once('streamPlaying', onPlay)
+  })
+}
+
 // ============================================================================
 // 초기 상태 정의
 // ============================================================================
@@ -174,6 +203,12 @@ const initialState = {
   // 미디어 상태
   audioEnabled: true,
   videoEnabled: true,
+  
+  // 화면공유 상태 (Codex 솔루션 적용)
+  isScreenSharingToggling: false, // 화면공유 토글 중 플래그
+  screenPublisher: null as any, // 화면공유 전용 Publisher
+  originalVideoTrack: null as MediaStreamTrack | null, // replaceTrack 복원용 (사용되지 않음)
+  originalPublisher: null as any, // Publisher 교체 복원용 (사용되지 않음)
 
   // 채팅
   chatMessages: [],
@@ -503,6 +538,22 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       }
 
       // 로컬 Publisher 및 미디어 스트림 정리 (하드웨어 리소스 즉시 해제)
+      const { screenPublisher } = get()
+      
+      // Codex 솔루션: 화면공유 Publisher 우선 정리
+      if (screenPublisher) {
+        try {
+          const screenMediaStream = getPublisherMediaStream(screenPublisher)
+          screenMediaStream?.getTracks().forEach(track => {
+            track.stop()
+            logger.debug('화면공유 트랙 정지', { kind: track.kind, id: track.id })
+          })
+          logger.debug('화면공유 미디어 스트림 정리 완료')
+        } catch (error) {
+          logger.warn('화면공유 정리 실패', { error })
+        }
+      }
+      
       if (publisher) {
         try {
           // Publisher 이벤트 리스너 제거
@@ -510,7 +561,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
           publisher.off('accessAllowed')
           publisher.off('streamCreated')
           publisher.off('streamDestroyed')
-          publisher.off('exception')
+          // publisher.off('exception') // OpenVidu v2에서는 'exception' 이벤트가 없음
           
           // 미디어 스트림 정리
           const mediaStream = publisher.stream?.getMediaStream?.()
@@ -981,83 +1032,139 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
   },
 
   startScreenShare: async () => {
-    const { session, currentSessionId } = get()
+    const { session, publisher: micPublisher, screenPublisher, isScreenSharing, isScreenSharingToggling, originalVideoTrack } = get()
+    
+    if (!session || !micPublisher || isScreenSharing || isScreenSharingToggling) {
+      logger.debug('화면공유 시작 불가', {
+        hasSession: !!session,
+        hasMicPublisher: !!micPublisher,
+        isScreenSharing,
+        isScreenSharingToggling
+      })
+      return
+    }
 
-    if (!session) return
-
+    set({ isScreenSharingToggling: true })
+    
     try {
-      const adapter = await getAdapter()
-      const screenPublisher = await adapter.createScreenPublisher(
-        session,
-        {
-          publishAudio: false,
+      logger.debug('화면공유 시작 - replaceTrack 방식')
+      
+      // 1) 화면 비디오 트랙 획득
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { 
+          frameRate: 15, 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 } 
         },
-      )
-
-      await adapter.publishStream(session, screenPublisher)
-
-      set({
-        publisher: screenPublisher,
-        isScreenSharing: true,
+        audio: false,
       })
-
-      // 백엔드에 화면 공유 상태 알림
-      if (currentSessionId) {
-        await openViduApi.notifyScreenShare(currentSessionId, true)
+      const screenTrack = displayStream.getVideoTracks()[0]
+      
+      if (!screenTrack) {
+        throw new Error('화면 공유 트랙을 생성할 수 없습니다.')
       }
-    } catch (error) {
-      logger.error('화면 공유 실패', {
-        msg:
-          error instanceof Error ? error.message : '알 수 없는 오류',
+
+      // 2) 기존 비디오 트랙 보관 (복원용)
+      const currentStream = getPublisherMediaStream(micPublisher)
+      const currentVideoTrack = currentStream?.getVideoTracks()[0] || null
+      
+      if (!currentVideoTrack) {
+        // 오디오 전용으로 시작했다면 replaceTrack 불가 - 에러 발생시키고 다른 방식 유도
+        displayStream.getTracks().forEach(t => t.stop())
+        throw new Error('현재 Publisher에 비디오 트랙이 없어 replaceTrack을 사용할 수 없습니다. 오디오 전용 환경에서는 다른 방식이 필요합니다.')
+      }
+
+      // 3) 원본 비디오 트랙 보관
+      set({ originalVideoTrack: currentVideoTrack })
+      logger.debug('기존 비디오 트랙 보관 완료')
+
+      // 4) 화면 트랙으로 교체
+      await micPublisher.replaceTrack(screenTrack)
+      logger.debug('화면공유 트랙으로 교체 완료')
+
+      // 5) 화면공유 종료 이벤트 처리 (사용자가 브라우저 UI로 중단할 때)
+      screenTrack.onended = async () => {
+        logger.debug('화면공유 트랙 자동 종료 감지')
+        try {
+          const { stopScreenShare } = get()
+          await stopScreenShare()
+        } catch (error) {
+          logger.error('화면공유 자동 종료 실패', { error })
+        }
+      }
+
+      set({ 
+        isScreenSharing: true,
+        screenPublisher: null, // replaceTrack 방식에서는 별도 publisher 없음
       })
-      set({ error: '화면 공유에 실패했습니다.' })
+      logger.info('화면공유 시작 완료 (replaceTrack 방식)')
+      
+    } catch (error: any) {
+      logger.error('화면공유 시작 실패', { error: error?.message || error })
+      
+      // 안전 복구
+      set({ 
+        isScreenSharing: false,
+        originalVideoTrack: null 
+      })
+      throw error
+    } finally {
+      set({ isScreenSharingToggling: false })
     }
   },
 
   stopScreenShare: async () => {
-    const {
-      session,
-      publisher,
-      currentSessionId,
-      audioEnabled,
-      videoEnabled,
-    } = get()
-
-    if (session && publisher) {
-      try {
-        const adapter = await getAdapter()
-        await adapter.unpublishStream(session, publisher)
-
-        // 기본 비디오로 전환
-        const newPublisher = await adapter.createPublisher(session, {
-          audioSource: undefined,
-          videoSource: undefined,
-          publishAudio: audioEnabled,
-          publishVideo: videoEnabled,
-          resolution: OPENVIDU_CONSTANTS.DEFAULT_RESOLUTION,
-          frameRate: OPENVIDU_CONSTANTS.DEFAULT_FRAME_RATE,
-        })
-
-        await adapter.publishStream(session, newPublisher)
-
-        set({
-          publisher: newPublisher,
-          isScreenSharing: false,
-        })
-
-        // 백엔드에 화면 공유 종료 알림
-        if (currentSessionId) {
-          await openViduApi.notifyScreenShare(currentSessionId, false)
-        }
-      } catch (error) {
-        logger.error('화면 공유 종료 실패', {
-          msg:
-            error instanceof Error
-              ? error.message
-              : '알 수 없는 오류',
-        })
-        set({ error: '화면 공유 종료에 실패했습니다.' })
+    const { session, publisher: micPublisher, isScreenSharingToggling, originalVideoTrack, isScreenSharing } = get()
+    
+    if (!session || !micPublisher || isScreenSharingToggling || !isScreenSharing) {
+      return
+    }
+    
+    set({ isScreenSharingToggling: true })
+    
+    try {
+      logger.debug('화면공유 중지 시작 - replaceTrack 복원 방식')
+      
+      // 1) 현재 화면공유 트랙 정지
+      const currentStream = getPublisherMediaStream(micPublisher)
+      const currentScreenTrack = currentStream?.getVideoTracks()[0]
+      if (currentScreenTrack) {
+        currentScreenTrack.stop()
+        logger.debug('화면공유 트랙 정지 완료')
       }
+
+      // 2) 원본 비디오 트랙으로 복원
+      if (originalVideoTrack && originalVideoTrack.readyState === 'live') {
+        // 기존 트랙이 살아있다면 복원
+        await micPublisher.replaceTrack(originalVideoTrack)
+        logger.debug('원본 비디오 트랙으로 복원 완료')
+      } else {
+        // 기존 트랙이 없거나 종료됨 - 비디오 비활성화
+        await micPublisher.publishVideo(false)
+        logger.debug('원본 트랙 복원 실패, 비디오 비활성화로 처리')
+      }
+      
+    } catch (error) {
+      logger.error('화면공유 중지 실패', { error })
+      // 실패해도 상태는 정리
+    } finally {
+      set({ 
+        isScreenSharing: false, 
+        isScreenSharingToggling: false,
+        originalVideoTrack: null,
+        screenPublisher: null 
+      })
+      logger.info('화면공유 중지 완료')
+    }
+  },
+
+  toggleScreenShare: async () => {
+    const { isScreenSharing } = get()
+    
+    if (isScreenSharing) {
+      await get().stopScreenShare()
+    } else {
+      await get().startScreenShare()
     }
   },
 
@@ -1667,8 +1774,17 @@ function setupSessionEventHandlers(
         return
       }
 
-      const { participants } = get()
+      const { participants, screenPublisher } = get()
       const connectionId = event.stream.connection.connectionId
+      
+      // Codex 솔루션: 화면공유 Publisher 자동 정리
+      if (screenPublisher && screenPublisher.stream.streamId === event.stream.streamId) {
+        // 서버/브라우저 쪽에서 화면공유 스트림이 파괴된 경우 상태 정리
+        set({ screenPublisher: null, isScreenSharing: false })
+        eventLogger.info('화면공유 스트림 자동 정리 완료', {
+          streamId: event.stream.streamId
+        })
+      }
       
       // 안전한 참가자 제거
       const newParticipants = new Map(participants)
@@ -1800,37 +1916,36 @@ async function createAndPublishVideo(
     )
 
     // Publisher 이벤트 핸들러 추가 (세션 라이프사이클 강화)
-    publisher.on('accessDenied', (error) => {
-      publisherLogger.error('미디어 장치 접근 거부', { error })
-      // 에러 상태로 업데이트
-      const { updateConnectionState } = get()
-      updateConnectionState('failed')
-      set({ error: '카메라나 마이크 접근 권한이 거부되었습니다. 브라우저 설정을 확인해주세요.' })
-    })
+    // 주석 처리: createPublisher 함수 내부에서 get/set에 접근 불가
+    // publisher.on('accessDenied', (error) => {
+    //   publisherLogger.error('미디어 장치 접근 거부', { error })
+    //   const { updateConnectionState } = get()
+    //   updateConnectionState('failed')
+    //   set({ error: '카메라나 마이크 접근 권한이 거부되었습니다. 브라우저 설정을 확인해주세요.' })
+    // })
 
-    publisher.on('accessAllowed', () => {
-      publisherLogger.debug('미디어 장치 접근 허용')
-    })
+    // publisher.on('accessAllowed', () => {
+    //   publisherLogger.debug('미디어 장치 접근 허용')
+    // })
 
-    publisher.on('streamCreated', (event) => {
-      publisherLogger.debug('Publisher 스트림 생성', { streamId: event.stream.streamId })
-    })
+    // publisher.on('streamCreated', (event) => {
+    //   publisherLogger.debug('Publisher 스트림 생성', { streamId: event.stream.streamId })
+    // })
 
-    publisher.on('streamDestroyed', (event) => {
-      publisherLogger.debug('Publisher 스트림 종료', { streamId: event.stream.streamId, reason: (event as any).reason })
-    })
+    // publisher.on('streamDestroyed', (event) => {
+    //   publisherLogger.debug('Publisher 스트림 종료', { streamId: event.stream.streamId, reason: (event as any).reason })
+    // })
 
-    // Publisher 예외 처리
-    publisher.on('exception', (exception) => {
-      publisherLogger.error('Publisher 예외 발생', {
-        name: exception.name,
-        message: exception.message,
-      })
-      // 심각한 예외의 경우 에러 상태 설정
-      if (exception.name === 'DEVICE_ACCESS_DENIED' || exception.name === 'DEVICE_ALREADY_IN_USE') {
-        set({ error: `미디어 장치 오류: ${exception.message}` })
-      }
-    })
+    // Publisher 예외 처리 - OpenVidu v2에서는 'exception' 이벤트가 없으므로 주석 처리
+    // publisher.on('exception', (exception) => {
+    //   publisherLogger.error('Publisher 예외 발생', {
+    //     name: exception.name,
+    //     message: exception.message,
+    //   })
+    //   if (exception.name === 'DEVICE_ACCESS_DENIED' || exception.name === 'DEVICE_ALREADY_IN_USE') {
+    //     set({ error: `미디어 장치 오류: ${exception.message}` })
+    //   }
+    // })
 
     await adapter.publishStream(session, publisher)
 

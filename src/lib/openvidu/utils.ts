@@ -1,7 +1,27 @@
-import { StreamManager } from 'openvidu-browser'
+import { StreamManager, Publisher } from 'openvidu-browser'
 import { logger } from '@/lib/utils/logger'
 
 // OpenVidu 관련 유틸리티 함수들
+
+/**
+ * Publisher에서 MediaStream 안전하게 가져오기
+ * OpenVidu의 공식 API만 사용하여 내부 속성 접근 방지
+ */
+export function getPublisherMediaStream(publisher: Publisher): MediaStream | null {
+  try {
+    return publisher.stream?.getMediaStream?.() ?? null
+  } catch (error) {
+    logger.warn('Publisher에서 MediaStream 가져오기 실패:', error)
+    return null
+  }
+}
+
+/**
+ * 객체가 MediaStream인지 타입 가드 함수
+ */
+export function isMediaStream(x: any): x is MediaStream {
+  return x && typeof x.getTracks === 'function'
+}
 
 /**
  * 연결 데이터에서 닉네임 추출

@@ -212,6 +212,12 @@ export interface VideoCallState {
   // 미디어 상태
   audioEnabled: boolean
   videoEnabled: boolean
+  
+  // 화면공유 상태 (replaceTrack 방식)
+  isScreenSharingToggling: boolean // 화면공유 토글 중 플래그
+  screenPublisher: Publisher | null // 화면공유 전용 Publisher (replaceTrack 방식에서는 null)
+  originalVideoTrack: MediaStreamTrack | null // replaceTrack 복원용 원본 비디오 트랙
+  originalPublisher: Publisher | null // Publisher 교체 복원용 (사용되지 않음)
 
   // 채팅
   chatMessages: ChatMessage[]
@@ -262,6 +268,7 @@ export interface VideoCallActions {
   toggleVideo: () => void
   startScreenShare: () => Promise<void>
   stopScreenShare: () => Promise<void>
+  toggleScreenShare: () => Promise<void>
 
   // 채팅
   sendChatMessage: (message: string) => Promise<void>
