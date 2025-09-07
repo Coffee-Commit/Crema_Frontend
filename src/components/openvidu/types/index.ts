@@ -218,6 +218,7 @@ export interface VideoCallState {
   screenPublisher: Publisher | null // 화면공유 전용 Publisher (replaceTrack 방식에서는 null)
   originalVideoTrack: MediaStreamTrack | null // replaceTrack 복원용 원본 비디오 트랙
   originalPublisher: Publisher | null // Publisher 교체 복원용 (사용되지 않음)
+  screenShareCtx: any // ScreenShareContext 저장 (정리용) - any 타입으로 순환 참조 방지
 
   // 채팅
   chatMessages: ChatMessage[]
