@@ -33,7 +33,7 @@ export default function HomePage() {
       reviewCount: 12,
       menteeCount: 34, // ✅ 커피챗한 멘티 수
       mentorName: '선배닉네임',
-      profileImage: '/images/profile1.png',
+      profileImage: null,
     },
     {
       title: '스타트업 이직 성공기, 실패와 배움의 기록',
@@ -43,7 +43,7 @@ export default function HomePage() {
       reviewCount: 20,
       menteeCount: 34, // ✅ 커피챗한 멘티 수
       mentorName: '개발선배',
-      profileImage: '/images/profile2.png',
+      profileImage: null,
     },
     {
       title: '비전공자에서 코딩테스트 합격까지',
@@ -53,6 +53,7 @@ export default function HomePage() {
       reviewCount: 30,
       menteeCount: 34, // ✅ 커피챗한 멘티 수
       mentorName: '백엔드형',
+      profileImage: null,
     },
     {
       title: '비전공자에서 코딩테스트 합격까지2',
@@ -62,6 +63,7 @@ export default function HomePage() {
       reviewCount: 30,
       menteeCount: 34, // ✅ 커피챗한 멘티 수
       mentorName: '백엔드형',
+      profileImage: null,
     },
     {
       title: '비전공자에서 코딩테스트 합격까지3',
@@ -71,6 +73,7 @@ export default function HomePage() {
       reviewCount: 30,
       menteeCount: 34, // ✅ 커피챗한 멘티 수
       mentorName: '백엔드형',
+      profileImage: null,
     },
   ]
   return (

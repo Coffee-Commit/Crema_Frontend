@@ -13,7 +13,7 @@ interface UploadCardProps {
   reviewCount: number
   menteeCount: number
   mentorName: string
-  profileImage?: string
+  profileImage?: string | null
 }
 
 export default function UploadCard({
@@ -24,8 +24,9 @@ export default function UploadCard({
   reviewCount,
   menteeCount,
   mentorName,
-  profileImage = '/img/default-profile.png',
+  profileImage,
 }: UploadCardProps) {
+  const imgSrc = profileImage ?? '/icons/profileDefault.svg'
   return (
     <div className="bg-fill-white pt-spacing-3xl pb-spacing-3xs px-spacing-3xs shadow-emphasize flex w-[300px] flex-col overflow-hidden rounded-[var(--radius-md)]">
       {/* 헤더 + 프로필 */}
@@ -33,7 +34,7 @@ export default function UploadCard({
         {/* 프로필: border-top 선과 절반 겹치게 */}
         <div className="border-strong bg-fill-white absolute left-0 top-1/2 h-[64px] w-[64px] -translate-y-1/2 overflow-hidden rounded-full border">
           <Image
-            src={profileImage}
+            src={imgSrc}
             alt={mentorName}
             width={64}
             height={64}

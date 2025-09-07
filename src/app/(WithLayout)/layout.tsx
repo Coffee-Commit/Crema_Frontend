@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 import '@/styles/globals.css'
-
+import ModalProvider from '@/components/common/ModalProvider'
 import { pretendard } from '@/components/fonts'
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
@@ -20,6 +20,7 @@ export default function RootLayout({
         <Header />
         <main>{children}</main>
         <Footer />
+        <ModalProvider />
       </body>
     </html>
   )

@@ -66,7 +66,7 @@
 //       'NEXT_PUBLIC_API_URL:',
 //       process.env.NEXT_PUBLIC_API_URL,
 //     )
-//     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/${provider}`
+//     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/oauth2/authorization/${provider}`
 //   },
 
 //   // 로그아웃
@@ -84,9 +84,11 @@
 'use client'
 
 import { create } from 'zustand'
-// import api from '@/lib/http/api'
+import { persist } from 'zustand/middleware'
 
-type Provider = 'google' | 'kakao'
+import api from '@/lib/http/api'
+
+type Provider = 'google' | 'kakao' | 'mock'
 
 export type User = {
   id: string
@@ -100,84 +102,131 @@ export type User = {
   createdAt: string
 }
 
-// type ApiResp<T> = {
-//   message: string
-//   result: T
-//   isSuccess: boolean
-// }
+type ApiResp<T> = {
+  message: string
+  result: T
+  isSuccess: boolean
+}
 
 type State = {
   user: User | null
   isLoggedIn: boolean
   loading: boolean
   init: () => Promise<void>
-  login: (provider?: Provider) => void
+  login: (provider: Provider) => void
   logout: () => Promise<void>
+  mockLogin: () => void // 👈 목데이터 로그인 추가
 }
 
-const mockUserBase: Omit<User, 'provider'> = {
-  id: 'mock-user-id',
-  nickname: '오뎅🍥',
-  role: 'GUIDE',
-  phoneNumber: '010-1234-5678',
-  point: 100,
-  profileImageUrl: null,
-  description: '안녕하세요, 선배 오뎅 입니다.',
-  createdAt: new Date().toISOString(),
-}
-
-function getMockUser(provider: Provider = 'google'): User {
-  return {
-    ...mockUserBase,
-    provider,
+// 로컬스토리지에서 초기 상태 동기 로드
+function getInitialAuth(): Pick<State, 'user' | 'isLoggedIn'> {
+  if (typeof window === 'undefined')
+    return { user: null, isLoggedIn: false }
+  try {
+    const raw = localStorage.getItem('auth-storage')
+    if (!raw) return { user: null, isLoggedIn: false }
+    const parsed = JSON.parse(raw)
+    const saved = parsed?.state ?? parsed
+    return {
+      user: saved?.user ?? null,
+      isLoggedIn: Boolean(saved?.isLoggedIn),
+    }
+  } catch {
+    return { user: null, isLoggedIn: false }
   }
 }
 
-export const useAuthStore = create<State>((set) => ({
-  user: null,
-  isLoggedIn: false,
-  loading: false,
+const initial = getInitialAuth()
 
-  init: async () => {
-    set({ loading: true })
-    try {
-      // 실제 API 연동 코드
-      /*
-      const status = await api.get<ApiResp<boolean>>('/api/auth/status')
-      if (status.data.result) {
-        const me = await api.get<ApiResp<User>>('/api/member/me')
-        console.log('유저 정보:', me.data.result)
-        set({ user: me.data.result, isLoggedIn: true })
-      } else {
-        set({ user: null, isLoggedIn: false })
-      }
-      */
+export const useAuthStore = create<State>()(
+  persist(
+    (set, get) => ({
+      // ✅ 첫 렌더부터 저장된 로그인 상태로 시작
+      user: initial.user,
+      isLoggedIn: initial.isLoggedIn,
+      loading: false,
 
-      // ✅ 목데이터 로그인
-      const mockUser = getMockUser()
-      set({ user: mockUser, isLoggedIn: true })
-      console.log('🧪 init에서 목데이터 로그인됨:', mockUser)
-    } catch (e) {
-      console.error('init 실패:', e)
-      set({ user: null, isLoggedIn: false })
-    } finally {
-      set({ loading: false })
-    }
-  },
+      // 로그인 상태 확인 + 유저 정보 가져오기
+      init: async () => {
+        set({ loading: true })
+        try {
+          const status = await api.get<ApiResp<boolean>>(
+            '/api/auth/status',
+          )
+          if (status.data.result) {
+            const me = await api.get<ApiResp<User>>('/api/member/me')
+            set({ user: me.data.result, isLoggedIn: true })
+          } else {
+            set({ user: null, isLoggedIn: false })
+          }
+        } catch (e) {
+          console.error('init 실패:', e)
+          set({ user: null, isLoggedIn: false })
+        } finally {
+          set({ loading: false })
+        }
+      },
 
-  login: (provider?: Provider) => {
-    const mockUser = getMockUser(provider)
-    set({ user: mockUser, isLoggedIn: true })
-    console.log('🧪 login에서 목데이터 로그인됨:', mockUser)
-  },
+      // 실제 로그인 시작
+      login: (provider) => {
+        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/oauth2/authorization/${provider}`
+      },
 
-  logout: async () => {
-    try {
-      // await api.post('/api/auth/logout')
-      set({ user: null, isLoggedIn: false })
-      window.location.href = '/login'
-    } catch (e) {
-      console.error('로그아웃 실패:', e)
-    }
-  },
-}))
+      // // 로그아웃
+      // logout: async () => {
+      //   try {
+      //     await api.post('/api/auth/logout')
+      //     set({ user: null, isLoggedIn: false })
+      //     window.location.href = '/login'
+      //   } catch (e) {
+      //     console.error('로그아웃 실패:', e)
+      //   }
+      // },
+
+      // 로그아웃 - 목데이터 추가 버전
+      logout: async () => {
+        try {
+          const currentUser = get().user
+          // 목데이터 로그인일 경우
+          if (currentUser?.provider === 'mock') {
+            set({ user: null, isLoggedIn: false })
+            window.location.assign('/')
+            return
+          }
+
+          await api.post('/api/auth/logout')
+          set({ user: null, isLoggedIn: false })
+          window.location.assign('/')
+        } catch (e) {
+          console.error('로그아웃 실패:', e)
+          set({ user: null, isLoggedIn: false })
+          window.location.assign('/')
+        }
+      },
+      // 목데이터 로그인
+      mockLogin: () => {
+        set({
+          user: {
+            id: 'mock-1',
+            nickname: '오뎅🍥',
+            role: 'ROOKIE',
+            phoneNumber: null,
+            point: 999,
+            profileImageUrl: null,
+            description: '안녕하세요, 후배 오뎅 입니다.',
+            provider: 'mock',
+            createdAt: new Date().toISOString(),
+          },
+          isLoggedIn: true,
+        })
+      },
+    }),
+    {
+      name: 'auth-storage', // localStorage 키 이름
+      partialize: (state) => ({
+        user: state.user,
+        isLoggedIn: state.isLoggedIn,
+      }),
+    },
+  ),
+)
