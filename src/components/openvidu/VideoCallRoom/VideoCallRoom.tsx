@@ -47,6 +47,7 @@ function VideoCallRoomInner({
     sessionName: string
   } | null>(null)
   const joinSeqRef = useRef(0)
+  const joinAbortKeyRef = useRef<string | null>(null)
 
   // 환경 정보 로깅 함수 (마운트 시 1회만 실행)
   const logEnvironmentInfo = async () => {
@@ -91,8 +92,11 @@ function VideoCallRoomInner({
     return () => {
       logger.debug('컴포넌트 언마운트 시작')
       
-      // API 요청 취소 (동기)
-      openViduTestApi.cancelAllRequests()
+      // 현재 join 요청만 취소 (글로벌 취소 방지)
+      if (joinAbortKeyRef.current) {
+        openViduTestApi.cancelRequest(joinAbortKeyRef.current)
+        joinAbortKeyRef.current = null
+      }
       
       // 세션 종료 (비동기, 오류 무시)
       leaveSession().catch((error) => {
@@ -113,8 +117,10 @@ function VideoCallRoomInner({
       
       // best-effort로 세션 종료 시도 (실패해도 무시)
       try {
-        // 동기적으로 실행 가능한 정리 작업만
-        openViduTestApi.cancelAllRequests()
+        // 현재 join 요청만 취소 (동기)
+        if (joinAbortKeyRef.current) {
+          openViduTestApi.cancelRequest(joinAbortKeyRef.current)
+        }
         
         // 비동기 세션 종료는 시도만 하고 결과를 기다리지 않음
         leaveSession().catch(() => {

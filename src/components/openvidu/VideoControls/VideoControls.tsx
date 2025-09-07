@@ -16,8 +16,7 @@ export default function VideoControls() {
     loading,
     toggleAudio,
     toggleVideo,
-    startScreenShare,
-    stopScreenShare,
+    toggleScreenShare,
     leaveSession,
   } = useOpenViduStore()
 
@@ -75,13 +74,8 @@ export default function VideoControls() {
     logger.debug('화면공유 토글 시작', { currentState: isScreenSharing })
     
     try {
-      if (isScreenSharing) {
-        await stopScreenShare()
-        logger.debug('화면공유 중지 완료')
-      } else {
-        await startScreenShare()
-        logger.debug('화면공유 시작 완룼')
-      }
+      await toggleScreenShare()
+      logger.debug('화면공유 토글 완료', { newState: !isScreenSharing })
     } catch (error) {
       logger.error('화면공유 토글 실패', { error, action: isScreenSharing ? 'stop' : 'start' })
     } finally {
