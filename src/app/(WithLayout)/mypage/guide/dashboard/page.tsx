@@ -12,8 +12,8 @@ type Chat = {
   id: string
   nickname: string
   appliedAt: string
-  preferredDate: string // 예: '25.09.26 (화)'
-  preferredTime: string // 예: '19:00~19:30'
+  preferredDate: string
+  preferredTime: string
   profileImageUrl?: string | null
   status: ChatStatus
 }
@@ -269,22 +269,25 @@ export default function DashboardPage() {
       {/* 일정 */}
       <section>
         <div className="mb-spacing-3xl flex items-center justify-between">
-          <h2 className="font-heading2 text-label-strong">
-            커피챗 일정
-          </h2>
-          <select
-            value={scheduleFilter}
-            onChange={(e) =>
-              setScheduleFilter(
-                e.target.value as 'all' | 'scheduled' | 'done',
-              )
-            }
-            className="border-border-subtler font-body3 text-label-default px-spacing-3xs rounded-md border py-[2px]"
-          >
-            <option value="all">전체</option>
-            <option value="scheduled">예정</option>
-            <option value="done">완료</option>
-          </select>
+          <div className="gap-spacing-2xs">
+            <h2 className="font-heading2 text-label-strong">
+              커피챗 일정
+            </h2>
+            <select
+              value={scheduleFilter}
+              onChange={(e) =>
+                setScheduleFilter(
+                  e.target.value as 'all' | 'scheduled' | 'done',
+                )
+              }
+              className="border-border-subtler font-body3 text-label-default px-spacing-3xs rounded-md border py-[2px]"
+            >
+              <option value="all">전체</option>
+              <option value="scheduled">예정</option>
+              <option value="done">완료</option>
+            </select>
+          </div>
+          <div>커피챗 진행</div>
         </div>
         <ScheduleTable
           items={scheduleData}

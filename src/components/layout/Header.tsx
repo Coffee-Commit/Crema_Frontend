@@ -17,8 +17,8 @@ export default function Header() {
   useEffect(() => setMounted(true), [])
 
   return (
-    <header className="flex h-[68px] w-full items-center justify-between">
-      <div className="container flex h-14 items-center justify-between">
+    <header className="mx-auto flex h-[68px] w-full items-center justify-center">
+      <div className="container flex items-center justify-between">
         {/* 로고 + 가이드 */}
         <div className="gap-spacing-xs flex items-center">
           <span
