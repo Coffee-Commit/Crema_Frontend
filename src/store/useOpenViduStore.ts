@@ -206,9 +206,10 @@ const initialState = {
   
   // 화면공유 상태 (Codex 솔루션 적용)
   isScreenSharingToggling: false, // 화면공유 토글 중 플래그
-  screenPublisher: null as any, // 화면공유 전용 Publisher
-  originalVideoTrack: null as MediaStreamTrack | null, // replaceTrack 복원용 (사용되지 않음)
-  originalPublisher: null as any, // Publisher 교체 복원용 (사용되지 않음)
+  screenPublisher: null as any, // 화면공유 전용 Publisher (호환성 유지)
+  originalVideoTrack: null as MediaStreamTrack | null, // replaceTrack 복원용 (호환성 유지)
+  originalPublisher: null as any, // Publisher 교체 복원용 (호환성 유지)
+  screenShareCtx: null as any, // ScreenShareContext 저장 (정리용)
 
   // 채팅
   chatMessages: [],
@@ -538,19 +539,39 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       }
 
       // 로컬 Publisher 및 미디어 스트림 정리 (하드웨어 리소스 즉시 해제)
-      const { screenPublisher } = get()
+      const { screenPublisher, screenShareCtx } = get()
       
-      // Codex 솔루션: 화면공유 Publisher 우선 정리
+      // Codex 솔루션: 화면공유 Context 우선 정리
+      if (screenShareCtx) {
+        try {
+          // 리스너 정리
+          if (screenShareCtx.endedListener && screenShareCtx.screenTrack) {
+            screenShareCtx.screenTrack.removeEventListener('ended', screenShareCtx.endedListener)
+          }
+          
+          // 화면공유 트랙 및 스트림 정리
+          screenShareCtx.screenTrack?.stop()
+          screenShareCtx.displayStream?.getTracks().forEach((track: MediaStreamTrack) => {
+            track.stop()
+            logger.debug('화면공유 트랙 정지', { kind: track.kind, id: track.id })
+          })
+          logger.debug('화면공유 context 정리 완료')
+        } catch (error) {
+          logger.warn('화면공유 context 정리 실패', { error })
+        }
+      }
+      
+      // 레거시 호환: screenPublisher도 정리
       if (screenPublisher) {
         try {
           const screenMediaStream = getPublisherMediaStream(screenPublisher)
           screenMediaStream?.getTracks().forEach(track => {
             track.stop()
-            logger.debug('화면공유 트랙 정지', { kind: track.kind, id: track.id })
+            logger.debug('레거시 화면공유 트랙 정지', { kind: track.kind, id: track.id })
           })
-          logger.debug('화면공유 미디어 스트림 정리 완료')
+          logger.debug('레거시 화면공유 미디어 스트림 정리 완료')
         } catch (error) {
-          logger.warn('화면공유 정리 실패', { error })
+          logger.warn('레거시 화면공유 정리 실패', { error })
         }
       }
       
@@ -673,6 +694,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
           username: null,
           apiCallCount: { config: 0, quickJoin: 0 },
           joinSequence: 0, // 조인 시퀀스 초기화
+          screenShareCtx: null, // ScreenShareContext 초기화
         })
 
         logger.info('세션 종료 완료')
@@ -1032,72 +1054,43 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
   },
 
   startScreenShare: async () => {
-    const { session, publisher: micPublisher, screenPublisher, isScreenSharing, isScreenSharingToggling, originalVideoTrack } = get()
+    const { publisher, isScreenSharing, isScreenSharingToggling } = get()
     
-    if (!session || !micPublisher || isScreenSharing || isScreenSharingToggling) {
+    if (!publisher || isScreenSharing || isScreenSharingToggling) {
       logger.debug('화면공유 시작 불가', {
-        hasSession: !!session,
-        hasMicPublisher: !!micPublisher,
+        hasPublisher: !!publisher,
         isScreenSharing,
         isScreenSharingToggling
       })
       return
     }
 
+    // 신규 공유 유틸리티 사용
+    const { swapToScreen } = await import('@/shared/openvidu/replaceVideoTrack')
+    
     set({ isScreenSharingToggling: true })
     
     try {
-      logger.debug('화면공유 시작 - replaceTrack 방식')
+      const ctx = await swapToScreen(publisher)
       
-      // 1) 화면 비디오 트랙 획득
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { 
-          frameRate: 15, 
-          width: { ideal: 1280 }, 
-          height: { ideal: 720 } 
-        },
-        audio: false,
-      })
-      const screenTrack = displayStream.getVideoTracks()[0]
-      
-      if (!screenTrack) {
-        throw new Error('화면 공유 트랙을 생성할 수 없습니다.')
-      }
-
-      // 2) 기존 비디오 트랙 보관 (복원용)
-      const currentStream = getPublisherMediaStream(micPublisher)
-      const currentVideoTrack = currentStream?.getVideoTracks()[0] || null
-      
-      if (!currentVideoTrack) {
-        // 오디오 전용으로 시작했다면 replaceTrack 불가 - 에러 발생시키고 다른 방식 유도
-        displayStream.getTracks().forEach(t => t.stop())
-        throw new Error('현재 Publisher에 비디오 트랙이 없어 replaceTrack을 사용할 수 없습니다. 오디오 전용 환경에서는 다른 방식이 필요합니다.')
-      }
-
-      // 3) 원본 비디오 트랙 보관
-      set({ originalVideoTrack: currentVideoTrack })
-      logger.debug('기존 비디오 트랙 보관 완료')
-
-      // 4) 화면 트랙으로 교체
-      await micPublisher.replaceTrack(screenTrack)
-      logger.debug('화면공유 트랙으로 교체 완료')
-
-      // 5) 화면공유 종료 이벤트 처리 (사용자가 브라우저 UI로 중단할 때)
-      screenTrack.onended = async () => {
+      // 브라우저/OS UI에서 직접 중단 시도 대응 (리스너 정리를 위해 ctx에 저장)
+      const endedListener = async () => {
         logger.debug('화면공유 트랙 자동 종료 감지')
         try {
-          const { stopScreenShare } = get()
-          await stopScreenShare()
+          await get().stopScreenShare()
         } catch (error) {
           logger.error('화면공유 자동 종료 실패', { error })
         }
       }
-
+      ctx.endedListener = endedListener
+      ctx.screenTrack?.addEventListener('ended', endedListener)
+      
       set({ 
         isScreenSharing: true,
-        screenPublisher: null, // replaceTrack 방식에서는 별도 publisher 없음
+        originalVideoTrack: ctx.cameraTrack, // 기존 호환성을 위해 유지
+        screenShareCtx: ctx, // ScreenShareContext 저장 (정리용)
       })
-      logger.info('화면공유 시작 완료 (replaceTrack 방식)')
+      logger.info('화면공유 시작 완료 (신규 유틸리티 사용)')
       
     } catch (error: any) {
       logger.error('화면공유 시작 실패', { error: error?.message || error })
@@ -1105,7 +1098,8 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       // 안전 복구
       set({ 
         isScreenSharing: false,
-        originalVideoTrack: null 
+        originalVideoTrack: null,
+        screenShareCtx: null,
       })
       throw error
     } finally {
@@ -1114,34 +1108,28 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
   },
 
   stopScreenShare: async () => {
-    const { session, publisher: micPublisher, isScreenSharingToggling, originalVideoTrack, isScreenSharing } = get()
+    const { publisher, isScreenSharingToggling, isScreenSharing, screenShareCtx } = get()
     
-    if (!session || !micPublisher || isScreenSharingToggling || !isScreenSharing) {
+    if (!publisher || isScreenSharingToggling || !isScreenSharing) {
       return
     }
     
     set({ isScreenSharingToggling: true })
     
     try {
-      logger.debug('화면공유 중지 시작 - replaceTrack 복원 방식')
+      logger.debug('화면공유 중지 시작 - 신규 유틸리티 사용')
       
-      // 1) 현재 화면공유 트랙 정지
-      const currentStream = getPublisherMediaStream(micPublisher)
-      const currentScreenTrack = currentStream?.getVideoTracks()[0]
-      if (currentScreenTrack) {
-        currentScreenTrack.stop()
-        logger.debug('화면공유 트랙 정지 완료')
-      }
-
-      // 2) 원본 비디오 트랙으로 복원
-      if (originalVideoTrack && originalVideoTrack.readyState === 'live') {
-        // 기존 트랙이 살아있다면 복원
-        await micPublisher.replaceTrack(originalVideoTrack)
-        logger.debug('원본 비디오 트랙으로 복원 완료')
+      // 신규 공유 유틸리티 사용
+      const { swapToCamera } = await import('@/shared/openvidu/replaceVideoTrack')
+      
+      if (screenShareCtx) {
+        // 저장된 ScreenShareContext 사용 (안전한 정리)
+        await swapToCamera(publisher, screenShareCtx)
+        logger.debug('저장된 context로 카메라 복원 완료')
       } else {
-        // 기존 트랙이 없거나 종료됨 - 비디오 비활성화
-        await micPublisher.publishVideo(false)
-        logger.debug('원본 트랙 복원 실패, 비디오 비활성화로 처리')
+        // fallback: 레거시 호환을 위한 기본 처리
+        logger.warn('screenShareCtx가 없어 기본 비디오 비활성화로 처리')
+        await publisher.publishVideo(false)
       }
       
     } catch (error) {
@@ -1152,7 +1140,8 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         isScreenSharing: false, 
         isScreenSharingToggling: false,
         originalVideoTrack: null,
-        screenPublisher: null 
+        screenPublisher: null,
+        screenShareCtx: null,
       })
       logger.info('화면공유 중지 완료')
     }
@@ -1837,6 +1826,7 @@ function setupSessionEventHandlers(
             ...initialState,
             sessionConfig: preservedConfig,
             apiCallCount: { config: 0, quickJoin: 0 },
+            screenShareCtx: null,
           })
           eventLogger.info('강제 종료로 인한 상태 정리 완료', { reason })
         } catch (error) {
