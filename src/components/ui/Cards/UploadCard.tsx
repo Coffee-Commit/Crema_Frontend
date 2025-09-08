@@ -32,7 +32,9 @@ export default function UploadCard({
   return (
     <div
       onClick={onClick}
-      className="bg-fill-white pt-spacing-3xl pb-spacing-3xs px-spacing-3xs shadow-emphasize flex w-[300px] cursor-pointer flex-col overflow-hidden rounded-[var(--radius-md)]"
+      className={`bg-fill-white pt-spacing-3xl pb-spacing-3xs px-spacing-3xs shadow-emphasize flex w-[300px] flex-col overflow-hidden rounded-[var(--radius-md)] ${
+        onClick ? 'cursor-pointer' : 'cursor-default'
+      }`}
     >
       {/* 헤더 + 프로필 */}
       <div className="px-spacing-3xs relative flex items-center">

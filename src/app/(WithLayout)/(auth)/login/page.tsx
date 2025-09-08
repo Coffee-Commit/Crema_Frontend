@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { isLoggedIn, mockLogin } = useAuthStore()
+  const { isLoggedIn, mockLoginWithTokens } = useAuthStore()
   // const { isLoggedIn, login, logout } = useAuthStore()
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function LoginPage() {
                 className="w-full rounded-sm"
                 size="lg"
                 variant="primary"
-                onClick={mockLogin}
+                onClick={mockLoginWithTokens}
               >
                 일반 로그인 (목데이터)
               </SquareButton>
