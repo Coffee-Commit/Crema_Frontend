@@ -31,7 +31,7 @@ export default function NotFound() {
             <SquareButton
               size="md"
               variant="secondary"
-               onClick={() => router.push('/')}
+              onClick={() => router.push('/')}
             >
               메인으로
             </SquareButton>
