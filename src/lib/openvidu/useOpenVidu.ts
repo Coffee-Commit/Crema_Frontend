@@ -1,201 +1,143 @@
 'use client'
 
-import {
-  OpenVidu,
-  Session,
-  Publisher,
-  StreamManager,
-  Device,
-} from 'openvidu-browser'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+
+/**
+ * 목 모드: 실제 OV 연동 없이 화면공유/토글 상태만 관리
+ * 실제 연동 시 이 훅 내부에서 OpenVidu 세션/퍼블리셔/구독자 로직 연결
+ */
+const USE_MOCK = true
+
+export type StreamManager = unknown
 
 export type JoinOptions = {
-  sessionId: string
-  token: string
+  sessionId?: string
+  token?: string
   audio?: boolean
   video?: boolean
-  resolution?: '640x480' | '1280x720' | '1920x1080'
+  resolution?: string
   frameRate?: number
   mirror?: boolean
 }
 
-export type ScreenShareHandle = {
-  publisher: Publisher
-  stop: () => void
+type UseOpenViduReturn = {
+  connected: boolean
+  join: (opts?: JoinOptions) => Promise<void>
+  leave: () => void
+  micOn: boolean
+  camOn: boolean
+  toggleMic: (next?: boolean) => void
+  toggleCam: (next?: boolean) => void
+  /** 화면공유 on/off */
+  screenShareActive: boolean
+  /** 화면공유 MediaStream (비디오 엘리먼트에 연결해서 재생) */
+  screenShareStream: MediaStream | null
+  /** 화면공유 시작 */
+  startScreenShare: () => Promise<void>
+  /** 화면공유 정지 */
+  stopScreenShare: () => Promise<void>
+  publisher: StreamManager | null
+  subscribers: StreamManager[]
 }
 
-export function useOpenVidu() {
-  const ovRef = useRef<OpenVidu | null>(null)
-  const sessionRef = useRef<Session | null>(null)
-  const publisherRef = useRef<Publisher | null>(null)
-  const screenPubRef = useRef<Publisher | null>(null)
-
+export function useOpenVidu(): UseOpenViduReturn {
   const [connected, setConnected] = useState(false)
+  const [micOn, setMicOn] = useState(true)
+  const [camOn, setCamOn] = useState(true)
+
+  const [screenShareActive, setScreenShareActive] = useState(false)
+  const [screenShareStream, setScreenShareStream] =
+    useState<MediaStream | null>(null)
+
+  const publisherRef = useRef<StreamManager | null>(null)
   const [subscribers, setSubscribers] = useState<StreamManager[]>([])
-  const [devices, setDevices] = useState<Device[]>([])
 
-  const join = useCallback(
-    async ({
-      sessionId,
-      token,
-      audio = true,
-      video = true,
-      resolution = '1280x720',
-      frameRate = 30,
-      mirror = true,
-    }: JoinOptions) => {
-      if (connected) return
-
-      // ✅ sessionId 사용 (로깅/디버그 등)
-      console.debug('[OpenVidu] joining session:', sessionId)
-
-      const OV = new OpenVidu()
-      ovRef.current = OV
-
-      const session = OV.initSession()
-      sessionRef.current = session
-
-      session.on('streamCreated', (event) => {
-        const sub = session.subscribe(event.stream, undefined)
-        setSubscribers((prev) => [...prev, sub])
-      })
-
-      session.on('streamDestroyed', (event) => {
-        setSubscribers((prev) =>
-          prev.filter((s) => s !== event.stream.streamManager),
-        )
-      })
-
-      session.on('exception', (e) => {
-        // eslint-disable-next-line no-console
-        console.warn('[OpenVidu] exception', e)
-      })
-
-      await session.connect(token)
-
-      const publisher = await OV.initPublisherAsync(undefined, {
-        audioSource: undefined,
-        videoSource: undefined,
-        publishAudio: audio,
-        publishVideo: video,
-        resolution,
-        frameRate,
-        mirror,
-      })
-
-      await session.publish(publisher)
-      publisherRef.current = publisher
+  // 단순 연결 토글 (목)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const join = useCallback(async (_opts?: JoinOptions) => {
+    if (USE_MOCK) {
       setConnected(true)
-
-      try {
-        const devs = await OV.getDevices()
-        setDevices(devs)
-      } catch {
-        /* ignore */
-      }
-    },
-    [connected],
-  )
+      return
+    }
+    // 실제 OV 붙일 때 구현
+  }, [])
 
   const leave = useCallback(() => {
-    try {
-      if (screenPubRef.current) {
-        try {
-          sessionRef.current?.unpublish(screenPubRef.current)
-        } catch {}
-      }
-      sessionRef.current?.disconnect()
-    } finally {
-      screenPubRef.current = null
-      publisherRef.current = null
-      sessionRef.current = null
-      ovRef.current = null
-      setSubscribers([])
+    if (USE_MOCK) {
       setConnected(false)
+      setSubscribers([])
+      // 화면공유 정리
+      setScreenShareActive(false)
+      setScreenShareStream((prev) => {
+        prev?.getTracks().forEach((t) => t.stop())
+        return null
+      })
+      publisherRef.current = null
+      return
     }
+    // 실제 OV 세션 disconnect
   }, [])
 
   const toggleMic = useCallback((next?: boolean) => {
-    const pub = publisherRef.current
-    if (!pub) return
-    const will = next ?? !pub.stream.audioActive
-    pub.publishAudio(will)
+    setMicOn((prev) => (typeof next === 'boolean' ? next : !prev))
   }, [])
 
   const toggleCam = useCallback((next?: boolean) => {
-    const pub = publisherRef.current
-    if (!pub) return
-    const will = next ?? !pub.stream.videoActive
-    pub.publishVideo(will)
+    setCamOn((prev) => (typeof next === 'boolean' ? next : !prev))
   }, [])
 
-  const startScreenShare =
-    useCallback(async (): Promise<ScreenShareHandle | null> => {
-      const OV = ovRef.current
-      const session = sessionRef.current
-      if (!OV || !session) return null
-
-      // 이미 공유 중이면 핸들 반환
-      if (screenPubRef.current) {
-        const existing = screenPubRef.current
-        const stopExisting = () => {
-          try {
-            session.unpublish(existing)
-          } finally {
-            screenPubRef.current = null
-          }
-        }
-        return { publisher: existing, stop: stopExisting }
-      }
-
-      const screenPublisher = await OV.initPublisherAsync(undefined, {
-        videoSource: 'screen',
-        publishAudio: false,
-        publishVideo: true,
-        mirror: false,
+  /** 화면공유 시작: 비디오 엘리먼트에 srcObject로 붙일 MediaStream 생성 */
+  const startScreenShare = useCallback(async () => {
+    try {
+      // 표준 타입으로 호출 (cursor 옵션 등은 타입 경고가 있어 제외)
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
       })
+      setScreenShareStream(stream)
+      setScreenShareActive(true)
 
-      await session.publish(screenPublisher)
-      screenPubRef.current = screenPublisher
-
-      const stop = () => {
-        try {
-          session.unpublish(screenPublisher)
-        } finally {
-          screenPubRef.current = null
-        }
+      // 사용자가 브라우저 UI에서 공유 중지를 누른 경우
+      const [videoTrack] = stream.getVideoTracks()
+      if (videoTrack) {
+        videoTrack.addEventListener('ended', () => {
+          setScreenShareActive(false)
+          setScreenShareStream((prev) => {
+            prev?.getTracks().forEach((t) => t.stop())
+            return null
+          })
+        })
       }
-
-      // ✅ 정식 API 경로: getMediaStream() → getVideoTracks()[0] → 'ended'
-      const track = screenPublisher.stream
-        .getMediaStream()
-        ?.getVideoTracks?.()[0]
-      track?.addEventListener('ended', stop)
-
-      return { publisher: screenPublisher, stop }
-    }, [])
-
-  useEffect(() => {
-    const onBeforeUnload = () => {
-      if (connected) leave()
+    } catch (err) {
+      // 취소/거부 등
+      console.error('getDisplayMedia 실패:', err)
+      setScreenShareActive(false)
+      setScreenShareStream(null)
     }
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () =>
-      window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [connected, leave])
+  }, [])
+
+  /** 화면공유 정지 */
+  const stopScreenShare = useCallback(async () => {
+    setScreenShareActive(false)
+    setScreenShareStream((prev) => {
+      prev?.getTracks().forEach((t) => t.stop())
+      return null
+    })
+  }, [])
 
   return {
-    // 상태
     connected,
-    subscribers,
-    publisher: publisherRef.current,
-    devices,
-
-    // 제어
     join,
     leave,
+    micOn,
+    camOn,
     toggleMic,
     toggleCam,
+    screenShareActive,
+    screenShareStream,
     startScreenShare,
+    stopScreenShare,
+    publisher: publisherRef.current,
+    subscribers,
   }
 }
