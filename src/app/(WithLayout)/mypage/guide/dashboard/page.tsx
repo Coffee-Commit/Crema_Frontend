@@ -293,7 +293,8 @@ export default function DashboardPage() {
           items={scheduleData}
           onEnter={(id) => {
             // 기본형 라우팅: /coffeechat/[id]
-            window.location.href = `/coffeechatVideo/${id}`
+            window.location.href = `/VideoCoffeeChat/${id}` // OV 타입정의X, 프론트 코드 로직으로만 구현
+            // window.location.href = `/VideoCoffeeChatUi/${id}` // ui만 있는 코드
           }}
         />
       </section>

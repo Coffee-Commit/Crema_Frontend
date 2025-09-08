@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import { useParams, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
+
 import { useAuthStore } from '@/store/useAuthStore'
 
 /* ===================== Utils / Types ===================== */
@@ -148,6 +149,7 @@ export default function VideoCoffeeChatPage() {
         prev?.getTracks().forEach((t) => t.stop())
         return null
       })
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       const el = myCamVideoRef.current
       if (el) el.srcObject = null
     }

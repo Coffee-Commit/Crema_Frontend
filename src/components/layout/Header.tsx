@@ -27,7 +27,10 @@ export default function Header() {
           >
             Crema
           </span>
-          <span className="font-body2 text-label-default hidden md:inline">
+          <span
+            className="font-body2 text-label-default hover:text-label-primary hidden cursor-pointer md:inline"
+            onClick={() => router.push('/searchGuide')}
+          >
             선배 찾기
           </span>
           <span className="font-label4-semibold text-label-strong bg-fill-tooltip-orange rounded-xs px-spacing-4xs py-spacing-6xs relative">
