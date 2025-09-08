@@ -109,8 +109,8 @@ export default function DashboardPage() {
       id: '8',
       nickname: '스타벅스4',
       appliedAt: '25.08.20 오후 13:40',
-      preferredDate: '25.09.07',
-      preferredTime: '14:05~23:30',
+      preferredDate: '25.09.08',
+      preferredTime: '09:00~23:30',
       status: 'accepted',
     },
   ]
@@ -385,7 +385,8 @@ export default function DashboardPage() {
           items={scheduleData}
           onEnter={(id) => {
             // 기본형 라우팅: /coffeechat/[id]
-            window.location.href = `/coffeechatVideo/${id}`
+            // window.location.href = `/coffeechatVideo/${id}`.  // OV 타입 정의O, mock 데이터 연동
+            window.location.href = `/VideoCoffeeChat/${id}` // OV 타입정의X, 프론트 코드 로직으로만 구현
           }}
         />
       </section>

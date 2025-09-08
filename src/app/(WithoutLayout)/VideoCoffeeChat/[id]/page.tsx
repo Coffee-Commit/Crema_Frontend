@@ -1,12 +1,11 @@
-// src/app/(WithoutLayout)/coffeechatVideo/[id]/page.tsx
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { useOpenVidu } from '@/lib/openvidu/useOpenVidu'
 import { useAuthStore } from '@/store/useAuthStore'
 
+/* ===================== Utils / Types ===================== */
 type ChatMessage = {
   id: string
   who: 'me' | 'other'
@@ -48,24 +47,23 @@ function timeLabelKR(d = new Date()) {
   return `${ampm} ${hh}:${pad(m)}`
 }
 
-export default function CoffeeChatVideoPage() {
-  // 라우팅/닉네임/마운트
+/* ===================== Page ===================== */
+export default function VideoCoffeeChatPage() {
+  /* ------ routing ------ */
   const params = useParams()
   const search = useSearchParams()
-  const id =
-    (Array.isArray(params?.id) ? params?.id[0] : params?.id) ??
-    'preview'
+  const rawId = params?.id as string | string[] | undefined
+  const id = Array.isArray(rawId) ? rawId[0] : (rawId ?? 'preview')
 
+  /* ------ nicknames ------ */
   const { user } = useAuthStore()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
   const myNickname = useMemo(() => user?.nickname ?? '나', [user])
-  const rawPeerNickname = useMemo(
+  const peerNickname = useMemo(
     () => search?.get('peer') ?? '게스트',
     [search],
   )
 
-  // 타이머
+  /* ------ timers ------ */
   const startAt = useMemo(() => {
     const s = search?.get('start')
     const d = s ? new Date(s) : new Date()
@@ -102,47 +100,22 @@ export default function CoffeeChatVideoPage() {
         Math.floor((endAt.getTime() - now.getTime()) / 1000),
       )
     : null
-  const isSessionEnded = endAt ? now >= endAt : false
 
-  // OV(목)
-  const {
-    connected,
-    join,
-    leave,
-    micOn,
-    camOn,
-    toggleMic,
-    toggleCam,
-    screenShareActive,
-    startScreenShare,
-    stopScreenShare,
-    screenShareStream,
-  } = useOpenVidu()
-
-  useEffect(() => {
-    join({ sessionId: id, token: 'MOCK_TOKEN' })
-    return () => leave()
-  }, [id, join, leave])
-
-  useEffect(() => {
-    if (!endAt) return
-    if (now >= endAt && connected) leave()
-  }, [now, endAt, connected, leave])
-
-  // ====== 내 카메라 스트림 (실제 카메라) ======
+  /* ------ camera (내) ------ */
   const myCamVideoRef = useRef<HTMLVideoElement>(null)
   const [myCamStream, setMyCamStream] = useState<MediaStream | null>(
     null,
   )
+  const [camOn, setCamOn] = useState(true)
+  const [micOn, setMicOn] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-
     async function enableCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: false, // 내 타일에선 오디오 재생 안 함(에코 방지)
+          audio: false,
         })
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop())
@@ -154,23 +127,14 @@ export default function CoffeeChatVideoPage() {
           el.muted = true
           el.playsInline = true
           el.srcObject = stream
-          try {
-            await el.play()
-          } catch {
-            // autoplay 차단 등은 무시
-          }
+          await el.play().catch(() => {})
         }
-      } catch (err) {
-        console.error('getUserMedia 실패:', err)
+      } catch {
         setMyCamStream(null)
       }
     }
-
-    // 켜야 하는 조건: 연결됨 & 캠ON & 화면공유OFF & 세션 유효
-    if (connected && camOn && !screenShareActive && !isSessionEnded) {
-      void enableCamera()
-    } else {
-      // 조건 해제 시 정리
+    if (camOn) void enableCamera()
+    else {
       setMyCamStream((prev) => {
         prev?.getTracks().forEach((t) => t.stop())
         return null
@@ -178,7 +142,6 @@ export default function CoffeeChatVideoPage() {
       const el = myCamVideoRef.current
       if (el) el.srcObject = null
     }
-
     return () => {
       cancelled = true
       setMyCamStream((prev) => {
@@ -188,36 +151,83 @@ export default function CoffeeChatVideoPage() {
       const el = myCamVideoRef.current
       if (el) el.srcObject = null
     }
-  }, [connected, camOn, screenShareActive, isSessionEnded])
+  }, [camOn])
 
-  // ====== 화면공유 비디오 연결 ======
-  const shareVideoRef = useRef<HTMLVideoElement>(null)
+  /* ------ screen share (내) ------ */
+  const [shareOn, setShareOn] = useState(false)
+  const [shareStream, setShareStream] = useState<MediaStream | null>(
+    null,
+  )
+  const myShareVideoRef = useRef<HTMLVideoElement>(null)
+
+  // 화면공유 시작/정지
+  const toggleShare = async () => {
+    if (shareOn) {
+      shareStream?.getTracks().forEach((t) => t.stop())
+      setShareStream(null)
+      setShareOn(false)
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      })
+      setShareStream(stream)
+      setShareOn(true)
+      // 브라우저 UI에서 중지 클릭 시
+      const track = stream.getVideoTracks()[0]
+      track?.addEventListener('ended', () => {
+        setShareOn(false)
+        setShareStream((prev) => {
+          prev?.getTracks().forEach((t) => t.stop())
+          return null
+        })
+      })
+    } catch {
+      setShareOn(false)
+      setShareStream(null)
+    }
+  }
+
+  // 화면공유 비디오 연결
   useEffect(() => {
-    const el = shareVideoRef.current
+    const el = myShareVideoRef.current
     if (!el) return
-    if (screenShareActive && screenShareStream) {
+    if (shareOn && shareStream) {
       el.muted = true
       el.playsInline = true
-      el.srcObject = screenShareStream
-      el.play?.().catch(() => {})
+      el.srcObject = shareStream
+      el.play().catch(() => {})
     } else {
       el.srcObject = null
     }
-  }, [screenShareActive, screenShareStream])
+  }, [shareOn, shareStream])
 
-  // 화면공유 버튼
-  const handleScreenShare = async () => {
-    if (isSessionEnded) return
-    if (screenShareActive) await stopScreenShare()
-    else await startScreenShare()
-  }
-
-  // 채팅(동일)
+  /* ------ tabs / chat ------ */
   const [tab, setTab] = useState<'chat' | 'files'>('chat')
-  const [chatList, setChatList] = useState<ChatMessage[]>([])
+
+  // 초기 채팅 샘플 2개(스샷 모양)
+  const [chatList, setChatList] = useState<ChatMessage[]>([
+    {
+      id: 'init-1',
+      who: 'other',
+      name: peerNickname,
+      time: '오전 2:23',
+      text: '잘 들립니다!',
+    },
+    {
+      id: 'init-2',
+      who: 'me',
+      name: myNickname,
+      time: '오전 2:24',
+      text: '좋습니다!',
+    },
+  ])
   const [input, setInput] = useState('')
   const [isComposing, setIsComposing] = useState(false)
   const chatScrollRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     chatScrollRef.current?.scrollTo({
       top: chatScrollRef.current.scrollHeight,
@@ -226,7 +236,6 @@ export default function CoffeeChatVideoPage() {
   }, [chatList, tab])
 
   const handleSend = () => {
-    if (isSessionEnded) return
     const text = input.trim()
     if (!text) return
     setChatList((prev) => [
@@ -242,7 +251,7 @@ export default function CoffeeChatVideoPage() {
     setInput('')
   }
 
-  // 공유자료(동일)
+  /* ------ shared files (card UI) ------ */
   const sharedFiles: SharedFile[] = useMemo(
     () => [
       {
@@ -255,11 +264,10 @@ export default function CoffeeChatVideoPage() {
       },
       {
         id: 'f2',
-        name: '사전공유_자료.txt',
-        sizeBytes: 23_456,
-        content:
-          '두 번째 데모 텍스트 파일입니다. 프리뷰 모달에서 내용을 확인할 수 있어요.',
-        mime: 'text/plain',
+        name: '사전공유_파일명.pdf',
+        sizeBytes: 1.01 * 1024 * 1024,
+        content: '두 번째 데모 텍스트 파일입니다.',
+        mime: 'application/pdf',
       },
     ],
     [],
@@ -292,10 +300,11 @@ export default function CoffeeChatVideoPage() {
     URL.revokeObjectURL(url)
   }
 
+  /* ===================== Render ===================== */
   return (
-    <div className="flex h-screen w-full flex-col bg-white">
+    <div className="bg-fill-footer-gray flex h-dvh min-h-screen w-full flex-col">
       {/* 헤더 */}
-      <header className="flex h-[60px] items-center justify-between border-b px-4">
+      <header className="flex h-[60px] items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <span className="font-title3 text-label-strong">
             CremaChat
@@ -316,45 +325,32 @@ export default function CoffeeChatVideoPage() {
           )}
         </div>
         <span className="text-sm text-gray-500">방 ID: {id}</span>
-        <div
-          className={`rounded-md px-2 py-1 text-xs ${
-            connected && !isSessionEnded
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-gray-200 text-gray-600'
-          }`}
-        >
-          {isSessionEnded
-            ? '종료됨'
-            : connected
-              ? '연결됨'
-              : '목모드'}
+        <div className="rounded-md bg-emerald-100 px-2 py-1 text-xs text-emerald-700">
+          연결됨(목)
         </div>
       </header>
 
-      {/* 본문 */}
-      <div className="relative flex flex-1 flex-row">
+      {/* 본문 2열 - 전체 높이 채우기 */}
+      <div className="relative flex flex-1 flex-row overflow-hidden">
         {/* 비디오 영역 */}
-        <div className="relative flex flex-1 flex-row gap-4 p-4">
-          {/* 화면공유 ON → 좌측 타일 하나가 전체를 차지하고 그 안에 공유화면 렌더 */}
-          {connected && !isSessionEnded && screenShareActive ? (
+        <div className="flex flex-1 flex-row gap-4 p-4">
+          {/* 화면공유가 켜져 있으면 공유화면이 전체를 차지 */}
+          {shareOn ? (
             <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-black">
               <video
-                ref={shareVideoRef}
+                ref={myShareVideoRef}
                 className="h-full w-full object-contain"
                 muted
                 playsInline
                 autoPlay
               />
               <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-[2px] text-[12px] text-white">
-                <span suppressHydrationWarning>
-                  {mounted ? `${myNickname} (화면공유)` : ''}
-                </span>
+                {myNickname} (화면공유)
               </div>
             </div>
           ) : (
-            // 화면공유 OFF → 좌/우 2타일(내 캠 / 상대) — 내 타일은 실제 카메라 표시
             <>
-              {/* 내 카메라 타일 */}
+              {/* 내 화면 */}
               <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-gray-300">
                 <video
                   ref={myCamVideoRef}
@@ -363,14 +359,11 @@ export default function CoffeeChatVideoPage() {
                   playsInline
                   autoPlay
                 />
-                {/* 카메라 미표시 상황엔 플레이스홀더 문구 */}
-                {!connected || !camOn || !myCamStream ? (
+                {!myCamStream && (
                   <div className="text-label-subtle absolute inset-0 grid place-items-center">
-                    {connected && !isSessionEnded
-                      ? '내 화면(카메라 대기)'
-                      : '대기'}
+                    내 화면(목)
                   </div>
-                ) : null}
+                )}
                 <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
                   {!micOn && (
                     <Image
@@ -381,97 +374,91 @@ export default function CoffeeChatVideoPage() {
                       className="mr-1 inline-block"
                     />
                   )}
-                  <span suppressHydrationWarning>
-                    {mounted ? myNickname : ''}
-                  </span>
+                  {myNickname}
                 </div>
               </div>
 
-              {/* 상대 타일(목) */}
+              {/* 상대 화면(플레이스홀더) */}
               <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-gray-300">
                 <div className="text-label-subtle">상대 화면(목)</div>
                 <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
-                  <span suppressHydrationWarning>
-                    {mounted ? rawPeerNickname : ''}
-                  </span>
+                  {peerNickname}
                 </div>
               </div>
             </>
           )}
         </div>
 
-        {/* 우측 패널 (채팅/자료) */}
-        <aside className="flex w-[360px] flex-col border-l">
-          <div className="flex items-center gap-6 px-4 pt-3">
-            <button
-              className={`font-label3-semibold pb-3 ${
-                tab === 'chat'
-                  ? 'text-label-strong border-b-2 border-[#EB5F27]'
-                  : 'text-label-default'
-              }`}
-              onClick={() => setTab('chat')}
-            >
-              채팅
-            </button>
-            <button
-              className={`font-label3-semibold pb-3 ${
-                tab === 'files'
-                  ? 'text-label-strong border-b-2 border-[#EB5F27]'
-                  : 'text-label-default'
-              }`}
-              onClick={() => setTab('files')}
-            >
-              공유된 자료
-            </button>
+        {/* 우측 패널 (스크롤은 이 영역 내부에서만) */}
+        <aside className="flex w-[476px] min-w-[360px] max-w-[520px] flex-col">
+          {/* 탭 헤더 */}
+          <div className="px-spacing-3xs pt-spacing-3xs flex w-full items-center">
+            <div className="flex w-full items-center">
+              <button
+                className={`relative w-1/2 pb-3 text-[18px] font-semibold ${
+                  tab === 'chat' ? 'text-[#222]' : 'text-[#9CA3AF]'
+                }`}
+                onClick={() => setTab('chat')}
+              >
+                <span className="mr-2">채팅</span>
+                <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#EB5F27] px-2 text-[11px] leading-none text-white">
+                  {chatList.length}
+                </span>
+                {tab === 'chat' && (
+                  <span className="absolute inset-x-0 bottom-0 h-[2px] rounded bg-[#EB5F27]" />
+                )}
+              </button>
+              <button
+                className={`relative w-1/2 pb-3 text-[18px] font-semibold ${
+                  tab === 'files' ? 'text-[#222]' : 'text-[#9CA3AF]'
+                }`}
+                onClick={() => setTab('files')}
+              >
+                공유된 자료
+                {tab === 'files' && (
+                  <span className="absolute inset-x-0 bottom-0 h-[2px] rounded bg-[#EB5F27]" />
+                )}
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-1 flex-col px-4 pb-4">
+          {/* 컨텐츠 스크롤 컨테이너 */}
+          <div className="flex min-h-0 flex-1 flex-col p-4">
             {tab === 'chat' ? (
-              <>
+              // ===== 채팅 카드: 내부만 스크롤 =====
+              <div className="flex min-h-0 flex-1 flex-col rounded-[8px] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                {/* 메시지 리스트 영역 */}
                 <div
                   ref={chatScrollRef}
-                  className="flex-1 overflow-y-auto rounded-md bg-white"
+                  className="min-h-0 flex-1 overflow-y-auto rounded-[8px]"
                 >
-                  <ul className="flex flex-col gap-3 py-3">
-                    {chatList.map((m) => {
-                      const isMe = m.who === 'me'
-                      return (
-                        <li
-                          key={m.id}
-                          className={`flex items-end ${isMe ? 'justify-end' : 'justify-start'}`}
-                        >
-                          {!isMe && (
-                            <span className="mr-2 inline-block h-6 w-6 shrink-0 rounded-full bg-gray-200" />
-                          )}
-                          <div
-                            className={`max-w-[70%] ${isMe ? 'text-right' : 'text-left'}`}
-                          >
-                            <div className="mb-[2px] text-[12px] text-gray-500">
-                              {!isMe && (
-                                <span className="mr-1">{m.name}</span>
-                              )}
-                              <span>{m.time}</span>
-                            </div>
-                            <div
-                              className={`rounded-md px-3 py-2 text-[13px] ${
-                                isMe
-                                  ? 'bg-[#EB5F27] text-white'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}
-                            >
-                              {m.text}
-                            </div>
+                  <ul className="space-y-6">
+                    {chatList.map((m) => (
+                      <li
+                        key={m.id}
+                        className="flex gap-3"
+                      >
+                        <span className="mt-[2px] inline-block h-8 w-8 shrink-0 rounded-full bg-gray-300" />
+                        <div className="flex flex-col">
+                          <div className="mb-1 text-[12px] text-[#9CA3AF]">
+                            <span className="mr-2 text-[#6B7280]">
+                              {m.name}
+                            </span>
+                            <span>{m.time}</span>
                           </div>
-                        </li>
-                      )
-                    })}
+                          <div className="text-[14px] font-semibold text-[#111827]">
+                            {m.text}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
-                <div className="mt-3 flex items-center gap-2">
+                {/* 입력 박스 (하단 고정) */}
+                <div className="mt-4 flex items-center justify-end gap-3">
                   <input
                     value={input}
-                    disabled={isSessionEnded}
                     onChange={(e) => setInput(e.target.value)}
                     onCompositionStart={() => setIsComposing(true)}
                     onCompositionEnd={() => setIsComposing(false)}
@@ -490,85 +477,112 @@ export default function CoffeeChatVideoPage() {
                         handleSend()
                       }
                     }}
-                    placeholder={
-                      isSessionEnded
-                        ? '세션이 종료되었습니다.'
-                        : '메시지를 입력하세요...'
-                    }
-                    className="h-[36px] flex-1 rounded-md border px-3 text-[13px] outline-none placeholder:text-gray-400 disabled:bg-gray-100"
+                    placeholder="메시지를 입력하세요..."
+                    className="h-[44px] w-full rounded-[8px] border border-[#E5E7EB] px-4 text-[14px] outline-none placeholder:text-[#9CA3AF] focus:border-[#EB5F27]"
                   />
                   <button
                     type="button"
-                    disabled={isSessionEnded}
                     onClick={handleSend}
-                    className="h-[36px] rounded-md bg-[#EB5F27] px-3 text-[13px] text-white disabled:opacity-50"
+                    className="h-[44px] w-[80px] rounded-[8px] bg-[#EB5F27] px-5 text-[14px] font-semibold text-white hover:brightness-95"
                   >
                     전송
                   </button>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="flex-1 overflow-y-auto py-3">
-                <h3 className="font-label3-semibold mb-2">
-                  사전 메시지 & 자료
-                </h3>
-                <div className="space-y-2">
-                  {sharedFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm shadow-sm"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => openPreview(file)}
-                        className="flex flex-1 items-center gap-2 text-left"
-                        title="미리보기"
+              // ===== 공유된 자료: 내부 스크롤 =====
+              <div className="min-h-0 flex-1 overflow-y-auto py-1">
+                {/* 후배 정보 */}
+                <section className="mb-4 rounded-md border bg-white p-4 shadow-sm">
+                  <h3 className="font-label3-semibold text-label-strong mb-3">
+                    후배 정보
+                  </h3>
+                  <dl className="grid grid-cols-2 gap-y-2 text-sm">
+                    <dt className="text-gray-500">이름(닉네임)</dt>
+                    <dd className="text-gray-900">{peerNickname}</dd>
+                    <dt className="text-gray-500">커피챗 분야</dt>
+                    <dd className="text-gray-900">디자인</dd>
+                    <dt className="text-gray-500">커피챗 주제</dt>
+                    <dd className="text-gray-900">포트폴리오</dd>
+                    <dt className="text-gray-500">자기소개</dt>
+                    <dd className="text-gray-900">
+                      안녕하세요! UX/UI를 준비하고 있는 학생입니다.
+                    </dd>
+                  </dl>
+                </section>
+
+                {/* 사전 메시지 & 자료 */}
+                <section className="mb-4 rounded-md border bg-white p-4 shadow-sm">
+                  <h3 className="font-label3-semibold text-label-strong mb-3">
+                    사전 메시지 & 자료
+                  </h3>
+                  <div className="text-sm leading-relaxed text-gray-800">
+                    <p className="mb-2 font-medium text-gray-700">
+                      ‘{peerNickname}’ 님이 작성한 메시지입니다.
+                    </p>
+                    <p>
+                      안녕하세요, 선배님. 포트폴리오 방향성에 대해
+                      조언을 듣고 싶어 메시지 드립니다. 프로젝트
+                      리뷰에서 강조할 포인트와 면접 대비 팁이
+                      궁금합니다. 감사합니다!
+                    </p>
+                  </div>
+                </section>
+
+                {/* 공유 파일 리스트 */}
+                <section className="rounded-md border bg-white p-4 shadow-sm">
+                  <h3 className="font-label3-semibold text-label-strong mb-3">
+                    ‘{peerNickname}’ 님이 공유한 자료입니다.
+                  </h3>
+                  <ul className="space-y-2">
+                    {sharedFiles.map((file) => (
+                      <li
+                        key={file.id}
+                        className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-gray-50"
                       >
-                        <Image
-                          src="/icons/file-pdf.svg"
-                          alt="pdf"
-                          width={20}
-                          height={20}
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {file.name}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {prettySize(file.sizeBytes)}
-                          </span>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => handleDownload(file)}
-                        className="ml-2 rounded-md border px-2 py-1 text-xs hover:bg-gray-50"
-                      >
-                        다운로드
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <button
+                          type="button"
+                          onClick={() => openPreview(file)}
+                          className="flex flex-1 items-center gap-2 text-left"
+                          title="미리보기"
+                        >
+                          <Image
+                            src="/icons/file-pdf.svg"
+                            alt="pdf"
+                            width={20}
+                            height={20}
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900">
+                              {file.name}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {prettySize(file.sizeBytes)}
+                            </span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => handleDownload(file)}
+                          className="ml-2 rounded-md border px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
+                        >
+                          다운로드
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               </div>
             )}
           </div>
         </aside>
-
-        {isSessionEnded && (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-white/60">
-            <div className="pointer-events-auto rounded-md border bg-white px-4 py-3 text-sm shadow">
-              세션이 종료되었습니다.
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 하단 컨트롤 */}
-      <footer className="flex items-center justify-center gap-4 border-t bg-gray-50 p-4">
+      <footer className="flex items-center justify-center gap-4 p-4">
         <button
-          className={`rounded-full p-3 ${micOn ? 'bg-gray-100' : 'bg-red-100'} disabled:opacity-50`}
+          className={`rounded-full p-3 ${micOn ? 'bg-gray-100' : 'bg-red-100'}`}
           title="마이크"
-          disabled={isSessionEnded}
-          onClick={() => toggleMic()}
+          onClick={() => setMicOn((v) => !v)}
         >
           <Image
             src="/icons/videoChat/mic.svg"
@@ -578,10 +592,9 @@ export default function CoffeeChatVideoPage() {
           />
         </button>
         <button
-          className={`rounded-full p-3 ${camOn ? 'bg-gray-100' : 'bg-red-100'} disabled:opacity-50`}
+          className={`rounded-full p-3 ${camOn ? 'bg-gray-100' : 'bg-red-100'}`}
           title="비디오"
-          disabled={isSessionEnded}
-          onClick={() => toggleCam()}
+          onClick={() => setCamOn((v) => !v)}
         >
           <Image
             src="/icons/videoChat/video.svg"
@@ -591,10 +604,9 @@ export default function CoffeeChatVideoPage() {
           />
         </button>
         <button
-          className={`rounded-full p-3 ${screenShareActive ? 'bg-orange-100' : 'bg-gray-100'} disabled:opacity-50`}
+          className={`rounded-full p-3 ${shareOn ? 'bg-orange-100' : 'bg-gray-100'}`}
           title="화면 공유"
-          disabled={isSessionEnded}
-          onClick={handleScreenShare}
+          onClick={toggleShare}
         >
           <Image
             src="/icons/videoChat/screenShare.svg"
@@ -604,10 +616,20 @@ export default function CoffeeChatVideoPage() {
           />
         </button>
         <button
-          onClick={() => leave()}
-          disabled={!connected}
-          className="rounded-full bg-red-500 p-3 text-white disabled:opacity-60"
+          className="rounded-full bg-red-500 p-3 text-white"
           title="통화 종료"
+          onClick={() => {
+            setCamOn(false)
+            setShareOn(false)
+            setMyCamStream((prev) => {
+              prev?.getTracks().forEach((t) => t.stop())
+              return null
+            })
+            setShareStream((prev) => {
+              prev?.getTracks().forEach((t) => t.stop())
+              return null
+            })
+          }}
         >
           <Image
             src="/icons/videoChat/call.svg"
@@ -618,7 +640,7 @@ export default function CoffeeChatVideoPage() {
         </button>
       </footer>
 
-      {/* 미리보기 모달 */}
+      {/* 파일 미리보기 모달 */}
       {previewUrl && (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/40"
