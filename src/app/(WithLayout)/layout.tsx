@@ -12,16 +12,11 @@ export default function RootLayout({
   children: ReactNode
 }) {
   return (
-    <html
-      lang="ko"
-      className={pretendard.variable}
-    >
-      <body>
-        <Header />
-        <main>{children}</main>
-        <Footer />
-        <ModalProvider />
-      </body>
-    </html>
+    <section className={pretendard.variable}>
+      <Header />
+      <main>{children}</main>
+      <Footer />
+      <ModalProvider />
+    </section>
   )
 }

@@ -13,6 +13,7 @@ import {
 import UploadCarousel from '@/components/ui/Crousel/UploadCarousel'
 import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
+import api from '@/lib/http/api'
 
 type Guide = {
   guideId: number
@@ -56,24 +57,17 @@ export default function HomePage() {
   useEffect(() => {
     const fetchGuides = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/guides?page=0&size=10&sort=latest`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            },
-            credentials: 'include',
-          },
-        )
-        if (!res.ok) throw new Error('가이드 목록 조회 실패')
+        const res = await api.get('/api/guides', {
+          params: { page: 0, size: 10, sort: 'latest' },
+        })
 
-        const data = await res.json()
-        console.log('📦 API 응답:', data.data.content)
+        console.log('📦 API 응답:', res.data)
+
+        const guides: Guide[] = res.data.data?.content ?? []
 
         const mapped: CardData[] =
-          data.data?.content && data.data.content.length > 0
-            ? data.data.content.map((g: Guide) => ({
+          guides.length > 0
+            ? guides.map((g) => ({
                 id: g.guideId,
                 title: g.title,
                 subtitle: `${g.workingPeriodYears} ${g.jobField.jobName}`,
@@ -95,10 +89,25 @@ export default function HomePage() {
                 mentorName: '',
                 profileImage: null,
               }))
+
         console.log('📝 매핑된 cards:', mapped)
         setCards(mapped)
       } catch (err) {
-        console.error(err)
+        console.error('❌ fetchGuides 에러:', err)
+
+        // ✅ 실패했을 때도 fallback 카드 세팅
+        const fallback = Array.from({ length: 4 }).map((_, i) => ({
+          id: -(i + 1),
+          title: '데이터가 없습니다',
+          subtitle: '',
+          tags: [],
+          rating: 0,
+          reviewCount: 0,
+          menteeCount: 0,
+          mentorName: '',
+          profileImage: null,
+        }))
+        setCards(fallback)
       }
     }
 

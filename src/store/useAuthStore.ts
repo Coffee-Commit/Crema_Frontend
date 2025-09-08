@@ -141,10 +141,9 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-
 import api from '@/lib/http/api'
 
-type Provider = 'google' | 'kakao' | 'mock'
+type Provider = 'google' | 'kakao' | 'mock' | 'test'
 
 export type User = {
   id: string
@@ -158,7 +157,6 @@ export type User = {
   createdAt: string
 }
 
-// ✅ 토큰 타입 추가
 export type Tokens = {
   accessToken: string
   refreshToken: string
@@ -179,9 +177,10 @@ type State = {
   login: (provider: Provider) => void
   logout: () => Promise<void>
   mockLoginWithTokens: () => void
+  setAuth: (payload: { user: User; tokens: Tokens }) => void
 }
 
-// 로컬스토리지에서 초기 상태 동기 로드
+// 로컬스토리지 초기 상태 로드
 function getInitialAuth(): Pick<
   State,
   'user' | 'isLoggedIn' | 'tokens'
@@ -213,6 +212,7 @@ export const useAuthStore = create<State>()(
       tokens: initial.tokens,
       loading: false,
 
+      // 서버 상태 초기화
       init: async () => {
         set({ loading: true })
         try {
@@ -233,14 +233,19 @@ export const useAuthStore = create<State>()(
         }
       },
 
+      // 실제 OAuth 로그인
       login: (provider) => {
         window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/oauth2/authorization/${provider}`
       },
 
+      // 로그아웃
       logout: async () => {
         try {
           const currentUser = get().user
-          if (currentUser?.provider === 'mock') {
+          if (
+            currentUser?.provider === 'mock' ||
+            currentUser?.provider === 'test'
+          ) {
             set({ user: null, isLoggedIn: false, tokens: null })
             window.location.assign('/')
             return
@@ -256,13 +261,8 @@ export const useAuthStore = create<State>()(
         }
       },
 
-      // ✅ 목데이터 로그인 (토큰까지 세팅)
+      // ✅ mock 로그인 (토큰 없이 상태만 세팅)
       mockLoginWithTokens: () => {
-        const mockAccess =
-          'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI0MjA4NTg2NSIsInR5cGUiOiJhY2Nlc3MiLCJqdGkiOiI2ZWU5MjQ3ZS1mMTRmLTQyOWUtOTdmYy1hNDJkYjYxNDJkMGEiLCJpYXQiOjE3NTczMTg1NzYsImV4cCI6MTc1NzMyMDM3Nn0.g8X_5uy50vYt4F2R9N3UkDnV6Lpo-90ydqt1iqa3ls_Bh8375KMaTBpmgkbR3J64XcGlLSoat9PabaBBsTcefw'
-        const mockRefresh =
-          'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI0MjA4NTg2NSIsInR5cGUiOiJyZWZyZXNoIiwianRpIjoiMmIwY2JiOGItYTY1Ni00NjcwLTgxZTEtNzExNjIwNTdhMWQ0IiwiaWF0IjoxNzU3MzE4NTc2LCJleHAiOjE3NTg1MjgxNzZ9.-97MswJmVNOhTuzEKr7gTC63SrYZecrO9kDIDcyg4D7Vf7WylLutM2m_Jjb4dU1Y1a_-sy47hjpj0fFVguxD_Q'
-
         set({
           user: {
             id: 'mock-1',
@@ -276,18 +276,17 @@ export const useAuthStore = create<State>()(
             createdAt: new Date().toISOString(),
           },
           isLoggedIn: true,
-          tokens: {
-            accessToken: mockAccess,
-            refreshToken: mockRefresh,
-          },
+          tokens: null,
         })
 
-        // ✅ 상태 제대로 바뀌었는지 확인
-        console.log('after mockLoginWithTokens', get())
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        console.log('✅ mockLoginWithTokens 실행 (토큰 없음)')
+      },
 
-        // 로컬스토리지에도 강제 저장 (persist 이전 확인용)
-        localStorage.setItem('accessToken', mockAccess)
-        localStorage.setItem('refreshToken', mockRefresh)
+      // ✅ test 계정 로그인 (create-rookie / create-guide → login API 결과 반영)
+      setAuth: ({ user, tokens }) => {
+        set({ user, tokens, isLoggedIn: true })
       },
     }),
     {
