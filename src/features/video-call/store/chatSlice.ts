@@ -3,10 +3,16 @@ import type { ChatSlice, ChatMessage } from '../types'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 import { VIDEO_CALL_CONSTANTS } from '../types'
 
+// VideoCallStore 타입 임시 정의 (순환 참조 방지)
+type VideoCallStore = ChatSlice & {
+  localParticipantId: string | null
+  currentUsername: string | null
+}
+
 const logger = createOpenViduLogger('ChatSlice')
 
 export const createChatSlice: StateCreator<
-  ChatSlice,
+  VideoCallStore,
   [],
   [],
   ChatSlice
@@ -73,10 +79,10 @@ export const createChatSlice: StateCreator<
       // 메시지 ID 생성 (타임스탬프 + 랜덤)
       const messageId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       
-      // 현재 사용자 정보 (실제 구현에서는 session에서 가져옴)
-      // TODO: 실제 사용자 정보 가져오기
-      const currentUser = 'current-user' // 임시
-      const currentUsername = 'User' // 임시
+      // 현재 사용자 정보를 store에서 가져오기
+      const state = get()
+      const currentUser = state.localParticipantId ?? 'local'
+      const currentUsername = state.currentUsername ?? 'Me'
 
       // 로컬 메시지 객체 생성
       const localMessage: ChatMessage = {

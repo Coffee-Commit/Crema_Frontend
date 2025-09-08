@@ -10,11 +10,18 @@ export default function ChatPanel() {
   const [inputValue, setInputValue] = useState('')
   const [isSending, setIsSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesListRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // 새 메시지가 추가되면 스크롤을 맨 아래로 이동
+  // 새 메시지가 추가되면 스크롤을 맨 아래로 이동 (컨테이너 내에서만)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const listElement = messagesListRef.current
+    if (listElement) {
+      listElement.scrollTo({ 
+        top: listElement.scrollHeight, 
+        behavior: 'smooth' 
+      })
+    }
   }, [messages])
 
   // 채팅 패널이 활성화되면 읽음 처리
@@ -72,7 +79,10 @@ export default function ChatPanel() {
   return (
     <div className="flex h-full flex-col">
       {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto p-[var(--spacing-spacing-3xs)]">
+      <div 
+        ref={messagesListRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-gutter-stable p-[var(--spacing-spacing-3xs)]"
+      >
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center">
             <div className="text-[var(--color-label-subtle)]">
@@ -124,7 +134,7 @@ export default function ChatPanel() {
       </div>
 
       {/* 메시지 입력 */}
-      <div className="border-t border-[var(--color-border-subtle)] p-[var(--spacing-spacing-3xs)]">
+      <div className="shrink-0 border-t border-[var(--color-border-subtle)] p-[var(--spacing-spacing-3xs)]">
         <form onSubmit={handleSendMessage} className="flex gap-[var(--spacing-spacing-6xs)]">
           <input
             ref={inputRef}
