@@ -17,8 +17,8 @@ export default function Header() {
   useEffect(() => setMounted(true), [])
 
   return (
-    <header className="flex h-[68px] w-full items-center justify-between">
-      <div className="container flex h-14 items-center justify-between">
+    <header className="mx-auto flex h-[68px] w-full items-center justify-center">
+      <div className="container flex items-center justify-between">
         {/* 로고 + 가이드 */}
         <div className="gap-spacing-xs flex items-center">
           <span
@@ -27,7 +27,10 @@ export default function Header() {
           >
             Crema
           </span>
-          <span className="font-body2 text-label-default hidden md:inline">
+          <span
+            className="font-body2 text-label-default hover:text-label-primary hidden cursor-pointer md:inline"
+            onClick={() => router.push('/searchGuide')}
+          >
             선배 찾기
           </span>
           <span className="font-label4-semibold text-label-strong bg-fill-tooltip-orange rounded-xs px-spacing-4xs py-spacing-6xs relative">

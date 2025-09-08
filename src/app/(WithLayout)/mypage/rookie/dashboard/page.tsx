@@ -12,8 +12,8 @@ type Chat = {
   id: string
   nickname: string
   appliedAt: string
-  preferredDate: string // 예: '25.09.26 (화)'
-  preferredTime: string // 예: '19:00~19:30'
+  preferredDate: string
+  preferredTime: string
   profileImageUrl?: string | null
   status: ChatStatus
 }
@@ -109,8 +109,8 @@ export default function DashboardPage() {
       id: '8',
       nickname: '스타벅스4',
       appliedAt: '25.08.20 오후 13:40',
-      preferredDate: '25.09.06',
-      preferredTime: '21:52~23:30',
+      preferredDate: '25.09.08',
+      preferredTime: '09:00~23:30',
       status: 'accepted',
     },
   ]
@@ -161,6 +161,11 @@ export default function DashboardPage() {
   const [scheduleFilter, setScheduleFilter] = useState<
     'all' | 'scheduled' | 'done'
   >('all')
+  const labelMap = {
+    all: '전체',
+    scheduled: '예정',
+    done: '완료',
+  } as const
 
   const scheduleData = useMemo(() => {
     const now = nowRef.current
@@ -251,7 +256,7 @@ export default function DashboardPage() {
     <div className="flex w-full flex-col gap-[100px]">
       {/* 현황 */}
       <section>
-        <h2 className="font-heading2 mb-spacing-3xl text-label-strong">
+        <h2 className="font-heading2 mb-spacing-3xl text-label-strong items-center">
           커피챗 현황
         </h2>
         <div className="gap-spacing-xs flex">
@@ -268,29 +273,120 @@ export default function DashboardPage() {
 
       {/* 일정 */}
       <section>
-        <div className="mb-spacing-3xl flex items-center justify-between">
-          <h2 className="font-heading2 text-label-strong">
-            커피챗 일정
-          </h2>
-          <select
-            value={scheduleFilter}
-            onChange={(e) =>
-              setScheduleFilter(
-                e.target.value as 'all' | 'scheduled' | 'done',
-              )
-            }
-            className="border-border-subtler font-body3 text-label-default px-spacing-3xs rounded-md border py-[2px]"
-          >
-            <option value="all">전체</option>
-            <option value="scheduled">예정</option>
-            <option value="done">완료</option>
-          </select>
+        <div className="mb-spacing-3xl relative flex items-center justify-between">
+          <div className="gap-spacing-2xs flex flex-row items-center">
+            <h2 className="font-heading2 text-label-strong">
+              커피챗 일정
+            </h2>
+            {/* 드롭다운 */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  const el = e.currentTarget
+                    .nextSibling as HTMLElement
+                  el?.classList.toggle('hidden')
+                }}
+                className="gap-spacing-4xs rounded-2xs px-spacing-4xs py-spacing-5xs font-label4-medium text-label-strong border-border-subtler bg-fill-white hover:bg-fill-muted inline-flex cursor-pointer items-center border"
+              >
+                <span
+                  className={`h-[6px] w-[6px] rounded-full ${
+                    scheduleFilter === 'scheduled'
+                      ? 'bg-fill-primary'
+                      : scheduleFilter === 'done'
+                        ? 'bg-fill-light'
+                        : 'bg-fill-light'
+                  }`}
+                />
+                {labelMap[scheduleFilter]}
+                <svg
+                  className="ml-spacing-6xs text-label-default h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M6 9l6 6 6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              <div className="mt-spacing-3xs rounded-2xs border-border-subtler bg-fill-white px-spacing-4xs py-spacing-5xs absolute left-0 z-20 hidden w-fit border">
+                {(['all', 'scheduled', 'done'] as const).map(
+                  (key) => {
+                    const isActive = scheduleFilter === key
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={(e) => {
+                          setScheduleFilter(key)
+                          ;(
+                            e.currentTarget
+                              .parentElement as HTMLElement
+                          )?.classList.add('hidden')
+                        }}
+                        className={`gap-spacing-2xs rounded-2xs px-spacing-4xs py-spacing-5xs font-label4-medium text-label-deep mb-spacing-5xs hover:bg-fill-selected-orange flex w-full cursor-pointer items-center ${isActive ? 'bg-fill-selected-orange' : ''} `}
+                      >
+                        <span
+                          className={`h-[6px] w-[6px] rounded-full ${
+                            isActive
+                              ? 'bg-fill-primary'
+                              : 'bg-fill-light'
+                          }`}
+                        />
+                        <span>
+                          {key === 'all'
+                            ? '전체'
+                            : key === 'scheduled'
+                              ? '예정'
+                              : '완료'}
+                        </span>
+                      </button>
+                    )
+                  },
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="group inline-flex items-center">
+            <span className="mr-spacing-6xs inline-flex h-[6px] w-[6px] rounded-full bg-[#C9C9C9]" />
+            <span className="font-label4-medium text-label-subtle cursor-pointer select-none">
+              커피챗 진행 안내
+            </span>
+
+            {/* tooltip */}
+            <div
+              className="px-spacing-4xs py-spacing-5xs font-label4-semibold rounded-xs bg-fill-tooltip-orange text-label-strong pointer-events-none absolute bottom-[calc(100%+8px)] right-0 top-auto z-20 hidden w-fit text-left group-hover:block"
+              role="tooltip"
+            >
+              <div className="gap-spacing-6xs flex flex-col">
+                <span>
+                  커피챗이 진행되는 당일에 해당 커피챗이 활성화
+                  됩니다.
+                </span>
+                <span>
+                  커피챗 시작 5분 전부터 버튼을 눌러 입장할 수
+                  있습니다.
+                </span>
+              </div>
+
+              <span
+                className="absolute -bottom-[5px] right-4 h-0 w-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-[#E8A083]/80"
+                aria-hidden
+              />
+            </div>
+          </div>
         </div>
         <ScheduleTable
           items={scheduleData}
           onEnter={(id) => {
             // 기본형 라우팅: /coffeechat/[id]
-            window.location.href = `/coffeechatVideo/${id}`
+            window.location.href = `/VideoCoffeeChat/${id}` // OV 타입정의X, 프론트 코드 로직으로만 구현
+            // window.location.href = `/VideoCoffeeChatUi/${id}` // ui만 있는 코드
           }}
         />
       </section>

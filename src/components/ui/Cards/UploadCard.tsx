@@ -14,6 +14,7 @@ interface UploadCardProps {
   menteeCount: number
   mentorName: string
   profileImage?: string | null
+  onClick?: () => void
 }
 
 export default function UploadCard({
@@ -25,10 +26,14 @@ export default function UploadCard({
   menteeCount,
   mentorName,
   profileImage,
+  onClick,
 }: UploadCardProps) {
   const imgSrc = profileImage ?? '/icons/profileDefault.svg'
   return (
-    <div className="bg-fill-white pt-spacing-3xl pb-spacing-3xs px-spacing-3xs shadow-emphasize flex w-[300px] flex-col overflow-hidden rounded-[var(--radius-md)]">
+    <div
+      onClick={onClick}
+      className="bg-fill-white pt-spacing-3xl pb-spacing-3xs px-spacing-3xs shadow-emphasize flex w-[300px] cursor-pointer flex-col overflow-hidden rounded-[var(--radius-md)]"
+    >
       {/* 헤더 + 프로필 */}
       <div className="px-spacing-3xs relative flex items-center">
         {/* 프로필: border-top 선과 절반 겹치게 */}
