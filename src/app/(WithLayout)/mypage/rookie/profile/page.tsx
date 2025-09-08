@@ -5,7 +5,7 @@ import UserInfoCard from '../../_components/Cards/UserInfoCard'
 
 export default function MyPage() {
   return (
-    <>
+    <section className="gap-spacing-6xl ml-[65px] flex flex-col">
       {/* 내 정보 */}
       <UserInfoCard
         nickname="선배닉네임"
@@ -20,6 +20,6 @@ export default function MyPage() {
         period="n년 개월 (2000.01 ~ 재직중)"
         verified={false}
       />
-    </>
+    </section>
   )
 }

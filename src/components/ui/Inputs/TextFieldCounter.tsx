@@ -12,6 +12,9 @@ interface TextFieldCounterProps {
   status?: TextFieldStatus
   helperText?: string
   className?: string
+  radiusClassName?: string
+  value?: string // 🔹 외부 제어 값
+  onChange?: (value: string) => void // 🔹 부모로 전달
 }
 
 export default function TextFieldCounter({
@@ -20,8 +23,23 @@ export default function TextFieldCounter({
   status = 'default',
   helperText,
   className,
+  radiusClassName = 'rounded-md',
+  value: controlledValue,
+  onChange,
 }: TextFieldCounterProps) {
-  const [value, setValue] = useState('')
+  const [internalValue, setInternalValue] = useState('')
+
+  // 외부에서 value가 안 들어오면 내부 state 사용
+  const value =
+    controlledValue !== undefined ? controlledValue : internalValue
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value
+    if (controlledValue === undefined) {
+      setInternalValue(newValue)
+    }
+    onChange?.(newValue) // 🔹 부모 state 업데이트
+  }
 
   const isDisabled = status === 'disabled'
   const isError = status === 'error'
@@ -31,7 +49,8 @@ export default function TextFieldCounter({
       {/* 입력 필드 */}
       <div
         className={clsx(
-          'px-spacing-2xs py-spacing-2xs flex items-center rounded-md border',
+          'px-spacing-2xs py-spacing-2xs flex items-center border',
+          radiusClassName,
           isDisabled &&
             'bg-fill-disabled text-label-subtler border-border-subtler',
           isError && 'border-label-error bg-fill-white',
@@ -43,7 +62,7 @@ export default function TextFieldCounter({
         <input
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={handleChange}
           maxLength={maxLength}
           disabled={isDisabled}
           placeholder={placeholder}
@@ -63,19 +82,19 @@ export default function TextFieldCounter({
             className="text-label-white fill-label-error ml-1"
           />
         )}
-      </div>
 
-      {/* 글자수 카운터 */}
-      {maxLength && (
-        <div
-          className={clsx(
-            'font-body3 text-right',
-            isError ? 'text-label-error' : 'text-label-subtle',
-          )}
-        >
-          {value.length}/{maxLength}
-        </div>
-      )}
+        {/* 글자수 카운터 */}
+        {maxLength && (
+          <div
+            className={clsx(
+              'font-body3 text-right',
+              isError ? 'text-label-error' : 'text-label-subtle',
+            )}
+          >
+            {value.length}/{maxLength}
+          </div>
+        )}
+      </div>
 
       {/* 에러 상태일 때만 헬퍼 텍스트 */}
       {isError && helperText && (

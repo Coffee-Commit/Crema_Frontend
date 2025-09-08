@@ -50,7 +50,7 @@ export default function MypageLayout({
         <div className="container mx-auto h-[180px]" />
       </section>
 
-      <section className="px-container-padding-sm py-spacing-6xl lg:px-container-padding-lg gap-spacing-xs container mx-auto flex">
+      <section className="px-container-padding-sm py-spacing-6xl lg:px-container-padding-lg gap-spacing-2xs container mx-auto flex">
         <div className="relative z-10 -mt-[130px] h-[1000px] w-[300px]">
           {/* 서버/클라 첫 렌더 모두 동일: placeholder 1개만 */}
           <SidebarPlaceholder />
