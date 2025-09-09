@@ -6,6 +6,7 @@ import Image from 'next/image'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
 
 interface UploadCardProps {
+  id: number
   title: string
   subtitle: string
   tags: string[]
