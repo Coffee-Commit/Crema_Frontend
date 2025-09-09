@@ -14,10 +14,10 @@ export default function SelectedChips({
   if (selected.length === 0) return null
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {selected.map((chip) => (
+    <div className="mb-spacing-xs flex min-h-[36px] flex-wrap gap-2">
+      {selected.map((chip, idx) => (
         <div
-          key={chip}
+          key={`${chip}-${idx}`}
           className="border-border-subtle text-label-default flex items-center gap-1 rounded-full border px-3 py-1 text-sm"
         >
           {chip}

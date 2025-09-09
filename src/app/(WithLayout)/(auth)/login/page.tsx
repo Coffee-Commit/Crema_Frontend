@@ -4,13 +4,11 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import SocialButton from '@/components/ui/Buttons/SocialButton'
-import SquareButton from '@/components/ui/Buttons/SquareButton'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { isLoggedIn, mockLogin } = useAuthStore()
-  // const { isLoggedIn, login, logout } = useAuthStore()
+  const { isLoggedIn } = useAuthStore()
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -34,14 +32,6 @@ export default function LoginPage() {
             <div className="gap-spacing-3xs flex w-full flex-col">
               <SocialButton type="kakao" />
               <SocialButton type="google" />
-              <SquareButton
-                className="w-full rounded-sm"
-                size="lg"
-                variant="primary"
-                onClick={mockLogin}
-              >
-                일반 로그인 (목데이터)
-              </SquareButton>
             </div>
           </div>
           <p className="text-label-subtle font-caption3 gap-spacing-7xs flex items-center">

@@ -78,7 +78,7 @@ export default function UserDropdownMenu() {
           {role === 'ROOKIE' && (
             <button
               onClick={() => {
-                router.push('/guideapply')
+                router.push('/mypage/rookie/guideapply')
                 setOpen(false)
               }}
               className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px] text-start"
@@ -89,7 +89,7 @@ export default function UserDropdownMenu() {
           {role === 'GUIDE' && (
             <button
               onClick={() => {
-                router.push('/mycoffeechat')
+                router.push('/mypage/guide/mycoffeechat')
                 setOpen(false)
               }}
               className="font-label4-medium rounded-2xs hover:bg-fill-selected-orange text-label-strong w-full cursor-pointer px-[6px] py-[4px] text-start"

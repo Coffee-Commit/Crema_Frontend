@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-
 interface Option {
   label: string
   value: string
@@ -16,41 +14,46 @@ const GROUPS: Group[] = [
   {
     title: '서류 및 면접',
     options: [
-      { label: '이력서', value: 'resume' },
-      { label: '자소서', value: 'cover' },
-      { label: '포트폴리오', value: 'portfolio' },
-      { label: '면접', value: 'interview' },
+      { label: '이력서', value: '이력서' },
+      { label: '자소서', value: '자소서' },
+      { label: '포트폴리오', value: '포트폴리오' },
+      { label: '면접', value: '면접' },
     ],
   },
   {
     title: '회사 생활',
     options: [
-      { label: '실무', value: 'work' },
-      { label: '조직문화', value: 'culture' },
-      { label: '인간관계', value: 'relation' },
-      { label: '워라밸', value: 'balance' },
+      { label: '실무', value: '실무' },
+      { label: '조직문화', value: '조직문화' },
+      { label: '인간관계', value: '인간관계' },
+      { label: '워라밸', value: '워라밸' },
     ],
   },
   {
     title: '커리어',
     options: [
-      { label: '합격 경험', value: 'success' },
-      { label: '업계 트렌드', value: 'trend' },
-      { label: '직무 전환', value: 'change' },
-      { label: '이직', value: 'move' },
+      { label: '합격 경험', value: '합격 경험' },
+      { label: '업계 트렌드', value: '업계 트렌드' },
+      { label: '직무 전환', value: '직무 전환' },
+      { label: '이직', value: '이직' },
     ],
   },
 ]
 
-export default function CategoryFilter() {
-  const [selected, setSelected] = useState<string[]>([])
+interface CategoryFilterProps {
+  selected: string[]
+  onChange: (values: string[]) => void
+}
 
+export default function CategoryFilter({
+  selected,
+  onChange,
+}: CategoryFilterProps) {
   const toggle = (value: string) => {
-    setSelected((prev) =>
-      prev.includes(value)
-        ? prev.filter((v) => v !== value)
-        : [...prev, value],
-    )
+    const newValues = selected.includes(value)
+      ? selected.filter((v) => v !== value)
+      : [...selected, value]
+    onChange(newValues)
   }
 
   return (
