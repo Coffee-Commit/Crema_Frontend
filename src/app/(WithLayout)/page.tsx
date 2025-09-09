@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 import ScrollReveal from '@/components/common/ScrollReveal'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
@@ -13,8 +14,12 @@ import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
 
 export default function HomePage() {
+  const router = useRouter()
   const handleSearch = (value: string) => {
-    console.log('검색어:', value)
+    const encoded = encodeURIComponent(value.trim())
+    if (encoded) {
+      router.push(`/searchGuide?query=${encoded}`)
+    }
   }
 
   const cardData = [

@@ -1,10 +1,11 @@
 'use client'
 
 import { Search } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface SearchBarSubProps {
   placeholder?: string
+  defaultValue?: string
   onSubmit?: (value: string) => void
   width?: string | number
   height?: string | number
@@ -13,23 +14,27 @@ interface SearchBarSubProps {
 
 export default function SearchBarSub({
   placeholder = '어떤 커리어 고민이 있나요?',
+  defaultValue = '',
   onSubmit,
   width = '100%',
   height = '48px',
   className = '',
 }: SearchBarSubProps) {
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState(defaultValue)
   const [isFocused, setIsFocused] = useState(false)
+
+  useEffect(() => {
+    setValue(defaultValue || '')
+  }, [defaultValue])
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (e.key === 'Enter' && onSubmit) {
-      onSubmit(value)
+      onSubmit(value.trim())
     }
   }
 
-  // 상태별 클래스
   const baseClass = `
     flex items-center justify-between 
     rounded-[var(--radius-circle)] 
@@ -37,24 +42,20 @@ export default function SearchBarSub({
     font-caption2-medium transition
     px-[var(--spacing-spacing-3xs)]
   `
-
   const placeholderClass = `
     bg-[var(--color-fill-input-gray)] 
     border border-transparent
   `
-
   const focusClass = `
     bg-[var(--color-fill-input-gray)] 
     border border-[var(--color-border-subtle)] 
     focus-within:focus-ring
   `
-
   const completedClass = `
     bg-[var(--color-fill-input-gray)] 
     border border-[var(--color-border-subtle)]
     text-[var(--color-label-default)]
   `
-
   const appliedClass = isFocused
     ? focusClass
     : value

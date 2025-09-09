@@ -1,23 +1,14 @@
 import type { ReactNode } from 'react'
-
 import '@/styles/globals.css'
-import ModalProvider from '@/components/common/ModalProvider'
-import { pretendard } from '@/components/fonts'
 
-export default function WithoutLayoutRoot({
+export default function RootLayout({
   children,
 }: {
   children: ReactNode
 }) {
   return (
-    <html
-      lang="ko"
-      className={pretendard.variable}
-    >
-      <body>
-        <main className="h-dvh overflow-hidden">{children}</main>
-        <ModalProvider />
-      </body>
+    <html lang="ko">
+      <body className="bg-[#F6F6F6]">{children}</body>
     </html>
   )
 }
