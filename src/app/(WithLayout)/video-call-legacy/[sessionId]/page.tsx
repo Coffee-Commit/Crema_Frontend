@@ -11,7 +11,7 @@ export default function VideoCallPage() {
 
   useEffect(() => {
     // 구식 URL 형식이므로 사용자에게 안내 후 홈으로 리다이렉트
-    router.replace('/video-call/create')
+    router.replace('/video-call-legacy/create')
   }, [router])
 
   return (

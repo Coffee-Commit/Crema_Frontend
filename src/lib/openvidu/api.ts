@@ -966,7 +966,7 @@ export const openViduNavigation = {
    */
   goToTestPage: () => {
     if (typeof window !== 'undefined') {
-      window.location.href = '/video-call/create'
+      window.location.href = '/video-call-legacy/create'
     }
   },
 }
