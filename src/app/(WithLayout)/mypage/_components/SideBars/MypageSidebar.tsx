@@ -2,12 +2,23 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import Divider from '@/components/ui/Divider.tsx/Divider'
 import { User } from '@/store/useAuthStore'
 
 export default function MypageSidebar({ user }: { user: User }) {
+  const router = useRouter()
+
+  const handleButtonClick = () => {
+    if (user.role === 'GUIDE') {
+      router.push('/mypage/guide/mycoffeechat')
+    } else {
+      router.push('/mypage/rookie/guideapply')
+    }
+  }
+
   return (
     <aside className="border-border-subtler bg-fill-white p-spacing-xs gap-spacing-md flex h-[1000px] w-[300px] flex-col rounded-sm border">
       {/* 프로필 영역 */}
@@ -47,6 +58,7 @@ export default function MypageSidebar({ user }: { user: User }) {
             variant="secondary"
             size="md"
             className="w-full"
+            onClick={handleButtonClick}
           >
             {user.role === 'GUIDE' ? '커피챗 편집' : '선배 신청하기'}
           </SquareButton>

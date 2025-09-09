@@ -1,17 +1,20 @@
 'use client'
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 
 import UploadCard from '@/components/ui/Cards/UploadCard'
 
 interface UploadCarouselProps {
   cards: {
+    id: number
     title: string
     subtitle: string
     tags: string[]
     rating: number
     reviewCount: number
+    menteeCount: number
     mentorName: string
     profileImage?: string | null
   }[]
@@ -20,6 +23,7 @@ interface UploadCarouselProps {
 export default function UploadCarousel({
   cards,
 }: UploadCarouselProps) {
+  const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [visibleCount, setVisibleCount] = useState(4)
 
@@ -78,15 +82,19 @@ export default function UploadCarousel({
             transform: `translateX(-${(currentIndex * 100) / visibleCount}%)`,
           }}
         >
-          {cards.map((card, i) => (
+          {cards.map((card, index) => (
             <div
-              key={i}
+              key={card.id ?? `fallback-${index}`}
               className="flex-shrink-0 px-2 py-4"
               style={{ width: `${100 / visibleCount}%` }}
             >
               <UploadCard
-                menteeCount={0}
                 {...card}
+                onClick={
+                  card.id && card.id > 0
+                    ? () => router.push(`/guides/${card.id}`)
+                    : undefined
+                }
               />
             </div>
           ))}

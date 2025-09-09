@@ -1,33 +1,33 @@
 'use client'
 
-import { useState } from 'react'
-
 interface Option {
   label: string
   value: string
 }
 
 const JOB_FIELDS: Option[] = [
-  { label: '디자인', value: 'design' },
-  { label: '기획 / 전략', value: 'plan' },
-  { label: '마케팅 / 홍보', value: 'marketing' },
-  { label: '경영 / 지원', value: 'management' },
-  { label: 'IT 개발 / 데이터', value: 'it' },
-  { label: '연구 / R&D', value: 'rnd' },
+  { label: '디자인', value: '디자인' },
+  { label: '기획 / 전략', value: '기획/전략' },
+  { label: '마케팅 / 홍보', value: '마케팅/홍보' },
+  { label: '경영 / 지원', value: '경영/지원' },
+  { label: 'IT 개발 / 데이터', value: 'IT 개발/데이터' },
+  { label: '연구 / R&D', value: '연구/R&D' },
 ]
 
-export default function JobFieldFilter() {
-  const [selected, setSelected] = useState<string[]>([
-    'design',
-    'plan',
-  ])
+interface JobFieldFilterProps {
+  selected: string[]
+  onChange: (values: string[]) => void
+}
 
+export default function JobFieldFilter({
+  selected,
+  onChange,
+}: JobFieldFilterProps) {
   const toggle = (value: string) => {
-    setSelected((prev) =>
-      prev.includes(value)
-        ? prev.filter((v) => v !== value)
-        : [...prev, value],
-    )
+    const newValues = selected.includes(value)
+      ? selected.filter((v) => v !== value)
+      : [...selected, value]
+    onChange(newValues)
   }
 
   return (

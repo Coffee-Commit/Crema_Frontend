@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 import ScrollReveal from '@/components/common/ScrollReveal'
 import CircleButton from '@/components/ui/Buttons/CircleButton'
@@ -12,75 +13,108 @@ import {
 import UploadCarousel from '@/components/ui/Crousel/UploadCarousel'
 import SearchBarMain from '@/components/ui/SearchBar/SearchBarMain'
 import KeywordTag from '@/components/ui/Tags/KeywordTag'
+import api from '@/lib/http/api'
+
+type Guide = {
+  guideId: number
+  nickname: string
+  profileImageUrl: string | null
+  title: string
+  workingPeriodYears: string
+  jobField: {
+    id: number
+    jobName: string
+  }
+  hashTags: { id: number; hashTagName: string }[]
+  totalCoffeeChats: number
+  averageStar: number
+  totalReviews: number
+  thumbsUpCount: number
+}
+
+type CardData = {
+  id: number
+  title: string
+  subtitle: string
+  tags: string[]
+  rating: number
+  reviewCount: number
+  menteeCount: number
+  mentorName: string
+  profileImage: string | null
+}
 
 export default function HomePage() {
   const router = useRouter()
+  const [cards, setCards] = useState<CardData[]>([])
+
   const handleSearch = (value: string) => {
     const encoded = encodeURIComponent(value.trim())
     if (encoded) {
       router.push(`/searchGuide?query=${encoded}`)
     }
   }
+  useEffect(() => {
+    const fetchGuides = async () => {
+      try {
+        const res = await api.get('/api/guides', {
+          params: { page: 0, size: 10, sort: 'latest' },
+        })
 
-  const cardData = [
-    {
-      title:
-        '공대생이 디자이너가 되기까지, 파란만장한 취업기이이이이이이이이이이이이이이이이이ㅣ이잉ㄹㄴ미ㅏㄴㅇㄹ;ㅣㅏㄴ얼;ㅣ망널;밍ㄴ라ㅓㅣㅣ',
-      subtitle: 'n년차 프로덕트 디자이너',
-      tags: [
-        '다섯글자면',
-        '다섯글자',
-        '여덟글자여덟글자',
-        '다섯글자면',
-        '다섯글자',
-      ],
-      rating: 5.0,
-      reviewCount: 12,
-      menteeCount: 34, // ✅ 커피챗한 멘티 수
-      mentorName: '선배닉네임',
-      profileImage: null,
-    },
-    {
-      title: '스타트업 이직 성공기, 실패와 배움의 기록',
-      subtitle: '3년차 프론트엔드 개발자',
-      tags: ['스타트업', '면접', '실패극복'],
-      rating: 4.8,
-      reviewCount: 20,
-      menteeCount: 34, // ✅ 커피챗한 멘티 수
-      mentorName: '개발선배',
-      profileImage: null,
-    },
-    {
-      title: '비전공자에서 코딩테스트 합격까지',
-      subtitle: '2년차 백엔드 개발자',
-      tags: ['비전공자', '코딩테스트', '합격기'],
-      rating: 4.9,
-      reviewCount: 30,
-      menteeCount: 34, // ✅ 커피챗한 멘티 수
-      mentorName: '백엔드형',
-      profileImage: null,
-    },
-    {
-      title: '비전공자에서 코딩테스트 합격까지2',
-      subtitle: '2년차 백엔드 개발자',
-      tags: ['비전공자', '코딩테스트', '합격기'],
-      rating: 4.9,
-      reviewCount: 30,
-      menteeCount: 34, // ✅ 커피챗한 멘티 수
-      mentorName: '백엔드형',
-      profileImage: null,
-    },
-    {
-      title: '비전공자에서 코딩테스트 합격까지3',
-      subtitle: '2년차 백엔드 개발자',
-      tags: ['비전공자', '코딩테스트', '합격기'],
-      rating: 4.9,
-      reviewCount: 30,
-      menteeCount: 34, // ✅ 커피챗한 멘티 수
-      mentorName: '백엔드형',
-      profileImage: null,
-    },
-  ]
+        console.log('📦 API 응답:', res.data)
+
+        const guides: Guide[] = res.data.data?.content ?? []
+
+        const mapped: CardData[] =
+          guides.length > 0
+            ? guides.map((g) => ({
+                id: g.guideId,
+                title: g.title,
+                subtitle: `${g.workingPeriodYears} ${g.jobField.jobName}`,
+                tags: g.hashTags.map((tag) => tag.hashTagName),
+                rating: g.averageStar,
+                reviewCount: g.totalReviews,
+                menteeCount: g.totalCoffeeChats,
+                mentorName: g.nickname,
+                profileImage: g.profileImageUrl,
+              }))
+            : Array.from({ length: 4 }).map((_, i) => ({
+                id: -(i + 1),
+                title: '아직 등록된 커피 챗이 없습니다.',
+                subtitle: '다양한 선배들의 커피챗을 기다려주세요!',
+                tags: [],
+                rating: 0,
+                reviewCount: 0,
+                menteeCount: 0,
+                mentorName: '',
+                profileImage: null,
+              }))
+
+        console.log('📝 매핑된 cards:', mapped)
+        setCards(mapped)
+      } catch (err) {
+        console.error('❌ fetchGuides 에러:', err)
+
+        // ✅ 실패했을 때도 fallback 카드 세팅
+        const fallback = Array.from({ length: 4 }).map((_, i) => ({
+          id: -(i + 1),
+          title: '로그인 후 이용 가능합니다',
+          subtitle:
+            '로그인 후 다양한 선배들의 커피챗을 확인해 보세요',
+          tags: [],
+          rating: 0,
+          reviewCount: 0,
+          menteeCount: 0,
+          mentorName: '',
+          profileImage: null,
+        }))
+        setCards(fallback)
+      }
+    }
+
+    fetchGuides()
+  }, [])
+
   return (
     <main className="w-full">
       {/* 헤더 이후 Hero Section */}
@@ -184,7 +218,7 @@ export default function HomePage() {
             <h2 className="font-heading1 mb-spacing-3xl text-label-deep">
               최근에 올라왔어요
             </h2>
-            <UploadCarousel cards={cardData} />
+            <UploadCarousel cards={cards} />
           </div>
         </section>
       </ScrollReveal>

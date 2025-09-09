@@ -10,13 +10,23 @@ type FileStatus = 'empty' | 'pending' | 'completed'
 
 interface FileUploadCardProps {
   className?: string
+  status?: FileStatus // 부모에서 상태를 넘겨줄 수도 있음
+  files?: File[] // 부모에서 파일 배열을 넘겨줄 수도 있음
+  onChange?: (files: File[], status: FileStatus) => void // 파일 변경 시 콜백
 }
 
 export default function FileUploadCard({
   className,
+  status: propStatus,
+  files: propFiles,
+  onChange,
 }: FileUploadCardProps) {
-  const [status, setStatus] = useState<FileStatus>('empty')
-  const [files, setFiles] = useState<File[]>([])
+  const [internalStatus, setInternalStatus] =
+    useState<FileStatus>('empty')
+  const [internalFiles, setInternalFiles] = useState<File[]>([])
+
+  const status = propStatus ?? internalStatus
+  const files = propFiles ?? internalFiles
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -24,14 +34,17 @@ export default function FileUploadCard({
     const selectedFiles = e.target.files
       ? Array.from(e.target.files)
       : []
-
     if (selectedFiles.length > 0) {
-      setFiles(selectedFiles)
-      setStatus('pending')
+      if (!propFiles) setInternalFiles(selectedFiles)
+      if (!propStatus) setInternalStatus('pending')
+
+      // 부모에도 알림
+      onChange?.(selectedFiles, 'pending')
 
       // 예시: 2초 후 인증 완료 처리
       setTimeout(() => {
-        setStatus('completed')
+        if (!propStatus) setInternalStatus('completed')
+        onChange?.(selectedFiles, 'completed')
       }, 2000)
     }
   }
@@ -53,7 +66,7 @@ export default function FileUploadCard({
             variant="primary"
             size="md"
           >
-            <label>
+            <label className="cursor-pointer">
               파일 등록
               <input
                 type="file"
@@ -116,7 +129,7 @@ export default function FileUploadCard({
               variant="tertiary"
               size="md"
             >
-              <label>
+              <label className="cursor-pointer">
                 파일 변경
                 <input
                   type="file"
