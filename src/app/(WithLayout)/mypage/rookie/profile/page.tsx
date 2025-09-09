@@ -143,7 +143,7 @@ export default function ProfilePage() {
             내 관심
           </h2>
           <SquareButton
-            variant="secondary"
+            variant={isEditingInfo ? 'primary' : 'secondary'}
             size="sm"
             onClick={() => setIsEditingInterest(!isEditingInterest)}
           >

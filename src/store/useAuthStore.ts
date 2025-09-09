@@ -89,6 +89,17 @@
 //         window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/oauth2/authorization/${provider}`
 //       },
 
+//       // // 로그아웃
+//       // logout: async () => {
+//       //   try {
+//       //     await api.post('/api/auth/logout')
+//       //     set({ user: null, isLoggedIn: false })
+//       //     window.location.href = '/login'
+//       //   } catch (e) {
+//       //     console.error('로그아웃 실패:', e)
+//       //   }
+//       // },
+
 //       // 로그아웃 - 목데이터 추가 버전
 //       logout: async () => {
 //         try {
@@ -136,15 +147,13 @@
 //     },
 //   ),
 // )
-
 'use client'
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-
 import api from '@/lib/http/api'
 
-type Provider = 'google' | 'kakao' | 'mock' | 'test'
+type Provider = 'google' | 'kakao' | 'test'
 
 export type User = {
   id: string
@@ -163,10 +172,21 @@ export type Tokens = {
   refreshToken: string
 }
 
-type ApiResp<T> = {
-  message: string
-  result: T
-  isSuccess: boolean
+type ApiResp<T> = { message: string; result: T; isSuccess: boolean }
+
+type TestLoginResult = {
+  accessToken: string
+  refreshToken: string
+  memberId: string
+  nickname: string
+  role: 'ROOKIE' | 'GUIDE'
+  tokenType: 'Bearer'
+}
+
+type CreateResult = {
+  memberId: string
+  nickname: string
+  role: 'ROOKIE' | 'GUIDE'
 }
 
 type State = {
@@ -176,12 +196,15 @@ type State = {
   tokens: Tokens | null
   init: () => Promise<void>
   login: (provider: Provider) => void
+  // ✅ dev 전용
+  loginTest: (nickname: string) => Promise<void>
+  createRookie: () => Promise<CreateResult>
+  createGuide: () => Promise<CreateResult>
+  createAndLogin: (role: 'ROOKIE' | 'GUIDE') => Promise<void>
   logout: () => Promise<void>
-  mockLoginWithTokens: () => void
   setAuth: (payload: { user: User; tokens: Tokens }) => void
 }
 
-// 로컬스토리지 초기 상태 로드
 function getInitialAuth(): Pick<
   State,
   'user' | 'isLoggedIn' | 'tokens'
@@ -213,10 +236,17 @@ export const useAuthStore = create<State>()(
       tokens: initial.tokens,
       loading: false,
 
-      // 서버 상태 초기화
       init: async () => {
         set({ loading: true })
         try {
+          const hasToken =
+            typeof window !== 'undefined' &&
+            !!localStorage.getItem('accessToken')
+          if (hasToken) {
+            const me = await api.get<ApiResp<User>>('/api/member/me')
+            set({ user: me.data.result, isLoggedIn: true })
+            return
+          }
           const status = await api.get<ApiResp<boolean>>(
             '/api/auth/status',
           )
@@ -234,68 +264,89 @@ export const useAuthStore = create<State>()(
         }
       },
 
-      // 실제 OAuth 로그인
       login: (provider) => {
         window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/oauth2/authorization/${provider}`
       },
 
-      // 로그아웃
+      // ===== dev 전용 API들 =====
+      loginTest: async (nickname: string) => {
+        const { data } = await api.post<ApiResp<TestLoginResult>>(
+          '/api/test/auth/login',
+          { nickname },
+        )
+        const r = data.result
+        localStorage.setItem('accessToken', r.accessToken)
+        localStorage.setItem('refreshToken', r.refreshToken)
+        const me = await api.get<ApiResp<User>>('/api/member/me')
+        const fullUser = {
+          ...me.data.result,
+          provider: 'test' as const,
+        }
+        set({
+          user: fullUser,
+          tokens: {
+            accessToken: r.accessToken,
+            refreshToken: r.refreshToken,
+          },
+          isLoggedIn: true,
+        })
+      },
+
+      createRookie: async () => {
+        const { data } = await api.post<ApiResp<CreateResult>>(
+          '/api/test/auth/create-rookie',
+        )
+        return data.result
+      },
+
+      createGuide: async () => {
+        const { data } = await api.post<ApiResp<CreateResult>>(
+          '/api/test/auth/create-guide',
+        )
+        return data.result
+      },
+
+      // 원클릭: 생성 → 로그인
+      createAndLogin: async (role) => {
+        const create =
+          role === 'ROOKIE' ? get().createRookie : get().createGuide
+        const { nickname } = await create()
+        await get().loginTest(nickname)
+      },
+
       logout: async () => {
         try {
-          const currentUser = get().user
-          if (
-            currentUser?.provider === 'mock' ||
-            currentUser?.provider === 'test'
-          ) {
+          const provider = get().user?.provider
+          if (provider === 'test') {
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
             set({ user: null, isLoggedIn: false, tokens: null })
             window.location.assign('/')
             return
           }
-
           await api.post('/api/auth/logout')
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
           set({ user: null, isLoggedIn: false, tokens: null })
           window.location.assign('/')
         } catch (e) {
           console.error('로그아웃 실패:', e)
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
           set({ user: null, isLoggedIn: false, tokens: null })
           window.location.assign('/')
         }
       },
 
-      // ✅ mock 로그인 (토큰 없이 상태만 세팅)
-      mockLoginWithTokens: () => {
-        set({
-          user: {
-            id: 'mock-1',
-            nickname: '오뎅🍥',
-            role: 'ROOKIE',
-            phoneNumber: null,
-            point: 999,
-            profileImageUrl: null,
-            description: '안녕하세요, 후배 오뎅 입니다.',
-            provider: 'mock',
-            createdAt: new Date().toISOString(),
-          },
-          isLoggedIn: true,
-          tokens: null,
-        })
-
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        console.log('✅ mockLoginWithTokens 실행 (토큰 없음)')
-      },
-
-      // ✅ test 계정 로그인 (create-rookie / create-guide → login API 결과 반영)
-      setAuth: ({ user, tokens }) => {
-        set({ user, tokens, isLoggedIn: true })
-      },
+      setAuth: ({ user, tokens }) =>
+        set({ user, tokens, isLoggedIn: true }),
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        isLoggedIn: state.isLoggedIn,
-        tokens: state.tokens,
+      partialize: (s) => ({
+        user: s.user,
+        isLoggedIn: s.isLoggedIn,
+        tokens: s.tokens,
       }),
     },
   ),

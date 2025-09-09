@@ -80,8 +80,8 @@ export default function HomePage() {
               }))
             : Array.from({ length: 4 }).map((_, i) => ({
                 id: -(i + 1),
-                title: '데이터가 없습니다',
-                subtitle: '',
+                title: '아직 등록된 커피 챗이 없습니다.',
+                subtitle: '다양한 선배들의 커피챗을 기다려주세요!',
                 tags: [],
                 rating: 0,
                 reviewCount: 0,
@@ -98,8 +98,9 @@ export default function HomePage() {
         // ✅ 실패했을 때도 fallback 카드 세팅
         const fallback = Array.from({ length: 4 }).map((_, i) => ({
           id: -(i + 1),
-          title: '데이터가 없습니다',
-          subtitle: '',
+          title: '로그인 후 이용 가능합니다',
+          subtitle:
+            '로그인 후 다양한 선배들의 커피챗을 확인해 보세요',
           tags: [],
           rating: 0,
           reviewCount: 0,
