@@ -29,14 +29,22 @@ export default function TextAreaCounter({
   }
 
   return (
-    <div className={clsx('flex flex-col gap-1', className)}>
+    <div
+      className={clsx(
+        'border-border-subtler bg-fill-white px-spacing-4xs py-spacing-3xs flex flex-col gap-1 rounded-md border',
+        className,
+      )}
+    >
       <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
-        className="border-border-subtler bg-fill-white p-spacing-2xs font-body3 text-label-default placeholder:text-label-subtle focus:border-border-primary min-h-[120px] w-full resize-none rounded-md border focus:outline-none"
+        className="font-body3 text-label-default placeholder:text-label-subtle focus:border-border-subtler min-h-[120px] w-full resize-none focus:outline-none"
       />
+      <div className="text-label-tertiary font-caption2 text-right">
+        {value.length}/{maxLength}
+      </div>
     </div>
   )
 }

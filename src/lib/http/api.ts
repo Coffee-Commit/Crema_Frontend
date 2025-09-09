@@ -72,7 +72,7 @@ api.interceptors.response.use(
       // ✅ guides는 공개 API → redirect 안 함
       if (url.includes('/guides')) {
         console.warn('401 Unauthorized (공개 API: redirect 안 함)')
-      } else if (state.user?.provider !== 'mock') {
+      } else if (state.user?.provider !== 'test') {
         console.warn('401 Unauthorized → 로그인 페이지 이동')
         window.location.href = '/login'
       }

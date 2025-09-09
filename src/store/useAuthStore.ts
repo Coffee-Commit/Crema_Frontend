@@ -151,6 +151,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+
 import api from '@/lib/http/api'
 
 type Provider = 'google' | 'kakao' | 'test'

@@ -3,12 +3,12 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
+import EmptyState from '@/components/common/EmptyState'
 import UploadCard from '@/components/ui/Cards/UploadCard'
 import SelectedChips from '@/components/ui/Chips/SelectedChips'
 import FilterGroup from '@/components/ui/Filters/FilterGroup'
 import Pagination from '@/components/ui/Paginations/Pagination'
 import SearchBarSub from '@/components/ui/SearchBar/SearchBarSub'
-import EmptyState from '@/components/common/EmptyState'
 
 type Guide = {
   guideId: number
