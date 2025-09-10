@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import WorkPeriodPicker from '@/components/ui/CustomSelectes/WorkPeriodPicker'
 import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
@@ -10,10 +9,20 @@ import CircleTag from '@/components/ui/Tags/CircleTag'
 
 type FileStatus = 'empty' | 'pending' | 'completed'
 
+type GuideUpgradeInfo = {
+  companyName: string
+  isCompanyNamePublic: boolean
+  jobPosition: string
+  isCurrent: boolean
+  workingStart: string
+  workingEnd?: string
+  workingPeriod: string
+  certificationPdfUrl: string
+}
+
 export default function GuideApplyPage() {
-  // 입력 상태
   const [company, setCompany] = useState('')
-  const [isCompanyNamePublic, setIsCompanyNamePublic] = useState(true) // ✅ 회사명 공개 여부
+  const [isCompanyNamePublic, setIsCompanyNamePublic] = useState(true)
   const [job, setJob] = useState('')
   const [workPeriod, setWorkPeriod] = useState({
     startYear: '',
@@ -25,13 +34,48 @@ export default function GuideApplyPage() {
   const [files, setFiles] = useState<File[]>([])
   const [fileStatus, setFileStatus] = useState<FileStatus>('empty')
 
-  // 제출 여부
+  // 조회 데이터
+  const [info, setInfo] = useState<GuideUpgradeInfo | null>(null)
+
   const [submitted, setSubmitted] = useState(false)
+
+  // 업그레이드 정보 조회
+  const fetchGuideInfo = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/member/me/guide-upgrade-info`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        },
+      )
+      if (!res.ok) throw new Error('조회 실패')
+      const data = await res.json()
+      setInfo(data.result)
+    } catch (err) {
+      console.error('❌ 가이드 정보 조회 실패:', err)
+    }
+  }
 
   const handleSubmit = async () => {
     try {
-      const formData = new FormData()
+      if (!company || !job) {
+        alert('회사명과 직무명을 입력해주세요.')
+        return
+      }
 
+      if (!files[0]) {
+        alert('재직 증명서를 업로드해주세요.')
+        return
+      }
+
+      if (files[0].size > 10 * 1024 * 1024) {
+        alert('파일 크기는 10MB 이하여야 합니다.')
+        return
+      }
+
+      const formData = new FormData()
       formData.append('companyName', company)
       formData.append(
         'isCompanyNamePublic',
@@ -40,19 +84,21 @@ export default function GuideApplyPage() {
       formData.append('jobPosition', job)
       formData.append('isCurrent', String(workPeriod.isCurrent))
 
-      const workingStart = `${workPeriod.startYear}-${workPeriod.startMonth.padStart(2, '0')}-01`
-      formData.append('workingStart', workingStart)
+      if (workPeriod.startYear && workPeriod.startMonth) {
+        const workingStart = `${workPeriod.startYear}-${workPeriod.startMonth.padStart(2, '0')}-01`
+        formData.append('workingStart', workingStart)
+      }
 
-      if (workPeriod.isCurrent) {
-        formData.append('workingEnd', '')
-      } else {
+      if (
+        !workPeriod.isCurrent &&
+        workPeriod.endYear &&
+        workPeriod.endMonth
+      ) {
         const workingEnd = `${workPeriod.endYear}-${workPeriod.endMonth.padStart(2, '0')}-01`
         formData.append('workingEnd', workingEnd)
       }
 
-      if (files[0]) {
-        formData.append('certificationPdf', files[0]) // 반드시 application/pdf
-      }
+      formData.append('certificationPdf', files[0])
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/member/me/upgrade-to-guide`,
@@ -65,11 +111,16 @@ export default function GuideApplyPage() {
         },
       )
 
-      if (!res.ok) throw new Error('API 요청 실패')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.message || 'API 요청 실패')
+      }
 
       const result = await res.json()
       console.log('✅ 업로드 성공:', result)
+
       setSubmitted(true)
+      await fetchGuideInfo() // 업로드 후 최신 데이터 조회
     } catch (err) {
       console.error('❌ 업로드 실패:', err)
     }
@@ -77,6 +128,7 @@ export default function GuideApplyPage() {
 
   const handleEdit = () => {
     setSubmitted(false)
+    setInfo(null)
   }
 
   return (
@@ -176,7 +228,7 @@ export default function GuideApplyPage() {
               </SquareButton>
             </div>
           </>
-        ) : (
+        ) : info ? (
           <>
             {/* ✅ 조회 모드 */}
             <div className="px-spacing-xs py-spacing-md gap-spacing-xl flex flex-col">
@@ -186,11 +238,10 @@ export default function GuideApplyPage() {
                 </h2>
                 <div className="gap-spacing-4xs py-spacing-5xs flex flex-row items-center">
                   <CircleTag variant="primary">
-                    {isCompanyNamePublic ? '공개' : '비공개'}
+                    {info.isCompanyNamePublic ? '공개' : '비공개'}
                   </CircleTag>
                   <span className="font-caption2-medium text-label-default">
-                    {company ||
-                      '경력 인증 내역과 동일하게 입력됩니다.'}
+                    {info.companyName}
                   </span>
                 </div>
               </div>
@@ -200,7 +251,7 @@ export default function GuideApplyPage() {
                   직무명
                 </h2>
                 <p className="font-caption2-medium text-label-default py-spacing-5xs">
-                  {job || '직무명을 입력해주세요.'}
+                  {info.jobPosition}
                 </p>
               </div>
 
@@ -209,19 +260,7 @@ export default function GuideApplyPage() {
                   근무기간
                 </h2>
                 <p className="font-caption2-medium text-label-default py-spacing-5xs">
-                  {workPeriod?.startYear && workPeriod?.startMonth ? (
-                    <>
-                      {workPeriod.startYear}년 {workPeriod.startMonth}
-                      월 ~{' '}
-                      {workPeriod.isCurrent
-                        ? '재직중'
-                        : workPeriod?.endYear && workPeriod?.endMonth
-                          ? `${workPeriod.endYear}년 ${workPeriod.endMonth}월`
-                          : '근무기간을 입력해주세요.'}
-                    </>
-                  ) : (
-                    '근무기간을 입력해주세요.'
-                  )}
+                  {info.workingPeriod || '근무기간을 입력해주세요.'}
                 </p>
               </div>
 
@@ -230,16 +269,21 @@ export default function GuideApplyPage() {
                   경력 인증
                 </h2>
                 <div className="gap-spacing-4xs py-spacing-5xs flex flex-row items-center">
-                  <CircleTag variant="primary">인증 필요</CircleTag>
-                  <span className="font-caption2-medium text-label-default">
-                    {files.length > 0
-                      ? files.map((f) => f.name).join(', ')
-                      : '경력을 인증하고, 후배와의 커피챗을 시작해보세요.'}
-                  </span>
+                  <CircleTag variant="primary">인증 완료</CircleTag>
+                  <a
+                    href={info.certificationPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-caption2-medium text-label-primary underline"
+                  >
+                    파일 보기
+                  </a>
                 </div>
               </div>
             </div>
           </>
+        ) : (
+          <p>업로드된 정보를 불러오는 중입니다...</p>
         )}
       </section>
     </main>
