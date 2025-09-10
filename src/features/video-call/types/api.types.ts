@@ -1,14 +1,14 @@
 // VideoCall API 응답 타입 정의
 
 // 실제 API 서버 응답 구조
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   message: string
   result: T
   success: boolean
 }
 
 // 명세서 기준 응답 구조 (호환성 유지)
-export interface ApiResponseLegacy<T = any> {
+export interface ApiResponseLegacy<T = unknown> {
   code: 'SUCCESS' | 'CREATED' | string
   message: string
   data: T

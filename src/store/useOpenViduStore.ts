@@ -1840,17 +1840,24 @@ function setupSessionEventHandlers(
     // onSignal은 ChatManager에서 직접 처리하므로 여기서는 생략
 
     onException: (exception) => {
+      const exceptionObj = exception as {
+        name?: string
+        message?: string
+      }
+
       eventLogger.error('세션 예외', {
-        name: exception.name,
-        msg: exception.message,
+        name: exceptionObj.name || 'Unknown',
+        msg: exceptionObj.message || 'Unknown error',
       })
 
       // 심각한 예외의 경우 에러 상태로 업데이트
       if (
-        exception.name === 'ICE_CONNECTION_FAILED' ||
-        exception.name === 'GENERIC_ERROR'
+        exceptionObj.name === 'ICE_CONNECTION_FAILED' ||
+        exceptionObj.name === 'GENERIC_ERROR'
       ) {
-        set({ error: `연결 오류: ${exception.message}` })
+        set({
+          error: `연결 오류: ${exceptionObj.message || 'Unknown error'}`,
+        })
       }
     },
 

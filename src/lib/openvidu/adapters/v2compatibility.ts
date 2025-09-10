@@ -7,9 +7,9 @@ import {
   OpenVidu,
   Session,
   Publisher,
-  ConnectionEvent,
-  StreamEvent,
-  SignalEvent,
+  ConnectionEvent as _ConnectionEvent,
+  StreamEvent as _StreamEvent,
+  SignalEvent as _SignalEvent,
 } from 'openvidu-browser'
 
 import { featureFlags, getClientIceServers } from '@/lib/config/env'
@@ -19,7 +19,7 @@ import type {
   OpenViduSdkAdapter,
   AdapterPublisherConfig,
   AdapterEventHandlers,
-  AdapterError,
+  AdapterError as _AdapterError,
   PerformanceMetrics,
   AdapterState,
   SimulcastLayer,
@@ -68,7 +68,7 @@ export class OpenViduV2CompatibilityAdapter
       const clientIceServers = getClientIceServers()
 
       // ICE 고급 설정 - codex 권장사항 반영
-      const advancedConfig: any = {
+      const advancedConfig: Record<string, unknown> = {
         // ICE 연결 끊김 예외 시간 조정 (기본값 4000ms → 8000ms)
         iceConnectionDisconnectedExceptionTimeout: 8000,
       }
@@ -189,7 +189,12 @@ export class OpenViduV2CompatibilityAdapter
       const stream = event.stream
       if (stream.isLocal()) {
         // 로컬 스트림 (Publisher)
-        this.setupWebRTCEventListeners(stream)
+        this.setupWebRTCEventListeners(
+          stream as unknown as {
+            streamId: string
+            webRtcPeer?: { pc?: RTCPeerConnection }
+          },
+        )
       }
     })
   }
@@ -197,7 +202,10 @@ export class OpenViduV2CompatibilityAdapter
   /**
    * WebRTC PeerConnection 레벨의 ICE 이벤트 상세 로깅
    */
-  private setupWebRTCEventListeners(stream: any): void {
+  private setupWebRTCEventListeners(stream: {
+    streamId: string
+    webRtcPeer?: { pc?: RTCPeerConnection }
+  }): void {
     try {
       const webRtcPeer = stream.webRtcPeer
       if (!webRtcPeer || !webRtcPeer.pc) return
@@ -282,8 +290,28 @@ export class OpenViduV2CompatibilityAdapter
   ): Promise<void> {
     try {
       const stats = await pc.getStats()
-      const candidates: any[] = []
-      const candidatePairs: any[] = []
+      const candidates: Array<{
+        id: string
+        type: string
+        candidateType?: string
+        protocol?: string
+        address?: string
+        port?: number
+        priority?: number
+      }> = []
+      const candidatePairs: Array<{
+        id: string
+        localCandidateId?: string
+        remoteCandidateId?: string
+        state?: string
+        nominated?: boolean
+        writable?: boolean
+        readable?: boolean
+        bytesSent?: number
+        bytesReceived?: number
+        currentRoundTripTime?: number
+        availableOutgoingBitrate?: number
+      }> = []
 
       stats.forEach((report) => {
         if (
@@ -318,11 +346,14 @@ export class OpenViduV2CompatibilityAdapter
         connectionState: pc.connectionState,
         iceConnectionState: pc.iceConnectionState,
         totalCandidates: candidates.length,
-        candidatesByType: candidates.reduce((acc, c) => {
-          const key = `${c.type}_${c.candidateType}`
-          acc[key] = (acc[key] || 0) + 1
-          return acc
-        }, {}),
+        candidatesByType: candidates.reduce(
+          (acc: Record<string, number>, c) => {
+            const key = `${c.type}_${c.candidateType}`
+            acc[key] = (acc[key] || 0) + 1
+            return acc
+          },
+          {},
+        ),
         candidatePairs: candidatePairs.length,
         successfulPairs: candidatePairs.filter(
           (p) => p.state === 'succeeded',
@@ -355,7 +386,11 @@ export class OpenViduV2CompatibilityAdapter
   disconnectSession(session: Session): void {
     try {
       // WebSocket 상태 확인 후 안전한 연결 해제
-      const ws = (session as any)?.openvidu?.openviduWS?.webSocket
+      const ws = (
+        session as unknown as {
+          openvidu?: { openviduWS?: { webSocket?: WebSocket } }
+        }
+      )?.openvidu?.openviduWS?.webSocket
       const wsOpen = ws && ws.readyState === WebSocket.OPEN
 
       if (wsOpen && typeof session.disconnect === 'function') {
@@ -467,7 +502,9 @@ export class OpenViduV2CompatibilityAdapter
 
       // v3 성능 기능이 활성화된 경우 추가 설정
       if (featureFlags.enableSimulcast && actualConfig.publishVideo) {
-        ;(publisherOptions as any).simulcast = true
+        ;(
+          publisherOptions as unknown as { simulcast?: boolean }
+        ).simulcast = true
       }
 
       // Publisher 초기화 시도 (에러 발생시 재시도)
@@ -477,16 +514,19 @@ export class OpenViduV2CompatibilityAdapter
           undefined,
           publisherOptions,
         )
-      } catch (initError: any) {
+      } catch (initError: unknown) {
         // 비디오 장치 관련 에러인 경우 오디오 전용으로 재시도
         if (
-          initError?.name === 'INPUT_VIDEO_DEVICE_NOT_FOUND' ||
-          initError?.message?.includes('NotFoundError') ||
-          initError?.message?.includes('Requested device not found')
+          (initError as Error)?.name ===
+            'INPUT_VIDEO_DEVICE_NOT_FOUND' ||
+          (initError as Error)?.message?.includes('NotFoundError') ||
+          (initError as Error)?.message?.includes(
+            'Requested device not found',
+          )
         ) {
           logger.warn('비디오 장치 에러로 인한 오디오 전용 재시도', {
-            errorName: initError.name,
-            errorMessage: initError.message,
+            errorName: (initError as Error).name,
+            errorMessage: (initError as Error).message,
           })
 
           const audioOnlyOptions = {
@@ -710,13 +750,13 @@ export class OpenViduV2CompatibilityAdapter
     return { ...this.state.metrics }
   }
 
-  private handleError(operation: string, error: any): void {
+  private handleError(operation: string, error: unknown): void {
     this.state.metrics.errorCount++
     this.updateMetrics()
 
     logger.error(`${operation} 실패`, {
       msg: error instanceof Error ? error.message : '알 수 없는 오류',
-      code: (error as any)?.code,
+      code: (error as Error & { code?: string })?.code,
     })
   }
 
@@ -741,14 +781,14 @@ export class OpenViduV2CompatibilityAdapter
     // no-op: v2에서는 자동으로 단일 레이어만 전송
   }
 
-  async disableSimulcast(publisher: Publisher): Promise<void> {
+  async disableSimulcast(_publisher: Publisher): Promise<void> {
     logger.debug('Simulcast 비활성화 (v2에서는 no-op)')
     // no-op: 이미 단일 레이어만 사용
   }
 
   async updateSimulcastLayers(
-    publisher: Publisher,
-    layers: Partial<SimulcastLayer>[],
+    _publisher: Publisher,
+    _layers: Partial<SimulcastLayer>[],
   ): Promise<void> {
     logger.warn(
       'Simulcast 레이어 업데이트는 v2 호환 모드에서 지원하지 않습니다',
@@ -759,12 +799,12 @@ export class OpenViduV2CompatibilityAdapter
   /**
    * Dynacast 기능들 (v2에서는 기본 동작)
    */
-  async enableDynacast(session: Session): Promise<void> {
+  async enableDynacast(_session: Session): Promise<void> {
     logger.debug('Dynacast 활성화 (v2에서는 기본 동작)')
     // no-op: v2에서는 기본적으로 adaptive 동작
   }
 
-  async disableDynacast(session: Session): Promise<void> {
+  async disableDynacast(_session: Session): Promise<void> {
     logger.debug('Dynacast 비활성화 (v2에서는 no-op)')
     // no-op
   }
@@ -786,7 +826,7 @@ export class OpenViduV2CompatibilityAdapter
     // 런타임 변경은 제한적이므로 로그만 남김
   }
 
-  getQualityProfile(session: Session): QualityProfile | null {
+  getQualityProfile(_session: Session): QualityProfile | null {
     // v2에서는 현재 품질 정보를 정확히 추적하기 어려우므로 기본값 반환
     return {
       name: 'medium',
@@ -816,7 +856,7 @@ export class OpenViduV2CompatibilityAdapter
    * 네트워크 품질 모니터링 (v2에서는 시뮬레이션)
    */
   async getNetworkQuality(
-    session: Session,
+    _session: Session,
   ): Promise<NetworkQualityInfo | null> {
     // v2에서는 WebRTC stats API로 대략적인 품질 정보만 제공
     try {
@@ -837,7 +877,7 @@ export class OpenViduV2CompatibilityAdapter
   }
 
   onNetworkQualityChanged(
-    callback: (quality: NetworkQualityInfo) => void,
+    _callback: (quality: NetworkQualityInfo) => void,
   ): void {
     logger.debug('네트워크 품질 변경 모니터링 설정')
     // v2에서는 주기적으로 체크하는 방식으로 구현 가능하지만 여기서는 no-op
@@ -856,7 +896,7 @@ export class OpenViduV2CompatibilityAdapter
     // no-op: SVC는 v3의 LiveKit에서만 지원
   }
 
-  async disableSVC(publisher: Publisher): Promise<void> {
+  async disableSVC(_publisher: Publisher): Promise<void> {
     logger.debug('SVC 비활성화 (v2에서는 no-op)')
     // no-op
   }

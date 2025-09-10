@@ -113,7 +113,7 @@ export class OpenViduAdapterFactory implements AdapterFactory {
    * 모든 어댑터 캐시 정리
    */
   clearCache(): void {
-    for (const [sdkVersion, adapter] of this.adapterCache) {
+    for (const [_sdkVersion, adapter] of this.adapterCache) {
       adapter.cleanup()
     }
     this.adapterCache.clear()
@@ -126,7 +126,7 @@ export class OpenViduAdapterFactory implements AdapterFactory {
   getAdapterInfo(): Array<{
     sdkVersion: OpenViduSdkVersion
     adapter: OpenViduSdkAdapter
-    state: any
+    state: unknown
   }> {
     const info = []
 
@@ -134,7 +134,10 @@ export class OpenViduAdapterFactory implements AdapterFactory {
       info.push({
         sdkVersion,
         adapter,
-        state: (adapter as any).getState?.() || {},
+        state:
+          (
+            adapter as unknown as { getState?: () => unknown }
+          ).getState?.() || {},
       })
     }
 
@@ -196,8 +199,9 @@ export function getAdapterFactory(): OpenViduAdapterFactory {
 
 // 개발 환경에서 글로벌 액세스 제공
 if (typeof window !== 'undefined' && featureFlags.debugMode) {
-  ;(window as any).openviduAdapterFactory =
-    OpenViduAdapterFactory.getInstance
+  ;(
+    window as Window & { openviduAdapterFactory?: unknown }
+  ).openviduAdapterFactory = OpenViduAdapterFactory.getInstance
 
   console.log('🔧 OpenVidu 어댑터 개발 도구 활성화')
 }

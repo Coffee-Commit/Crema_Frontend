@@ -5,9 +5,9 @@
 import type {
   Session,
   Publisher,
-  Subscriber,
-  StreamManager,
-  OpenViduError,
+  Subscriber as _Subscriber,
+  StreamManager as _StreamManager,
+  OpenViduError as _OpenViduError,
 } from 'openvidu-browser'
 
 // ============================================================================
@@ -304,13 +304,13 @@ export const isParticipantLocal = (
 ): boolean => participant.isLocal
 
 export const isValidChatMessage = (
-  message: any,
+  message: unknown,
 ): message is ChatMessage =>
   typeof message === 'object' &&
   message !== null &&
-  typeof message.id === 'string' &&
-  typeof message.content === 'string' &&
-  typeof message.senderName === 'string'
+  typeof (message as Record<string, unknown>).id === 'string' &&
+  typeof (message as Record<string, unknown>).content === 'string' &&
+  typeof (message as Record<string, unknown>).senderName === 'string'
 
 // ============================================================================
 // 상수
