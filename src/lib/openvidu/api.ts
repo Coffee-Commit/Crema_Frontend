@@ -10,12 +10,15 @@ import {
   OPENVIDU_CONSTANTS,
 } from '@/components/openvidu/types'
 import {
+  isApiResponseLike,
+  isErrorLike,
+} from '@/features/video-call/types/guards.types'
+import {
   featureFlags as _featureFlags,
   getOpenViduConfig,
 } from '@/lib/config/env'
 import api from '@/lib/http/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
-import { isApiResponseLike, isErrorLike } from '@/features/video-call/types/guards.types'
 
 // ============================================================================
 // API 응답 정규화 함수
@@ -60,7 +63,11 @@ function normalizeApiResponse<T>(raw: unknown): ApiResponse<T> {
     return { code: 'OK', message, result: apiData as T }
   }
 
-  return { code: String(normalizedCode), message, result: result as T | null }
+  return {
+    code: String(normalizedCode),
+    message,
+    result: result as T | null,
+  }
 }
 
 const logger = createOpenViduLogger('Api')
@@ -154,13 +161,16 @@ class OpenViduApiService {
       const endTime = performance.now()
       const duration = Math.round(endTime - startTime)
 
-      const errorInfo = isErrorLike(error) ? {
-        msg: error.message || 'Unknown error',
-        status: (error as { response?: { status?: number } }).response?.status
-      } : {
-        msg: String(error),
-        status: undefined
-      }
+      const errorInfo = isErrorLike(error)
+        ? {
+            msg: error.message || 'Unknown error',
+            status: (error as { response?: { status?: number } })
+              .response?.status,
+          }
+        : {
+            msg: String(error),
+            status: undefined,
+          }
 
       logger.error('요청 실패', {
         endpoint,
@@ -449,7 +459,11 @@ class OpenViduTestApiService {
    */
   private async request<T>(
     endpoint: string,
-    options: { method?: string; data?: any; abortKey?: string } = {},
+    options: {
+      method?: string
+      data?: unknown
+      abortKey?: string
+    } = {},
   ): Promise<T> {
     const requestInfo = {
       url: `${this.baseUrl}${endpoint}`,
@@ -538,17 +552,20 @@ class OpenViduTestApiService {
         this.abortControllers.delete(options.abortKey)
       }
 
-      const errorInfo = isErrorLike(error) ? {
-        name: error.name || '',
-        code: (error as { code?: string }).code || '',
-        msg: error.message || 'Unknown error',
-        status: (error as { response?: { status?: number } }).response?.status
-      } : {
-        name: '',
-        code: '',
-        msg: String(error),
-        status: undefined
-      }
+      const errorInfo = isErrorLike(error)
+        ? {
+            name: error.name || '',
+            code: (error as { code?: string }).code || '',
+            msg: error.message || 'Unknown error',
+            status: (error as { response?: { status?: number } })
+              .response?.status,
+          }
+        : {
+            name: '',
+            code: '',
+            msg: String(error),
+            status: undefined,
+          }
 
       // 요청 취소 에러 체크
       if (
@@ -829,17 +846,23 @@ export function analyzeV3Error(error: unknown): {
   recoveryAction?: string
   requiresReconnect: boolean
 } {
-  const errorInfo = isErrorLike(error) ? {
-    name: error.name || '',
-    message: error.message || '',
-    code: (error as Error & { code?: string })?.code || ''
-  } : {
-    name: '',
-    message: String(error),
-    code: ''
-  }
-  
-  const { name: errorName, message: errorMessage, code: errorCode } = errorInfo
+  const errorInfo = isErrorLike(error)
+    ? {
+        name: error.name || '',
+        message: error.message || '',
+        code: (error as Error & { code?: string })?.code || '',
+      }
+    : {
+        name: '',
+        message: String(error),
+        code: '',
+      }
+
+  const {
+    name: errorName,
+    message: errorMessage,
+    code: errorCode,
+  } = errorInfo
 
   // LiveKit/v3 특화 에러 패턴 분석
   if (errorName.includes('ICE') || errorMessage.includes('network')) {
@@ -898,13 +921,15 @@ export function analyzeV3Error(error: unknown): {
  * API 에러를 한국어 메시지로 변환 (v3 개선 버전)
  */
 export function getKoreanErrorMessage(error: unknown): string {
-  const errorInfo = isErrorLike(error) ? {
-    name: error.name || '',
-    message: error.message || ''
-  } : {
-    name: '',
-    message: String(error)
-  }
+  const errorInfo = isErrorLike(error)
+    ? {
+        name: error.name || '',
+        message: error.message || '',
+      }
+    : {
+        name: '',
+        message: String(error),
+      }
 
   logger.debug('에러 메시지 변환', {
     name: errorInfo.name,

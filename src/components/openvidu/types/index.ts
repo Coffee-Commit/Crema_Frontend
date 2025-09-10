@@ -1,5 +1,6 @@
 import { Session, Publisher, StreamManager } from 'openvidu-browser'
 
+import { openViduServerConfig, featureFlags } from '@/lib/config/env'
 import type { ChatManager } from '@/lib/openvidu/chatManager'
 
 // ============================================================================
@@ -53,8 +54,9 @@ export enum ApiErrorCode {
 // 세션 참가 관련 타입
 // ============================================================================
 
-export interface QuickJoinRequest extends Record<string, never> {
+export interface QuickJoinRequest {
   // 현재는 빈 객체, 추후 필요한 필드 추가 예정
+  [key: string]: unknown
 }
 
 export interface QuickJoinResponse {
@@ -321,8 +323,6 @@ export type OpenViduStore = VideoCallState & VideoCallActions
 // ============================================================================
 // 상수 및 유틸리티 타입
 // ============================================================================
-
-import { openViduServerConfig, featureFlags } from '@/lib/config/env'
 
 export const OPENVIDU_CONSTANTS = {
   DEFAULT_RESOLUTION: '1280x720',

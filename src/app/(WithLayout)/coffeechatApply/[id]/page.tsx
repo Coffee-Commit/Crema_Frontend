@@ -3,12 +3,13 @@
 import { useState } from 'react'
 
 import CreditButton from '@/components/ui/Buttons/CreditButton'
-import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
-import ScheduleInputView from '@/components/ui/CustomSelectes/Schedule/ScheduleInputView'
-import DateTimeSelector from '@/components/ui/CustomSelectes/DateTimeSelector'
-import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
+import DateTimeSelector from '@/components/ui/CustomSelectes/DateTimeSelector'
+import ScheduleInputView from '@/components/ui/CustomSelectes/Schedule/ScheduleInputView'
 import { Schedule } from '@/components/ui/CustomSelectes/Schedule/ScheduleSelector'
+import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
+import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
+
 import ApplyComplete from '../_components/ApplyComplete'
 export default function CoffeechatApplyPage() {
   const [duration, setDuration] = useState<number | null>(null)

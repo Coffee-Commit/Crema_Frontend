@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { subscribeWithSelector, devtools } from 'zustand/middleware'
-import { immer } from 'zustand/middleware/immer'
 
 import type {
   SessionSlice,
@@ -237,7 +236,12 @@ export const useVideoCallActions = () => {
     stopMonitoring: store.stopMonitoring,
 
     // Publisher 관리 (최소 구현)
-    createPublisher: async (options?: any) => {
+    createPublisher: async (options?: {
+      publishAudio?: boolean
+      publishVideo?: boolean
+      resolution?: string
+      frameRate?: number
+    }) => {
       const { openViduClient } = await import(
         '../services/OpenViduClient'
       )

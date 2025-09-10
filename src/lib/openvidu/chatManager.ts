@@ -6,8 +6,13 @@
 import type { Session, SignalEvent } from 'openvidu-browser'
 
 import type { ChatMessage } from '@/components/openvidu/types'
+import {
+  isChatMessageLike,
+  isChatChunkLike as _isChatChunkLike,
+  isRecord,
+  safeString,
+} from '@/features/video-call/types/guards.types'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
-import { isChatMessageLike, isChatChunkLike, isRecord, safeString } from '@/features/video-call/types/guards.types'
 
 const logger = createOpenViduLogger('ChatManager')
 
@@ -388,7 +393,9 @@ export class ChatManager {
     // 안전한 connection.data 파싱
     let participantData: Record<string, unknown> = {}
     try {
-      const fromData = isRecord(from) ? safeString((from as { data?: string }).data) : ''
+      const fromData = isRecord(from)
+        ? safeString((from as { data?: string }).data)
+        : ''
       if (fromData) {
         // '%/%' 구분자 처리
         const parts = fromData.split('%/%')
@@ -420,12 +427,14 @@ export class ChatManager {
     } catch (error) {
       logger.debug('참가자 데이터 파싱 실패, 기본값 사용', {
         error,
-        raw: isRecord(from) ? (from as { data?: string }).data : undefined,
+        raw: isRecord(from)
+          ? (from as { data?: string }).data
+          : undefined,
       })
       participantData = { nickname: '사용자', username: '사용자' }
     }
 
-    const nickname = 
+    const nickname =
       safeString(participantData.nickname) ||
       safeString(participantData.username) ||
       safeString(data.username) ||
@@ -518,7 +527,9 @@ export class ChatManager {
     // 안전한 connection.data 파싱 (assembleChunkedMessage)
     let participantData: Record<string, unknown> = {}
     try {
-      const fromData = isRecord(from) ? safeString((from as { data?: string }).data) : ''
+      const fromData = isRecord(from)
+        ? safeString((from as { data?: string }).data)
+        : ''
       if (fromData) {
         // '%/%' 구분자 처리
         const parts = fromData.split('%/%')
@@ -548,13 +559,17 @@ export class ChatManager {
     } catch (error) {
       logger.debug('청킹 메시지 참가자 데이터 파싱 실패', {
         error,
-        raw: isRecord(from) ? (from as { data?: string }).data : undefined,
+        raw: isRecord(from)
+          ? (from as { data?: string }).data
+          : undefined,
       })
       participantData = { nickname: '사용자', username: '사용자' }
     }
 
     const nickname =
-      safeString(participantData.nickname) || safeString(participantData.username) || '익명'
+      safeString(participantData.nickname) ||
+      safeString(participantData.username) ||
+      '익명'
 
     const chatMessage: ChatMessage = {
       id: buffer.messageId,
@@ -723,23 +738,31 @@ export class ChatManager {
   /**
    * 런타임 데이터 검증 유틸리티
    */
-  private isValidChatData(data: unknown): data is Record<string, unknown> {
+  private isValidChatData(
+    data: unknown,
+  ): data is Record<string, unknown> {
     if (!isRecord(data)) return false
     return (
       typeof (data as Record<string, unknown>).id === 'string' &&
       typeof (data as Record<string, unknown>).message === 'string' &&
-      typeof (data as Record<string, unknown>).timestamp === 'string' &&
+      typeof (data as Record<string, unknown>).timestamp ===
+        'string' &&
       typeof (data as Record<string, unknown>).username === 'string'
     )
   }
 
-  private isValidChunkData(chunk: unknown): chunk is Record<string, unknown> {
+  private isValidChunkData(
+    chunk: unknown,
+  ): chunk is Record<string, unknown> {
     if (!isRecord(chunk)) return false
     return (
       typeof (chunk as Record<string, unknown>).id === 'string' &&
-      typeof (chunk as Record<string, unknown>).messageId === 'string' &&
-      typeof (chunk as Record<string, unknown>).chunkIndex === 'number' &&
-      typeof (chunk as Record<string, unknown>).totalChunks === 'number' &&
+      typeof (chunk as Record<string, unknown>).messageId ===
+        'string' &&
+      typeof (chunk as Record<string, unknown>).chunkIndex ===
+        'number' &&
+      typeof (chunk as Record<string, unknown>).totalChunks ===
+        'number' &&
       typeof (chunk as Record<string, unknown>).data === 'string' &&
       typeof (chunk as Record<string, unknown>).timestamp === 'number'
     )
