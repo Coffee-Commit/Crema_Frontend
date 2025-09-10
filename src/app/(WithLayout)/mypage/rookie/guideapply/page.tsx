@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import WorkPeriodPicker from '@/components/ui/CustomSelectes/WorkPeriodPicker'
 import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
 import TextFieldCounter from '@/components/ui/Inputs/TextFieldCounter'
 import CircleTag from '@/components/ui/Tags/CircleTag'
+import { useAuthStore } from '@/store/useAuthStore'
 
 type FileStatus = 'empty' | 'pending' | 'completed'
 
@@ -15,12 +17,15 @@ type GuideUpgradeInfo = {
   jobPosition: string
   isCurrent: boolean
   workingStart: string
-  workingEnd?: string
+  workingEnd: string | null
   workingPeriod: string
   certificationPdfUrl: string
 }
 
 export default function GuideApplyPage() {
+  const { tokens, user } = useAuthStore()
+
+  // 입력 상태
   const [company, setCompany] = useState('')
   const [isCompanyNamePublic, setIsCompanyNamePublic] = useState(true)
   const [job, setJob] = useState('')
@@ -34,47 +39,14 @@ export default function GuideApplyPage() {
   const [files, setFiles] = useState<File[]>([])
   const [fileStatus, setFileStatus] = useState<FileStatus>('empty')
 
-  // 조회 데이터
-  const [info, setInfo] = useState<GuideUpgradeInfo | null>(null)
-
+  // 제출 여부 + 조회 데이터
   const [submitted, setSubmitted] = useState(false)
-
-  // 업그레이드 정보 조회
-  const fetchGuideInfo = async () => {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/member/me/guide-upgrade-info`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-        },
-      )
-      if (!res.ok) throw new Error('조회 실패')
-      const data = await res.json()
-      setInfo(data.result)
-    } catch (err) {
-      console.error('❌ 가이드 정보 조회 실패:', err)
-    }
-  }
+  const [guideInfo, setGuideInfo] = useState<GuideUpgradeInfo | null>(
+    null,
+  )
 
   const handleSubmit = async () => {
     try {
-      if (!company || !job) {
-        alert('회사명과 직무명을 입력해주세요.')
-        return
-      }
-
-      if (!files[0]) {
-        alert('재직 증명서를 업로드해주세요.')
-        return
-      }
-
-      if (files[0].size > 10 * 1024 * 1024) {
-        alert('파일 크기는 10MB 이하여야 합니다.')
-        return
-      }
-
       const formData = new FormData()
       formData.append('companyName', company)
       formData.append(
@@ -84,43 +56,75 @@ export default function GuideApplyPage() {
       formData.append('jobPosition', job)
       formData.append('isCurrent', String(workPeriod.isCurrent))
 
-      if (workPeriod.startYear && workPeriod.startMonth) {
-        const workingStart = `${workPeriod.startYear}-${workPeriod.startMonth.padStart(2, '0')}-01`
-        formData.append('workingStart', workingStart)
-      }
+      const workingStart = `${workPeriod.startYear}-${workPeriod.startMonth.padStart(2, '0')}-01`
+      formData.append('workingStart', workingStart)
 
-      if (
-        !workPeriod.isCurrent &&
-        workPeriod.endYear &&
-        workPeriod.endMonth
-      ) {
+      if (workPeriod.isCurrent) {
+        formData.append('workingEnd', '')
+      } else {
         const workingEnd = `${workPeriod.endYear}-${workPeriod.endMonth.padStart(2, '0')}-01`
         formData.append('workingEnd', workingEnd)
       }
 
-      formData.append('certificationPdf', files[0])
+      if (files[0]) {
+        if (files[0].size > 10 * 1024 * 1024) {
+          alert('파일은 최대 10MB까지만 업로드 가능합니다.')
+          return
+        }
+        formData.append('certificationPdf', files[0])
+      }
+
+      // ✅ provider 분기 처리
+      const fetchOptions: RequestInit = {
+        method: 'POST',
+        body: formData,
+      }
+
+      if (user?.provider === 'test' && tokens?.accessToken) {
+        fetchOptions.headers = {
+          Authorization: `Bearer ${tokens.accessToken}`,
+        }
+      } else {
+        fetchOptions.credentials = 'include'
+      }
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/member/me/upgrade-to-guide`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-          body: formData,
-        },
+        fetchOptions,
       )
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.message || 'API 요청 실패')
+        const errText = await res.text()
+        throw new Error(errText || 'API 요청 실패')
       }
 
-      const result = await res.json()
-      console.log('✅ 업로드 성공:', result)
+      console.log('✅ 업로드 성공')
 
+      // ✅ 업로드 성공 후 → 조회 API 호출
+      const infoOptions: RequestInit = {}
+      if (user?.provider === 'test' && tokens?.accessToken) {
+        infoOptions.headers = {
+          Authorization: `Bearer ${tokens.accessToken}`,
+        }
+      } else {
+        infoOptions.credentials = 'include'
+      }
+
+      const infoRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/member/me/guide-upgrade-info`,
+        infoOptions,
+      )
+
+      if (!infoRes.ok) {
+        const errText = await infoRes.text()
+        throw new Error(errText || '조회 API 요청 실패')
+      }
+
+      const infoData = await infoRes.json()
+      console.log('📌 조회 결과:', infoData.result)
+
+      setGuideInfo(infoData.result)
       setSubmitted(true)
-      await fetchGuideInfo() // 업로드 후 최신 데이터 조회
     } catch (err) {
       console.error('❌ 업로드 실패:', err)
     }
@@ -128,7 +132,6 @@ export default function GuideApplyPage() {
 
   const handleEdit = () => {
     setSubmitted(false)
-    setInfo(null)
   }
 
   return (
@@ -152,7 +155,7 @@ export default function GuideApplyPage() {
       <section className="py-spacing-md px-spacing-xs gap-spacing-3xl border-border-subtler flex flex-col rounded-sm border">
         {!submitted ? (
           <>
-            {/* 회사명 */}
+            {/* 입력 폼 */}
             <div className="gap-spacing-2xs flex flex-col">
               <label className="font-title4 text-label-strong">
                 회사명
@@ -164,8 +167,7 @@ export default function GuideApplyPage() {
                 placeholder="경력 인증 내역과 동일하게 입력해주세요."
                 className="border-border-subtle bg-fill-white p-spacing-2xs font-caption2-medium text-label-default placeholder:text-label-subtler focus:ring-label-primary rounded-2xs w-full border focus:outline-none focus:ring-1"
               />
-
-              {/* 회사명 공개 여부 토글 */}
+              {/* 회사명 공개 여부 */}
               <label className="mt-2 flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -181,7 +183,6 @@ export default function GuideApplyPage() {
               </label>
             </div>
 
-            {/* 직무명 */}
             <div className="gap-spacing-2xs flex flex-col">
               <label className="font-title4 text-label-strong">
                 직무명
@@ -195,13 +196,11 @@ export default function GuideApplyPage() {
               />
             </div>
 
-            {/* 근무기간 */}
             <WorkPeriodPicker
               value={workPeriod}
               onChange={setWorkPeriod}
             />
 
-            {/* 경력 인증 */}
             <div className="gap-spacing-2xs flex flex-col">
               <label className="font-title4 text-label-strong">
                 경력 인증
@@ -216,7 +215,6 @@ export default function GuideApplyPage() {
               />
             </div>
 
-            {/* 제출 버튼 */}
             <div className="flex justify-end">
               <SquareButton
                 variant="primary"
@@ -228,7 +226,7 @@ export default function GuideApplyPage() {
               </SquareButton>
             </div>
           </>
-        ) : info ? (
+        ) : (
           <>
             {/* ✅ 조회 모드 */}
             <div className="px-spacing-xs py-spacing-md gap-spacing-xl flex flex-col">
@@ -238,10 +236,13 @@ export default function GuideApplyPage() {
                 </h2>
                 <div className="gap-spacing-4xs py-spacing-5xs flex flex-row items-center">
                   <CircleTag variant="primary">
-                    {info.isCompanyNamePublic ? '공개' : '비공개'}
+                    {guideInfo?.isCompanyNamePublic
+                      ? '공개'
+                      : '비공개'}
                   </CircleTag>
                   <span className="font-caption2-medium text-label-default">
-                    {info.companyName}
+                    {guideInfo?.companyName ||
+                      '경력 인증 내역과 동일하게 입력됩니다.'}
                   </span>
                 </div>
               </div>
@@ -251,7 +252,7 @@ export default function GuideApplyPage() {
                   직무명
                 </h2>
                 <p className="font-caption2-medium text-label-default py-spacing-5xs">
-                  {info.jobPosition}
+                  {guideInfo?.jobPosition || '직무명을 입력해주세요.'}
                 </p>
               </div>
 
@@ -260,7 +261,8 @@ export default function GuideApplyPage() {
                   근무기간
                 </h2>
                 <p className="font-caption2-medium text-label-default py-spacing-5xs">
-                  {info.workingPeriod || '근무기간을 입력해주세요.'}
+                  {guideInfo?.workingPeriod ||
+                    '근무기간을 입력해주세요.'}
                 </p>
               </div>
 
@@ -271,19 +273,17 @@ export default function GuideApplyPage() {
                 <div className="gap-spacing-4xs py-spacing-5xs flex flex-row items-center">
                   <CircleTag variant="primary">인증 완료</CircleTag>
                   <a
-                    href={info.certificationPdfUrl}
+                    href={guideInfo?.certificationPdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-caption2-medium text-label-primary underline"
                   >
-                    파일 보기
+                    인증서 보기
                   </a>
                 </div>
               </div>
             </div>
           </>
-        ) : (
-          <p>업로드된 정보를 불러오는 중입니다...</p>
         )}
       </section>
     </main>
