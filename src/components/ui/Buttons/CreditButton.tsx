@@ -16,18 +16,20 @@ export default function CreditButton({
   return (
     <button
       onClick={onClick}
-      className={`w-[150px] rounded-xl border px-6 py-3 text-center transition-colors ${
+      className={`rounded-xs flex w-[230px] cursor-pointer flex-col gap-[12px] border py-[20px] text-center transition-colors ${
         selected
-          ? 'border-semantic-accent bg-background-accent-subtle text-semantic-accent'
-          : 'border-border-default bg-background-default text-label-primary'
+          ? 'border-border-primary bg-fill-selected-orange text-label-primary'
+          : 'border-border-subtle bg-fill-white text-label-strong'
       } `}
     >
-      <div className="text-body4-bold">{duration}분</div>
       <div
-        className={`text-body5 ${
-          selected ? 'text-semantic-accent' : 'text-label-tertiary'
+        className={`font-caption1 ${
+          selected ? 'text-label-primary' : 'text-label-strong'
         }`}
       >
+        {duration}분
+      </div>
+      <div className="font-label4-medium text-label-subtle">
         {price.toLocaleString()} P
       </div>
     </button>
