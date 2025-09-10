@@ -1,6 +1,7 @@
 'use client'
 
 import { Bell } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -21,12 +22,25 @@ export default function Header() {
       <div className="container flex items-center justify-between">
         {/* 로고 + 가이드 */}
         <div className="gap-spacing-xs flex items-center">
-          <span
-            className="text-label-deep font-title3 cursor-pointer"
+          <div
+            className="gap-spacing-5xs flex cursor-pointer flex-row justify-center"
             onClick={() => router.push('/')}
           >
-            Crema
-          </span>
+            <Image
+              src="/images/logo/Crema_logoSettt_08.png"
+              alt="헤더 로고 이미지"
+              width={38}
+              height={24}
+              priority
+            />
+            <Image
+              src="/images/logo/Crema_logoSettt_10.png"
+              alt="헤더 로고 텍스트"
+              width={87}
+              height={24}
+              priority
+            />
+          </div>
           <span
             className="font-body2 text-label-default hover:text-label-primary hidden cursor-pointer md:inline"
             onClick={() => router.push('/searchGuide')}
