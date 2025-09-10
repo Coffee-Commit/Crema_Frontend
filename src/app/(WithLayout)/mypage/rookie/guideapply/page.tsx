@@ -315,7 +315,7 @@ type GuideUpgradeInfo = {
 }
 
 export default function GuideApplyPage() {
-  const { tokens, user } = useAuthStore()
+  const { tokens, user, setAuth } = useAuthStore()
 
   // 입력 상태
   const [company, setCompany] = useState('')
@@ -447,15 +447,38 @@ export default function GuideApplyPage() {
       console.log('📌 조회 결과:', infoData.result)
 
       setGuideInfo(infoData.result)
+
+      // ✅ me 다시 조회해서 role 업데이트
+      const meOptions: RequestInit =
+        user?.provider === 'test' && tokens?.accessToken
+          ? {
+              headers: {
+                Authorization: `Bearer ${tokens.accessToken}`,
+              },
+            }
+          : { credentials: 'include' }
+
+      const meRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/member/me`,
+        meOptions,
+      )
+
+      if (meRes.ok) {
+        const meData = await meRes.json()
+        setAuth({
+          user: meData.result,
+          tokens: tokens!, // 기존 토큰 유지
+        })
+        console.log('✅ 유저 role 갱신됨:', meData.result.role)
+      }
+
       setSubmitted(true)
     } catch (err) {
       console.error('❌ 업로드 실패:', err)
     }
   }
 
-  const handleEdit = () => {
-    setSubmitted(false)
-  }
+  const handleEdit = () => setSubmitted(false)
 
   return (
     <main className="gap-spacing-3xl ml-[65px] flex flex-col">
