@@ -7,8 +7,6 @@ interface SearchBarSubProps {
   placeholder?: string
   defaultValue?: string
   onSubmit?: (value: string) => void
-  width?: string | number
-  height?: string | number
   className?: string
 }
 
@@ -16,8 +14,6 @@ export default function SearchBarSub({
   placeholder = '어떤 커리어 고민이 있나요?',
   defaultValue = '',
   onSubmit,
-  width = '100%',
-  height = '48px',
   className = '',
 }: SearchBarSubProps) {
   const [value, setValue] = useState(defaultValue)
@@ -63,10 +59,7 @@ export default function SearchBarSub({
       : placeholderClass
 
   return (
-    <div
-      className={`${baseClass} ${appliedClass} ${className}`}
-      style={{ width, height }}
-    >
+    <div className={`${baseClass} ${appliedClass} ${className}`}>
       <input
         type="text"
         placeholder={placeholder}
