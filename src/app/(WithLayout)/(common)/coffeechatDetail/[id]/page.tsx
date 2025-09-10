@@ -1,6 +1,8 @@
 'use client'
 
-import { useRef } from 'react'
+import Image from 'next/image'
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'next/navigation'
 
 import Banner from '@/components/layout/Banner'
 import ExperienceCard from '@/components/ui/Cards/ExperienceCard'
@@ -11,173 +13,469 @@ import Pagination from '@/components/ui/Paginations/Pagination'
 
 import ProfileSidebar from '../_components/ProfieSidebar'
 
+/* ================== 타입 ================== */
+type GuideCoffeeChatResponse = {
+  guide: {
+    id: number
+    nickname: string
+    profileImageUrl: string | null
+  }
+  title: string
+  description: string
+  tags: { id: number; name: string }[]
+  reviewScore: number
+  reviewCount: number
+  experiences: {
+    groups: {
+      id: number
+      guideChatTopicId: number
+      chatTopicName: string
+      experienceTitle: string
+      experienceContent: string
+    }[]
+  }
+  experienceDetail: {
+    id: number
+    who: string
+    solution: string
+    how: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+type CoffeeChatStatsResponse = {
+  totalCoffeeChats: number
+  averageStar: number
+  totalReviews: number
+  thumbsUpCount: number
+}
+
+type GuideExperienceEvaluationResponse = {
+  experienceId: number
+  experienceTitle: string
+  thumbsUpRate: string
+}
+
+type Review = {
+  reviewId: number
+  starReview: number
+  comment: string
+  writer: {
+    memberId: number
+    nickname: string
+    profileImageUrl: string | null
+  }
+  createdAt: string
+}
+
+type GuideReviewResponse = { guideId: number; reviews: Review[] }
+
+/* ================== 목데이터 ================== */
+const mockData: GuideCoffeeChatResponse = {
+  guide: { id: 1, nickname: '홍길동', profileImageUrl: null },
+  title: '목데이터 제목 - 디자이너 취업 여정',
+  description: 'API 실패 시 보여지는 목데이터 상세 설명입니다.',
+  tags: [
+    { id: 1, name: '포트폴리오' },
+    { id: 2, name: '면접' },
+  ],
+  reviewScore: 4.5,
+  reviewCount: 10,
+  experiences: {
+    groups: [
+      {
+        id: 101,
+        guideChatTopicId: 11,
+        chatTopicName: '포트폴리오',
+        experienceTitle: '포트폴리오 준비',
+        experienceContent:
+          '작은 프로젝트로 시작해 포트폴리오를 완성했습니다.',
+      },
+    ],
+  },
+  experienceDetail: {
+    id: 301,
+    who: '취업 준비생',
+    solution: '멘토링을 통한 방향 제시',
+    how: '스터디와 포트폴리오 첨삭',
+  },
+  createdAt: '2025-09-01T10:00:00',
+  updatedAt: '2025-09-02T08:30:00',
+}
+
+const mockStats: CoffeeChatStatsResponse = {
+  totalCoffeeChats: 5,
+  averageStar: 4.2,
+  totalReviews: 3,
+  thumbsUpCount: 8,
+}
+
+const mockExperienceEvaluations: GuideExperienceEvaluationResponse[] =
+  [
+    {
+      experienceId: 101,
+      experienceTitle: '경험 1',
+      thumbsUpRate: '90%',
+    },
+    {
+      experienceId: 102,
+      experienceTitle: '경험 2',
+      thumbsUpRate: '75%',
+    },
+    {
+      experienceId: 103,
+      experienceTitle: '경험 3',
+      thumbsUpRate: '60%',
+    },
+  ]
+
+const mockReviews: Review[] = [
+  {
+    reviewId: 1,
+    starReview: 5,
+    comment: '정말 유익한 시간이었어요!',
+    writer: { memberId: 1, nickname: '루키1', profileImageUrl: null },
+    createdAt: '2025-08-23T10:00:00',
+  },
+  {
+    reviewId: 2,
+    starReview: 4,
+    comment: '포트폴리오 작성 꿀팁 얻었습니다.',
+    writer: { memberId: 2, nickname: '루키2', profileImageUrl: null },
+    createdAt: '2025-08-20T15:30:00',
+  },
+  {
+    reviewId: 3,
+    starReview: 4,
+    comment: '포트폴리오 작성 꿀팁 얻었습니다.',
+    writer: { memberId: 3, nickname: '루키4', profileImageUrl: null },
+    createdAt: '2025-08-20T15:30:00',
+  },
+  {
+    reviewId: 4,
+    starReview: 4,
+    comment: '포트폴리오 작성 꿀팁 얻었습니다.',
+    writer: { memberId: 4, nickname: '루키4', profileImageUrl: null },
+    createdAt: '2025-08-20T15:30:00',
+  },
+  {
+    reviewId: 5,
+    starReview: 4,
+    comment: '포트폴리오 작성 꿀팁 얻었습니다.',
+    writer: { memberId: 5, nickname: '루키5', profileImageUrl: null },
+    createdAt: '2025-08-20T15:30:00',
+  },
+  {
+    reviewId: 6,
+    starReview: 4,
+    comment: '포트폴리오 작성 꿀팁 얻었습니다.',
+    writer: { memberId: 6, nickname: '루키6', profileImageUrl: null },
+    createdAt: '2025-08-20T15:30:00',
+  },
+]
+
 export default function CoffeeChatDetailPage() {
+  const { id } = useParams()
+
+  // ✅ 각 섹션 ref 정의
   const summaryRef = useRef<HTMLDivElement | null>(null)
   const experienceRef = useRef<HTMLDivElement | null>(null)
+  const descriptionRef = useRef<HTMLDivElement | null>(null)
   const reviewRef = useRef<HTMLDivElement | null>(null)
 
+  // ✅ 상태
+  const [data, setData] = useState<GuideCoffeeChatResponse | null>(
+    null,
+  )
+  const [stats, setStats] = useState<CoffeeChatStatsResponse | null>(
+    null,
+  )
+  const [bestExperience, setBestExperience] =
+    useState<GuideExperienceEvaluationResponse | null>(null)
+  const [reviews, setReviews] = useState<Review[]>([])
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const reviewsPerPage = 5
+  const [loading, setLoading] = useState(true)
+
+  // ✅ 공통 스크롤 함수 (HOC로 ProfileSidebar에 내려줌)
   const scrollToSection = (
     ref: React.RefObject<HTMLElement | null>,
   ) => {
-    if (ref.current) {
+    if (ref.current)
       ref.current.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  /* ================== CoffeeChat 기본 정보 ================== */
+  useEffect(() => {
+    const fetchCoffeeChat = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/guides/${id}/coffeechat`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+          },
+        )
+        if (!res.ok) throw new Error('API 요청 실패')
+        const result = await res.json()
+        setData(result)
+      } catch {
+        console.warn('⚠️ API 실패 → 목데이터 사용')
+        setData(mockData)
+      }
     }
-  }
+    if (id) fetchCoffeeChat()
+  }, [id])
 
+  /* ================== Stats ================== */
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/guides/${id}/coffeechat-stats`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+          },
+        )
+        if (!res.ok) throw new Error('API 요청 실패')
+        const result = await res.json()
+        setStats(result)
+      } catch {
+        console.warn('⚠️ Stats API 실패 → 목데이터 사용')
+        setStats(mockStats)
+      }
+    }
+    if (id) fetchStats()
+  }, [id])
+
+  /* ================== 경험평가 ================== */
+  useEffect(() => {
+    const fetchExperienceEval = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/guides/${id}/experience-evaluations`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+          },
+        )
+        if (!res.ok) throw new Error('API 요청 실패')
+        const result: GuideExperienceEvaluationResponse[] =
+          await res.json()
+
+        if (result.length > 0) {
+          const best = result.reduce((prev, curr) => {
+            const prevRate = parseInt(
+              prev.thumbsUpRate.replace('%', ''),
+              10,
+            )
+            const currRate = parseInt(
+              curr.thumbsUpRate.replace('%', ''),
+              10,
+            )
+            return currRate > prevRate ? curr : prev
+          })
+          setBestExperience(best)
+        }
+      } catch {
+        console.warn('⚠️ 경험평가 API 실패 → 목데이터 사용')
+        const best = mockExperienceEvaluations.reduce(
+          (prev, curr) => {
+            const prevRate = parseInt(
+              prev.thumbsUpRate.replace('%', ''),
+              10,
+            )
+            const currRate = parseInt(
+              curr.thumbsUpRate.replace('%', ''),
+              10,
+            )
+            return currRate > prevRate ? curr : prev
+          },
+        )
+        setBestExperience(best)
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (id) fetchExperienceEval()
+  }, [id])
+
+  /* ================== 리뷰 ================== */
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/guides/${id}/reviews?page=0&size=100`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+          },
+        )
+        if (!res.ok) throw new Error('API 요청 실패')
+        const result: GuideReviewResponse = await res.json()
+        setReviews(result.reviews)
+      } catch {
+        console.warn('⚠️ 리뷰 API 실패 → 목데이터 사용')
+        setReviews(mockReviews)
+      }
+    }
+    if (id) fetchReviews()
+  }, [id])
+
+  if (loading)
+    return <div className="py-20 text-center">로딩 중...</div>
+  if (!data)
+    return <div className="py-20 text-center">데이터 없음</div>
+
+  // ✅ 배너 데이터
   const bannerData = {
-    categories: ['디자인', '현직자 인터뷰', '포트폴리오'],
-    title: '실내디자이너나 프로덕트 디자이너나 같은 디자인 아닌가요?',
-    rating: 4.5,
-    reviewCount: 100,
-    keywords: [
-      '실내디자인',
-      '프로덕트디자인',
-      '직무차이',
-      '현직자경험',
-    ],
+    categories: data.tags.map((tag) => tag.name),
+    title: data.title,
+    rating: data.reviewScore,
+    reviewCount: data.reviewCount,
+    keywords: data.tags.map((tag) => tag.name),
   }
 
+  // ✅ 오버뷰 카드
   const overviewItems = [
-    {
-      label: '대상',
-      content: '전공과 다른 직무를 준비하는 취준생',
-    },
-    {
-      label: '상황',
-      content: '"내가 이길을 가도 괜찮을까?" 고민될 때',
-    },
-    {
-      label: '내용',
-      content: '비전공자로서 겪은 현실적인 어려움과 성장 경험',
-    },
+    { label: '대상', content: data.experienceDetail.who },
+    { label: '상황', content: data.experienceDetail.solution },
+    { label: '내용', content: data.experienceDetail.how },
   ]
 
-  const experienceData = [
-    {
-      title: '실내디자이너에서 “전과” 후기',
-      description: '직무 전환을 위한 커리어 전환 경험을 공유해요',
-      tag: '10분 요약',
-    },
-    {
-      title: '비전공자로 포폴의 벽 넘기기',
-      description:
-        '비전공자도 할 수 있는 포트폴리오 전략을 알려드려요',
-      tag: '10분 요약',
-    },
-    {
-      title: '프로덕트 디자이너의 커리어 30분+',
-      description:
-        '현직 프로덕트 디자이너의 커리어 성장 경험을 나눠요',
-    },
-    {
-      title: '오늘회의 최종 안건',
-      description:
-        '직무 전환 후 실제 실무 이야기와 고민들을 풀어드려요',
-    },
-    {
-      title: '전공자 사이에서 살아남기 · 회사 편',
-      description: '전공자 중심 환경에서의 생존기와 적응 팁을 나눠요',
-      tag: '5분 요약',
-    },
-  ]
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const reviews = Array.from({ length: 5 }).map((_, i) => ({
-    rating: 4.5,
-    text: '리뷰내용 요약본 텍스트 100자내로 제한 리뷰내용 요약본 텍스트 100자내로 제한',
-    nickname: '윰윰',
-    date: '2025.08.23',
-  }))
+  // ✅ 리뷰 페이지네이션
+  const indexOfLast = currentPage * reviewsPerPage
+  const indexOfFirst = indexOfLast - reviewsPerPage
+  const currentReviews = reviews.slice(indexOfFirst, indexOfLast)
+  const totalPages = Math.ceil(reviews.length / reviewsPerPage)
 
   return (
     <div className="relative flex flex-col">
-      {/* 상단 배너 */}
       <Banner {...bannerData} />
 
-      {/* 콘텐츠 영역 */}
-      <section className="px-container-padding-sm py-spacing-xl gap-gutter container mx-auto flex">
-        {/* 본문 */}
-        <div className="gap-spacing-xl flex flex-1 flex-col">
-          {/* Summary Section */}
+      <section className="px-container-padding-sm py-spacing-xl container mx-auto flex gap-[132px]">
+        <div className="flex flex-1 flex-col gap-[120px]">
+          {/* 요약 섹션 */}
           <div
             ref={summaryRef}
-            className="scroll-mt-[200px]"
+            className="gap-spacing-xl flex scroll-mt-[200px] flex-col"
           >
+            <h1 className="font-heading2 text-label-strong">
+              이런 분들께 도움이 될 수 있어요
+            </h1>
             <OverviewCard items={overviewItems} />
           </div>
 
-          {/* Experience Section */}
+          {/* 경험 섹션 */}
           <div
             ref={experienceRef}
-            className="scroll-mt-[200px]"
+            className="gap-spacing-xl flex scroll-mt-[200px] flex-col"
           >
+            <h1 className="font-heading2 text-label-strong">
+              이런 경험을 했어요
+            </h1>
             <div className="gap-spacing-sm grid grid-cols-1">
-              {experienceData.map((item, i) => (
+              {data.experiences.groups.map((exp) => (
                 <ExperienceCard
-                  key={i}
-                  {...item}
+                  key={exp.id}
+                  title={exp.experienceTitle}
+                  description={exp.experienceContent}
+                  tag={exp.chatTopicName}
                 />
               ))}
             </div>
           </div>
 
-          {/* Mentor Description Section */}
-          <div className="p-spacing-md border-border-subtle bg-fill-white font-body1 text-label-deep whitespace-pre-wrap rounded-md border">
-            안녕하세요, 실내디자이너로 시작해서 프로덕트 디자이너로
-            일하고 있는 2년차 현직자입니다.\n\n저는 사내스타트업,
-            프로덕트 팀을 경험하며 실내 공간 설계와 프로덕트 디자인의
-            차이점과, 채용과정, 비전공자에게는 어떤 부분이 어려운지
-            등을 경험했고 실제 면접에서 들었던 피드백과 포트폴리오의
-            방향에 대한 고민도 나눌 수 있어요.\n\n저는 진로 고민이
-            많은 전공자나 비전공자에게, 막연한 두려움을 극복할 수
-            있도록 도와주고 싶습니다.\n\n지금도 수많은 디자인 포지션
-            공고들이 올라오고 있지만, 각 직군이 요구하는 내용은 모두
-            다르다는 점에서 기획부터 리서치까지의 흐름을 실제 사례를
-            통해 알려드릴게요.\n\n과한 포장보다 현실적인 이야기를
-            드리고 싶습니다. 전공자, 비전공자에게 실제로 도움을 줄 수
-            있는 경험을 바탕으로 가장 유용한 정보만 드릴게요.
-            포트폴리오 제작의 막막한 점부터 직무 전환의 벽까지 함께
-            넘을 수 있도록 도와드릴게요.
+          {/*  상세 섹션 */}
+          <div
+            ref={descriptionRef}
+            className="px-spacing-sm pt-spacing-xs pb-spacing-5xl gap-spacing-md bg-fill-footer-gray flex flex-col rounded-sm"
+          >
+            <div className="flex flex-row items-center justify-center">
+              {data.guide.profileImageUrl ? (
+                <Image
+                  src={data.guide.profileImageUrl}
+                  alt={`${data.guide.nickname} 프로필`}
+                  width={64}
+                  height={64}
+                  className="border-border-medium rounded-full border object-cover"
+                />
+              ) : (
+                <div className="bg-fill-disabled border-border-medium h-[64px] w-[64px] rounded-full border" />
+              )}
+              <div className="border-border-medium h-[1px] w-full border-b" />
+            </div>
+            <div className="font-body1 text-label-deep px-spacing-xs flex whitespace-pre-wrap">
+              {data.description}
+            </div>
           </div>
 
-          {/* Review Section */}
+          {/* 후기 섹션 */}
           <div
             ref={reviewRef}
             className="gap-spacing-xl flex scroll-mt-[120px] flex-col"
           >
-            <OverallRatingCard
-              type="star"
-              title="총 평점"
-              rating={4.5}
-              reviewCount={100}
-            />
-            <OverallRatingCard
-              type="experience"
-              title="가장 도움이 된 경험"
-              label="실내디자이너에서 전과 후기"
-              progress={64}
-            />
+            <h1 className="font-heading2 text-label-strong">후기</h1>
+            <div className="gap-spacing-xs flex w-full flex-row">
+              {stats && (
+                <OverallRatingCard
+                  type="star"
+                  title="별점 평균"
+                  rating={stats.averageStar}
+                  reviewCount={stats.totalReviews}
+                />
+              )}
+              {bestExperience && (
+                <OverallRatingCard
+                  type="experience"
+                  title="가장 도움이 된 경험"
+                  label={bestExperience.experienceTitle}
+                  progress={parseInt(
+                    bestExperience.thumbsUpRate.replace('%', ''),
+                    10,
+                  )}
+                />
+              )}
+            </div>
 
+            {/* 리뷰 리스트 */}
             <div className="gap-spacing-sm grid grid-cols-1">
-              {reviews.map((review, i) => (
+              {currentReviews.map((review) => (
                 <ReviewCard
-                  key={i}
-                  {...review}
+                  key={review.reviewId}
+                  rating={review.starReview}
+                  text={review.comment}
+                  nickname={review.writer.nickname}
+                  date={review.createdAt.split('T')[0]}
                 />
               ))}
             </div>
 
-            <div className="pt-spacing-lg mx-auto">
-              <Pagination total={5} />
-            </div>
+            {totalPages > 1 && (
+              <div className="pt-spacing-lg mx-auto">
+                <Pagination
+                  total={totalPages}
+                  initialPage={currentPage}
+                  onChange={setCurrentPage}
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 우측 사이드바 */}
+        {/* ✅ HOC 사이드바 */}
         <ProfileSidebar
           scrollToSection={scrollToSection}
           summaryRef={summaryRef}
           experienceRef={experienceRef}
+          descriptionRef={descriptionRef}
           reviewRef={reviewRef}
         />
       </section>

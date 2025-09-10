@@ -22,7 +22,7 @@ export default function OverallRatingCard(
   props: OverallRatingCardProps,
 ) {
   return (
-    <div className="p-spacing-xs shadow-card bg-fill-white rounded-sm">
+    <div className="p-spacing-xs shadow-card bg-fill-white w-full rounded-sm">
       {/* 카드 제목 */}
       <h3 className="font-title4 mb-spacing-md text-label-deep">
         {props.title}
