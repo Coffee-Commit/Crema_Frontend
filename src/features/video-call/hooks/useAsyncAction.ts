@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react'
+
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
-import type { AsyncAction, VideoCallError } from '../types'
+
 import { useVideoCallActions } from '../store'
+import type { AsyncAction, VideoCallError } from '../types'
 
 const logger = createOpenViduLogger('useAsyncAction')
 
@@ -24,7 +26,7 @@ interface UseAsyncActionReturn<T> {
 export function useAsyncAction<T = void>(
   action: AsyncAction<T>,
   actionName: string,
-  options: UseAsyncActionOptions = {}
+  options: UseAsyncActionOptions = {},
 ): UseAsyncActionReturn<T> {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -39,23 +41,24 @@ export function useAsyncAction<T = void>(
 
     setLoading(true)
     setError(null)
-    
+
     logger.debug(`${actionName} 실행 시작`)
 
     try {
       const result = await action()
-      
+
       logger.debug(`${actionName} 실행 완료`)
       options.onSuccess?.()
-      
+
       return result
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('알 수 없는 오류')
-      
-      logger.error(`${actionName} 실행 실패`, { 
-        error: error.message 
+      const error =
+        err instanceof Error ? err : new Error('알 수 없는 오류')
+
+      logger.error(`${actionName} 실행 실패`, {
+        error: error.message,
       })
-      
+
       setError(error)
 
       // 글로벌 에러 상태 업데이트
@@ -63,9 +66,9 @@ export function useAsyncAction<T = void>(
         code: 'ACTION_FAILED',
         message: error.message,
         type: options.errorType || 'unknown',
-        recoverable: true
+        recoverable: true,
       }
-      
+
       setGlobalError(videoCallError)
       options.onError?.(videoCallError)
 
@@ -84,6 +87,6 @@ export function useAsyncAction<T = void>(
     execute,
     loading,
     error,
-    reset
+    reset,
   }
 }

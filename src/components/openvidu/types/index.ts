@@ -1,17 +1,13 @@
-import {
-  Session,
-  Publisher,
-  Subscriber,
-  StreamManager,
-  OpenViduError,
-} from 'openvidu-browser'
+import { Session, Publisher, StreamManager } from 'openvidu-browser'
+
+import { openViduServerConfig, featureFlags } from '@/lib/config/env'
 import type { ChatManager } from '@/lib/openvidu/chatManager'
 
 // ============================================================================
 // 공통 API 응답 구조
 // ============================================================================
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: string
   message: string
   result: T | null
@@ -60,6 +56,7 @@ export enum ApiErrorCode {
 
 export interface QuickJoinRequest {
   // 현재는 빈 객체, 추후 필요한 필드 추가 예정
+  [key: string]: unknown
 }
 
 export interface QuickJoinResponse {
@@ -212,13 +209,15 @@ export interface VideoCallState {
   // 미디어 상태
   audioEnabled: boolean
   videoEnabled: boolean
-  
+
   // 화면공유 상태 (replaceTrack 방식)
   isScreenSharingToggling: boolean // 화면공유 토글 중 플래그
   screenPublisher: Publisher | null // 화면공유 전용 Publisher (replaceTrack 방식에서는 null)
   originalVideoTrack: MediaStreamTrack | null // replaceTrack 복원용 원본 비디오 트랙
   originalPublisher: Publisher | null // Publisher 교체 복원용 (사용되지 않음)
-  screenShareCtx: any // ScreenShareContext 저장 (정리용) - any 타입으로 순환 참조 방지
+  screenShareCtx:
+    | import('@/shared/openvidu/replaceVideoTrack').ScreenShareContext
+    | null // ScreenShareContext 저장 (정리용)
 
   // 채팅
   chatMessages: ChatMessage[]
@@ -325,8 +324,6 @@ export type OpenViduStore = VideoCallState & VideoCallActions
 // 상수 및 유틸리티 타입
 // ============================================================================
 
-import { openViduServerConfig, featureFlags } from '@/lib/config/env'
-
 export const OPENVIDU_CONSTANTS = {
   DEFAULT_RESOLUTION: '1280x720',
   DEFAULT_FRAME_RATE: 30,
@@ -373,7 +370,7 @@ export function isSuccessResponse<T>(
 }
 
 export function isErrorResponse(
-  response: ApiResponse<any>,
+  response: ApiResponse<unknown>,
 ): response is ErrorResponse {
   return response.code !== 'OK' || response.result === null
 }

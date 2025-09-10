@@ -27,7 +27,7 @@ export {
   useLoading,
   useError,
   useNetworkQuality,
-  resetVideoCallStore
+  resetVideoCallStore,
 } from './store'
 
 // 커스텀 hooks
@@ -37,7 +37,7 @@ export {
   useToggleVideo,
   useScreenShare,
   useLeaveSession,
-  useEnvironmentInfo
+  useEnvironmentInfo,
 } from './hooks'
 
 // 서비스
@@ -45,7 +45,7 @@ export {
   OpenViduClient,
   openViduClient,
   EventBridge,
-  eventBridge
+  eventBridge,
 } from './services'
 
 // 타입 정의
@@ -65,11 +65,8 @@ export type {
   OpenViduClientInterface,
   EventHandlers,
   PublisherOptions,
-  AsyncAction
+  AsyncAction,
 } from './types'
 
 // 상수
-export {
-  VIDEO_CALL_CONSTANTS,
-  MEDIA_CONSTRAINTS
-} from './types'
+export { VIDEO_CALL_CONSTANTS, MEDIA_CONSTRAINTS } from './types'

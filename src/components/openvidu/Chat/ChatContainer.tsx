@@ -1,7 +1,7 @@
 'use client'
 
-import MessageList from './MessageList'
 import MessageInput from './MessageInput'
+import MessageList from './MessageList'
 
 export default function ChatContainer() {
   return (

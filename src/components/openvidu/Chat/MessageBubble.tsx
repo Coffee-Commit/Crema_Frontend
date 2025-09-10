@@ -1,8 +1,9 @@
 'use client'
 
+import clsx from 'clsx'
+
 import { ChatMessage } from '@/components/openvidu/types'
 import { formatMessageTime } from '@/lib/openvidu/utils'
-import clsx from 'clsx'
 
 interface MessageBubbleProps {
   message: ChatMessage

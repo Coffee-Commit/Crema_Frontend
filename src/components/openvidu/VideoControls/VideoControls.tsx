@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useOpenViduStore } from '@/store/useOpenViduStore'
+
 import { openViduNavigation } from '@/lib/openvidu/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import { useOpenViduStore } from '@/store/useOpenViduStore'
 
 const logger = createOpenViduLogger('VideoControls')
 
@@ -28,13 +29,17 @@ export default function VideoControls() {
 
   const handleToggleAudio = async () => {
     if (isTogglingAudio || loading || isJoining) {
-      logger.debug('오디오 토글 중복 클릭 방지', { isTogglingAudio, loading, isJoining })
+      logger.debug('오디오 토글 중복 클릭 방지', {
+        isTogglingAudio,
+        loading,
+        isJoining,
+      })
       return
     }
 
     setIsTogglingAudio(true)
     logger.debug('오디오 토글 시작', { currentState: audioEnabled })
-    
+
     try {
       await toggleAudio()
       logger.debug('오디오 토글 완료', { newState: !audioEnabled })
@@ -47,13 +52,17 @@ export default function VideoControls() {
 
   const handleToggleVideo = async () => {
     if (isTogglingVideo || loading || isJoining) {
-      logger.debug('비디오 토글 중복 클릭 방지', { isTogglingVideo, loading, isJoining })
+      logger.debug('비디오 토글 중복 클릭 방지', {
+        isTogglingVideo,
+        loading,
+        isJoining,
+      })
       return
     }
 
     setIsTogglingVideo(true)
     logger.debug('비디오 토글 시작', { currentState: videoEnabled })
-    
+
     try {
       await toggleVideo()
       logger.debug('비디오 토글 완료', { newState: !videoEnabled })
@@ -66,18 +75,29 @@ export default function VideoControls() {
 
   const handleToggleScreenShare = async () => {
     if (isTogglingScreen || loading || isJoining) {
-      logger.debug('화면공유 토글 중복 클릭 방지', { isTogglingScreen, loading, isJoining })
+      logger.debug('화면공유 토글 중복 클릭 방지', {
+        isTogglingScreen,
+        loading,
+        isJoining,
+      })
       return
     }
 
     setIsTogglingScreen(true)
-    logger.debug('화면공유 토글 시작', { currentState: isScreenSharing })
-    
+    logger.debug('화면공유 토글 시작', {
+      currentState: isScreenSharing,
+    })
+
     try {
       await toggleScreenShare()
-      logger.debug('화면공유 토글 완료', { newState: !isScreenSharing })
+      logger.debug('화면공유 토글 완료', {
+        newState: !isScreenSharing,
+      })
     } catch (error) {
-      logger.error('화면공유 토글 실패', { error, action: isScreenSharing ? 'stop' : 'start' })
+      logger.error('화면공유 토글 실패', {
+        error,
+        action: isScreenSharing ? 'stop' : 'start',
+      })
     } finally {
       setIsTogglingScreen(false)
     }
@@ -85,7 +105,10 @@ export default function VideoControls() {
 
   const handleLeaveCall = async () => {
     if (isLeavingCall || loading) {
-      logger.debug('통화 종료 중복 클릭 방지', { isLeavingCall, loading })
+      logger.debug('통화 종료 중복 클릭 방지', {
+        isLeavingCall,
+        loading,
+      })
       return
     }
 
@@ -97,11 +120,11 @@ export default function VideoControls() {
 
     setIsLeavingCall(true)
     logger.info('통화 종료 시작')
-    
+
     try {
       await leaveSession()
       logger.debug('세션 종료 완료, 홈으로 이동')
-      
+
       // 라우팅은 세션 정리 후 수행
       openViduNavigation.goToHome()
     } catch (error) {
@@ -122,7 +145,7 @@ export default function VideoControls() {
           disabled={isTogglingAudio || loading || isJoining}
           className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 hover:scale-110 ${
             isTogglingAudio || loading || isJoining
-              ? 'bg-[var(--color-gray-400)] text-[var(--color-label-subtle)] cursor-not-allowed opacity-60'
+              ? 'cursor-not-allowed bg-[var(--color-gray-400)] text-[var(--color-label-subtle)] opacity-60'
               : audioEnabled
                 ? 'bg-[var(--color-gray-600)] text-[var(--color-fill-white)]'
                 : 'bg-[var(--color-label-error)] text-[var(--color-fill-white)]'
@@ -158,7 +181,7 @@ export default function VideoControls() {
           disabled={isTogglingVideo || loading || isJoining}
           className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 hover:scale-110 ${
             isTogglingVideo || loading || isJoining
-              ? 'bg-[var(--color-gray-400)] text-[var(--color-label-subtle)] cursor-not-allowed opacity-60'
+              ? 'cursor-not-allowed bg-[var(--color-gray-400)] text-[var(--color-label-subtle)] opacity-60'
               : videoEnabled
                 ? 'bg-[var(--color-gray-600)] text-[var(--color-fill-white)]'
                 : 'bg-[var(--color-label-error)] text-[var(--color-fill-white)]'
@@ -194,7 +217,7 @@ export default function VideoControls() {
           disabled={isTogglingScreen || loading || isJoining}
           className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 hover:scale-110 ${
             isTogglingScreen || loading || isJoining
-              ? 'bg-[var(--color-gray-400)] text-[var(--color-label-subtle)] cursor-not-allowed opacity-60'
+              ? 'cursor-not-allowed bg-[var(--color-gray-400)] text-[var(--color-label-subtle)] opacity-60'
               : isScreenSharing
                 ? 'bg-[var(--color-fill-primary)] text-[var(--color-fill-white)]'
                 : 'bg-[var(--color-gray-600)] text-[var(--color-fill-white)]'
@@ -232,7 +255,7 @@ export default function VideoControls() {
           disabled={isLeavingCall || loading}
           className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 ${
             isLeavingCall || loading
-              ? 'bg-[var(--color-gray-400)] text-[var(--color-label-subtle)] cursor-not-allowed opacity-60'
+              ? 'cursor-not-allowed bg-[var(--color-gray-400)] text-[var(--color-label-subtle)] opacity-60'
               : 'bg-[var(--color-label-error)] text-[var(--color-fill-white)] hover:scale-110 hover:brightness-110'
           }`}
           aria-label="통화 종료"

@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useOpenViduStore } from '@/store/useOpenViduStore'
+
 import { useAuthStore } from '@/store/useAuthStore'
+import { useOpenViduStore } from '@/store/useOpenViduStore'
+
 import MessageBubble from './MessageBubble'
 
 export default function MessageList() {

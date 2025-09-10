@@ -5,9 +5,9 @@
 import type {
   Session,
   Publisher,
-  Subscriber,
-  StreamManager,
-  OpenViduError,
+  Subscriber as _Subscriber,
+  StreamManager as _StreamManager,
+  OpenViduError as _OpenViduError,
 } from 'openvidu-browser'
 
 // ============================================================================
@@ -44,9 +44,9 @@ export interface ChatMessage {
 // 세션 상태 타입
 // ============================================================================
 
-export type SessionStatus = 
+export type SessionStatus =
   | 'idle'
-  | 'connecting' 
+  | 'connecting'
   | 'connected'
   | 'reconnecting'
   | 'disconnected'
@@ -109,7 +109,11 @@ export interface VideoCallError {
 // UI 상태 타입
 // ============================================================================
 
-export type SidebarTab = 'chat' | 'participants' | 'settings' | 'network'
+export type SidebarTab =
+  | 'chat'
+  | 'participants'
+  | 'settings'
+  | 'network'
 
 export interface UIState {
   activeTab: SidebarTab
@@ -130,9 +134,12 @@ export interface SessionSlice {
   sessionInfo: SessionInfo | null
   currentUsername: string | null
   joinSequence: number
-  
+
   // 액션
-  connect: (sessionInfo: SessionInfo, username: string) => Promise<void>
+  connect: (
+    sessionInfo: SessionInfo,
+    username: string,
+  ) => Promise<void>
   disconnect: () => Promise<void>
   updateStatus: (status: SessionStatus) => void
   clearError: () => void
@@ -143,10 +150,13 @@ export interface ParticipantsSlice {
   participants: Map<string, Participant>
   localParticipantId: string | null
   pinnedParticipantId: string | null
-  
+
   // 액션
   addParticipant: (participant: Participant) => void
-  updateParticipant: (id: string, updates: Partial<Participant>) => void
+  updateParticipant: (
+    id: string,
+    updates: Partial<Participant>,
+  ) => void
   removeParticipant: (id: string) => void
   pinParticipant: (id: string | null) => void
   setSpeaking: (id: string, speaking: boolean) => void
@@ -158,21 +168,24 @@ export interface MediaSlice {
   settings: MediaSettings
   availableDevices: MediaDevice[]
   screenPublisher: Publisher | null
-  
+
   // 액션
   updateSettings: (updates: Partial<MediaSettings>) => void
   toggleAudio: () => Promise<void>
   toggleVideo: () => Promise<void>
   toggleScreenShare: () => Promise<void>
   updateDevices: () => Promise<void>
-  selectDevice: (kind: MediaDevice['kind'], deviceId: string) => Promise<void>
+  selectDevice: (
+    kind: MediaDevice['kind'],
+    deviceId: string,
+  ) => Promise<void>
 }
 
 export interface ChatSlice {
   // 상태
   messages: ChatMessage[]
   unreadCount: number
-  
+
   // 액션
   addMessage: (message: ChatMessage) => void
   sendMessage: (content: string) => Promise<void>
@@ -185,7 +198,7 @@ export interface UISlice {
   ui: UIState
   loading: boolean
   error: VideoCallError | null
-  
+
   // 액션
   setActiveTab: (tab: SidebarTab) => void
   toggleSidebar: () => void
@@ -200,10 +213,13 @@ export interface NetworkSlice {
   quality: NetworkQuality | null
   connectionStats: Map<string, NetworkQuality>
   monitoring: boolean
-  
+
   // 액션
   updateQuality: (quality: NetworkQuality) => void
-  updateParticipantStats: (participantId: string, stats: NetworkQuality) => void
+  updateParticipantStats: (
+    participantId: string,
+    stats: NetworkQuality,
+  ) => void
   startMonitoring: () => void
   stopMonitoring: () => void
 }
@@ -214,7 +230,10 @@ export interface NetworkSlice {
 
 export interface OpenViduClientInterface {
   init: () => Promise<void>
-  connect: (sessionInfo: SessionInfo, username: string) => Promise<Session>
+  connect: (
+    sessionInfo: SessionInfo,
+    username: string,
+  ) => Promise<Session>
   disconnect: () => Promise<void>
   publish: (options?: PublisherOptions) => Promise<Publisher>
   unpublish: (publisher: Publisher) => Promise<void>
@@ -234,7 +253,10 @@ export interface PublisherOptions {
 export interface EventHandlers {
   onParticipantJoined?: (participant: Participant) => void
   onParticipantLeft?: (participantId: string) => void
-  onStreamCreated?: (participant: Participant, stream: MediaStream) => void
+  onStreamCreated?: (
+    participant: Participant,
+    stream: MediaStream,
+  ) => void
   onStreamDestroyed?: (participantId: string) => void
   onChatMessage?: (message: ChatMessage) => void
   onNetworkQualityChanged?: (quality: NetworkQuality) => void
@@ -277,15 +299,18 @@ export type AsyncAction<T = void> = () => Promise<T>
 export type OptionalId<T> = Omit<T, 'id'> & { id?: string }
 
 // 타입 가드
-export const isParticipantLocal = (participant: Participant): boolean => 
-  participant.isLocal
+export const isParticipantLocal = (
+  participant: Participant,
+): boolean => participant.isLocal
 
-export const isValidChatMessage = (message: any): message is ChatMessage =>
+export const isValidChatMessage = (
+  message: unknown,
+): message is ChatMessage =>
   typeof message === 'object' &&
   message !== null &&
-  typeof message.id === 'string' &&
-  typeof message.content === 'string' &&
-  typeof message.senderName === 'string'
+  typeof (message as Record<string, unknown>).id === 'string' &&
+  typeof (message as Record<string, unknown>).content === 'string' &&
+  typeof (message as Record<string, unknown>).senderName === 'string'
 
 // ============================================================================
 // 상수

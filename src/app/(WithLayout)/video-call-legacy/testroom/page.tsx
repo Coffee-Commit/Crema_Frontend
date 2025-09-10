@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+
 import VideoCallRoom from '@/components/openvidu/VideoCallRoom'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 

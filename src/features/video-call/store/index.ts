@@ -1,33 +1,31 @@
 import { create } from 'zustand'
 import { subscribeWithSelector, devtools } from 'zustand/middleware'
-import { immer } from 'zustand/middleware/immer'
+
 import type {
   SessionSlice,
   ParticipantsSlice,
   MediaSlice,
   ChatSlice,
   UISlice,
-  NetworkSlice
+  NetworkSlice,
 } from '../types'
-
-import { createSessionSlice } from './sessionSlice'
-import { createParticipantsSlice } from './participantsSlice'
-import { createMediaSlice } from './mediaSlice'
 import { createChatSlice } from './chatSlice'
-import { createUISlice } from './uiSlice'
+import { createMediaSlice } from './mediaSlice'
 import { createNetworkSlice } from './networkSlice'
+import { createParticipantsSlice } from './participantsSlice'
+import { createSessionSlice } from './sessionSlice'
+import { createUISlice } from './uiSlice'
 
 // ============================================================================
 // 통합 Store 타입
 // ============================================================================
 
-export type VideoCallStore = 
-  & SessionSlice
-  & ParticipantsSlice
-  & MediaSlice
-  & ChatSlice
-  & UISlice
-  & NetworkSlice
+export type VideoCallStore = SessionSlice &
+  ParticipantsSlice &
+  MediaSlice &
+  ChatSlice &
+  UISlice &
+  NetworkSlice
 
 // ============================================================================
 // Store 생성
@@ -35,21 +33,19 @@ export type VideoCallStore =
 
 export const useVideoCallStore = create<VideoCallStore>()(
   devtools(
-    subscribeWithSelector(
-      (...a) => ({
-        ...createSessionSlice(...a),
-        ...createParticipantsSlice(...a),
-        ...createMediaSlice(...a),
-        ...createChatSlice(...a),
-        ...createUISlice(...a),
-        ...createNetworkSlice(...a),
-      })
-    ),
+    subscribeWithSelector((...a) => ({
+      ...createSessionSlice(...a),
+      ...createParticipantsSlice(...a),
+      ...createMediaSlice(...a),
+      ...createChatSlice(...a),
+      ...createUISlice(...a),
+      ...createNetworkSlice(...a),
+    })),
     {
       name: 'video-call-store',
-      enabled: process.env.NODE_ENV === 'development'
-    }
-  )
+      enabled: process.env.NODE_ENV === 'development',
+    },
+  ),
 )
 
 // ============================================================================
@@ -57,120 +53,126 @@ export const useVideoCallStore = create<VideoCallStore>()(
 // ============================================================================
 
 // 세션 관련 selectors
-export const useSessionStatus = () => 
-  useVideoCallStore(state => state.status)
+export const useSessionStatus = () =>
+  useVideoCallStore((state) => state.status)
 
-export const useIsConnected = () => 
-  useVideoCallStore(state => state.status === 'connected')
+export const useIsConnected = () =>
+  useVideoCallStore((state) => state.status === 'connected')
 
-export const useSessionInfo = () => 
-  useVideoCallStore(state => state.sessionInfo)
+export const useSessionInfo = () =>
+  useVideoCallStore((state) => state.sessionInfo)
 
 // 참가자 관련 selectors
-export const useParticipants = () => 
-  useVideoCallStore(state => Array.from(state.participants.values()))
-
-export const useLocalParticipant = () => 
-  useVideoCallStore(state => 
-    state.localParticipantId 
-      ? state.participants.get(state.localParticipantId) ?? null
-      : null
+export const useParticipants = () =>
+  useVideoCallStore((state) =>
+    Array.from(state.participants.values()),
   )
 
-export const usePinnedParticipant = () => 
-  useVideoCallStore(state => 
-    state.pinnedParticipantId 
-      ? state.participants.get(state.pinnedParticipantId) ?? null
-      : null
+export const useLocalParticipant = () =>
+  useVideoCallStore((state) =>
+    state.localParticipantId
+      ? (state.participants.get(state.localParticipantId) ?? null)
+      : null,
   )
 
-export const useParticipantCount = () => 
-  useVideoCallStore(state => state.participants.size)
+export const usePinnedParticipant = () =>
+  useVideoCallStore((state) =>
+    state.pinnedParticipantId
+      ? (state.participants.get(state.pinnedParticipantId) ?? null)
+      : null,
+  )
+
+export const useParticipantCount = () =>
+  useVideoCallStore((state) => state.participants.size)
 
 // 미디어 관련 selectors
-export const useMediaSettings = () => 
-  useVideoCallStore(state => state.settings)
+export const useMediaSettings = () =>
+  useVideoCallStore((state) => state.settings)
 
-export const useAudioEnabled = () => 
-  useVideoCallStore(state => state.settings.audioEnabled)
+export const useAudioEnabled = () =>
+  useVideoCallStore((state) => state.settings.audioEnabled)
 
-export const useVideoEnabled = () => 
-  useVideoCallStore(state => state.settings.videoEnabled)
+export const useVideoEnabled = () =>
+  useVideoCallStore((state) => state.settings.videoEnabled)
 
-export const useScreenSharing = () => 
-  useVideoCallStore(state => state.settings.screenSharing)
+export const useScreenSharing = () =>
+  useVideoCallStore((state) => state.settings.screenSharing)
 
-export const useAvailableDevices = () => 
-  useVideoCallStore(state => state.availableDevices)
+export const useAvailableDevices = () =>
+  useVideoCallStore((state) => state.availableDevices)
+
+// 현재 Publisher selector
+export const usePublisher = () =>
+  useVideoCallStore((state) => state.publisher)
 
 // 채팅 관련 selectors
-export const useChatMessages = () => 
-  useVideoCallStore(state => state.messages)
+export const useChatMessages = () =>
+  useVideoCallStore((state) => state.messages)
 
-export const useUnreadCount = () => 
-  useVideoCallStore(state => state.unreadCount)
+export const useUnreadCount = () =>
+  useVideoCallStore((state) => state.unreadCount)
 
-export const useHasUnreadMessages = () => 
-  useVideoCallStore(state => state.unreadCount > 0)
+export const useHasUnreadMessages = () =>
+  useVideoCallStore((state) => state.unreadCount > 0)
 
 // UI 관련 selectors
-export const useActiveTab = () => 
-  useVideoCallStore(state => state.ui.activeTab)
+export const useActiveTab = () =>
+  useVideoCallStore((state) => state.ui.activeTab)
 
-export const useUIState = () => 
-  useVideoCallStore(state => state.ui)
+export const useUIState = () => useVideoCallStore((state) => state.ui)
 
-export const useLoading = () => 
-  useVideoCallStore(state => state.loading)
+export const useLoading = () =>
+  useVideoCallStore((state) => state.loading)
 
-export const useError = () => 
-  useVideoCallStore(state => state.error)
+export const useError = () =>
+  useVideoCallStore((state) => state.error)
 
 // 네트워크 관련 selectors
-export const useNetworkQuality = () => 
-  useVideoCallStore(state => state.quality)
+export const useNetworkQuality = () =>
+  useVideoCallStore((state) => state.quality)
 
-export const useNetworkMonitoring = () => 
-  useVideoCallStore(state => state.monitoring)
+export const useNetworkMonitoring = () =>
+  useVideoCallStore((state) => state.monitoring)
 
-export const useConnectionStats = () => 
-  useVideoCallStore(state => state.connectionStats)
+export const useConnectionStats = () =>
+  useVideoCallStore((state) => state.connectionStats)
 
 // ============================================================================
 // 복합 Selector들
 // ============================================================================
 
 // 세션이 준비되었는지 확인
-export const useSessionReady = () => 
-  useVideoCallStore(state => 
-    state.status === 'connected' && 
-    state.session !== null &&
-    state.sessionInfo !== null
+export const useSessionReady = () =>
+  useVideoCallStore(
+    (state) =>
+      state.status === 'connected' &&
+      state.session !== null &&
+      state.sessionInfo !== null,
   )
 
 // 미디어가 활성화된 참가자들
-export const useActiveParticipants = () => 
-  useVideoCallStore(state => 
-    Array.from(state.participants.values()).filter(p => 
-      p.audioEnabled || p.videoEnabled
-    )
+export const useActiveParticipants = () =>
+  useVideoCallStore((state) =>
+    Array.from(state.participants.values()).filter(
+      (p) => p.audioEnabled || p.videoEnabled,
+    ),
   )
 
 // 현재 발화 중인 참가자들
-export const useSpeakingParticipants = () => 
-  useVideoCallStore(state => 
-    Array.from(state.participants.values()).filter(p => p.speaking)
+export const useSpeakingParticipants = () =>
+  useVideoCallStore((state) =>
+    Array.from(state.participants.values()).filter((p) => p.speaking),
   )
 
 // 채팅 탭의 배지 표시 여부
-export const useShouldShowChatBadge = () => 
-  useVideoCallStore(state => 
-    state.unreadCount > 0 && state.ui.activeTab !== 'chat'
+export const useShouldShowChatBadge = () =>
+  useVideoCallStore(
+    (state) => state.unreadCount > 0 && state.ui.activeTab !== 'chat',
   )
 
 // 네트워크 경고 표시 여부
-export const useShouldShowNetworkWarning = () => 
-  useVideoCallStore(state => {
+export const useShouldShowNetworkWarning = () =>
+  useVideoCallStore((state) => {
     if (!state.quality) return false
     return (
       state.quality.level <= 2 ||
@@ -185,21 +187,26 @@ export const useShouldShowNetworkWarning = () =>
 
 export const useVideoCallActions = () => {
   const store = useVideoCallStore()
-  
+
   return {
     // 세션
     connect: store.connect,
     disconnect: store.disconnect,
     updateStatus: store.updateStatus,
     clearError: store.clearError,
-    
+    // 현재 store 상태 접근 (Strict narrowing 회피용)
+    getState: () => useVideoCallStore.getState(),
+
     // 참가자
     addParticipant: store.addParticipant,
     updateParticipant: store.updateParticipant,
     removeParticipant: store.removeParticipant,
     pinParticipant: store.pinParticipant,
+    setLocalParticipantId: (id: string | null) => {
+      useVideoCallStore.setState({ localParticipantId: id })
+    },
     setSpeaking: store.setSpeaking,
-    
+
     // 미디어
     updateSettings: store.updateSettings,
     toggleAudio: store.toggleAudio,
@@ -207,13 +214,13 @@ export const useVideoCallActions = () => {
     toggleScreenShare: store.toggleScreenShare,
     updateDevices: store.updateDevices,
     selectDevice: store.selectDevice,
-    
+
     // 채팅
     addMessage: store.addMessage,
     sendMessage: store.sendMessage,
     markAllAsRead: store.markAllAsRead,
     clearMessages: store.clearMessages,
-    
+
     // UI
     setActiveTab: store.setActiveTab,
     toggleSidebar: store.toggleSidebar,
@@ -221,12 +228,36 @@ export const useVideoCallActions = () => {
     setLayoutMode: store.setLayoutMode,
     setError: store.setError,
     setLoading: store.setLoading,
-    
+
     // 네트워크
     updateQuality: store.updateQuality,
     updateParticipantStats: store.updateParticipantStats,
     startMonitoring: store.startMonitoring,
     stopMonitoring: store.stopMonitoring,
+
+    // Publisher 관리 (최소 구현)
+    createPublisher: async (options?: {
+      publishAudio?: boolean
+      publishVideo?: boolean
+      resolution?: string
+      frameRate?: number
+    }) => {
+      const { openViduClient } = await import(
+        '../services/OpenViduClient'
+      )
+      const publisher = await openViduClient.publish(options)
+      useVideoCallStore.setState({ publisher })
+    },
+    destroyPublisher: async () => {
+      const { openViduClient } = await import(
+        '../services/OpenViduClient'
+      )
+      const current = useVideoCallStore.getState().publisher
+      if (current) {
+        await openViduClient.unpublish(current)
+      }
+      useVideoCallStore.setState({ publisher: null })
+    },
   }
 }
 
@@ -242,12 +273,12 @@ export const resetVideoCallStore = () => {
     sessionInfo: null,
     currentUsername: null,
     joinSequence: 0,
-    
+
     // 참가자 초기화
     participants: new Map(),
     localParticipantId: null,
     pinnedParticipantId: null,
-    
+
     // 미디어 초기화
     publisher: null,
     screenPublisher: null,
@@ -257,21 +288,21 @@ export const resetVideoCallStore = () => {
       videoEnabled: true,
       screenSharing: false,
     },
-    
+
     // 채팅 초기화
     messages: [],
     unreadCount: 0,
-    
+
     // UI 초기화
     ui: {
       activeTab: 'chat',
       sidebarVisible: true,
       fullscreenMode: false,
-      layoutMode: 'sidebar'
+      layoutMode: 'sidebar',
     },
     loading: false,
     error: null,
-    
+
     // 네트워크 초기화
     quality: null,
     connectionStats: new Map(),
