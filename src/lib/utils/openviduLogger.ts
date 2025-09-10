@@ -218,5 +218,9 @@ export const toggleOpenViduDebug = (enable?: boolean) => {
 
 // 전역에서 쉽게 토글할 수 있도록 window 객체에 추가
 if (typeof window !== 'undefined') {
-  ;(window as typeof window & { toggleOpenViduDebug: typeof toggleOpenViduDebug }).toggleOpenViduDebug = toggleOpenViduDebug
+  ;(
+    window as typeof window & {
+      toggleOpenViduDebug: typeof toggleOpenViduDebug
+    }
+  ).toggleOpenViduDebug = toggleOpenViduDebug
 }

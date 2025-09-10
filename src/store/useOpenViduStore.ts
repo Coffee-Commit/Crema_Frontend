@@ -1,13 +1,7 @@
 'use client'
 
-import type {
-  Session,
-  Publisher,
-} from 'openvidu-browser'
-import type {
-  ConnectionEvent,
-  StreamEvent,
-} from 'openvidu-browser'
+import type { Session, Publisher } from 'openvidu-browser'
+import type { ConnectionEvent, StreamEvent } from 'openvidu-browser'
 import { create } from 'zustand'
 
 // 클라이언트 전용 어댑터 사용
@@ -386,8 +380,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       )
 
       // 8. v3 성능 최적화 기능 자동 활성화
-      const { enableSimulcast, enableDynacast, enableSvc: _enableSvc } =
-        featureFlags
+      const { enableSimulcast, enableDynacast } = featureFlags
 
       if (enableSimulcast) {
         try {
@@ -508,7 +501,6 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         session,
         currentSessionId,
         chatMessages,
-        username: _username,
         chatManager,
         updateConnectionState,
         publisher,
@@ -602,7 +594,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
                     kind: track.kind,
                     id: track.id,
                   })
-                } catch (_e) {
+                } catch {
                   // track.stop() 실패는 무시
                 }
               })
@@ -810,7 +802,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         if (configPromise) {
           try {
             sessionConfig = await configPromise
-          } catch (_error) {
+          } catch {
             configPromise = null // Promise 초기화
           }
         }
@@ -851,7 +843,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       if (activeQuickJoinKey === quickJoinKey && quickJoinPromise) {
         logger.debug('동일한 QuickJoin 요청 진행 중')
         try {
-          const _quickJoinResponse = await quickJoinPromise
+          await quickJoinPromise
           logger.debug('기존 Promise로 QuickJoin 완료')
           // QuickJoin 성공 후 계속 진행
         } catch (error) {
@@ -946,8 +938,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       )
 
       // 8. v3 성능 최적화 기능 자동 활성화 (테스트 환경)
-      const { enableSimulcast, enableDynacast, enableSvc: _enableSvc } =
-        featureFlags
+      const { enableSimulcast, enableDynacast } = featureFlags
 
       if (enableSimulcast) {
         try {

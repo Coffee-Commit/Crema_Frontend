@@ -1,21 +1,23 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, use } from 'react'
 
 import ThreeColumnLayout from '@/features/video-call/components/ThreeColumnLayout'
+import type { VideoCallPageProps } from '@/features/video-call/types/page.types'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 const logger = createOpenViduLogger('VideoCallPage')
 
 // NOTE: Next 15 PageProps typing: allow permissive props type for type-check.
-function VideoCallRoomContent({ params }: any) {
+function VideoCallRoomContent({ params }: VideoCallPageProps) {
   const searchParams = useSearchParams()
+  const resolvedParams = use(params)
   const reservationIdParam =
-    params.sessionId || searchParams.get('reservationId')
+    resolvedParams.sessionId || searchParams.get('reservationId')
 
   logger.debug('쿼리 파라미터 확인', {
-    pathSessionId: params.sessionId,
+    pathSessionId: resolvedParams.sessionId,
     reservationId: reservationIdParam,
     hasReservationId: !!reservationIdParam,
     paramsSize: searchParams.toString().length,
@@ -24,7 +26,7 @@ function VideoCallRoomContent({ params }: any) {
   if (!reservationIdParam) {
     logger.warn('필수 파라미터 누락', {
       missingReservationId: !reservationIdParam,
-      pathSessionId: params.sessionId,
+      pathSessionId: resolvedParams.sessionId,
     })
 
     return (
@@ -70,7 +72,9 @@ function VideoCallRoomContent({ params }: any) {
   return <ThreeColumnLayout reservationId={reservationId} />
 }
 
-export default function VideoCallRoomPage({ params }: any) {
+export default function VideoCallRoomPage({
+  params,
+}: VideoCallPageProps) {
   return (
     <Suspense
       fallback={

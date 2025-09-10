@@ -9,9 +9,13 @@ import {
   ApiErrorCode,
   OPENVIDU_CONSTANTS,
 } from '@/components/openvidu/types'
-import { featureFlags, getOpenViduConfig } from '@/lib/config/env'
+import {
+  featureFlags as _featureFlags,
+  getOpenViduConfig,
+} from '@/lib/config/env'
 import api from '@/lib/http/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import { isApiResponseLike, isErrorLike } from '@/features/video-call/types/guards.types'
 
 // ============================================================================
 // API 응답 정규화 함수
@@ -20,8 +24,8 @@ import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 /**
  * 서버의 다양한 응답 형태를 표준 ApiResponse 형태로 정규화
  */
-function normalizeApiResponse<T>(raw: any): ApiResponse<T> {
-  if (!raw || typeof raw !== 'object') {
+function normalizeApiResponse<T>(raw: unknown): ApiResponse<T> {
+  if (!isApiResponseLike(raw)) {
     return {
       code: 'ERROR',
       message: 'Invalid response',
@@ -29,20 +33,21 @@ function normalizeApiResponse<T>(raw: any): ApiResponse<T> {
     }
   }
 
+  const apiData = raw as Record<string, unknown>
   const codeRaw =
-    raw.code ??
-    raw.resultCode ??
-    (raw.success === true ? 'OK' : undefined)
-  const message = raw.message ?? raw.msg ?? ''
-  const hasQuickJoinShape = raw.token && raw.sessionId
+    apiData.code ??
+    apiData.resultCode ??
+    (apiData.success === true ? 'OK' : undefined)
+  const message = String(apiData.message ?? apiData.msg ?? '')
+  const hasQuickJoinShape = apiData.token && apiData.sessionId
 
   const result =
-    raw.result !== undefined
-      ? raw.result
-      : raw.data !== undefined
-        ? raw.data
+    apiData.result !== undefined
+      ? apiData.result
+      : apiData.data !== undefined
+        ? apiData.data
         : hasQuickJoinShape
-          ? raw
+          ? apiData
           : null
 
   // SUCCESS -> OK 변환, 미정이면 result 유무로 추론
@@ -52,10 +57,10 @@ function normalizeApiResponse<T>(raw: any): ApiResponse<T> {
 
   // [SUCCESS] 메시지 패턴 감지
   if (!result && message.startsWith('[SUCCESS]')) {
-    return { code: 'OK', message, result: raw as T }
+    return { code: 'OK', message, result: apiData as T }
   }
 
-  return { code: normalizedCode, message, result }
+  return { code: String(normalizedCode), message, result: result as T | null }
 }
 
 const logger = createOpenViduLogger('Api')
@@ -74,7 +79,7 @@ class OpenViduApiService {
     endpoint: string,
     options: {
       method?: string
-      data?: any
+      data?: unknown
       headers?: Record<string, string>
     } = {},
   ): Promise<T> {
@@ -145,15 +150,22 @@ class OpenViduApiService {
           `API Error [${apiResponse.code}]: ${apiResponse.message}`,
         )
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const endTime = performance.now()
       const duration = Math.round(endTime - startTime)
 
+      const errorInfo = isErrorLike(error) ? {
+        msg: error.message || 'Unknown error',
+        status: (error as { response?: { status?: number } }).response?.status
+      } : {
+        msg: String(error),
+        status: undefined
+      }
+
       logger.error('요청 실패', {
         endpoint,
-        msg: error.message,
+        ...errorInfo,
         durMs: duration,
-        status: error.response?.status,
       })
       throw error
     }
@@ -426,7 +438,7 @@ class OpenViduTestApiService {
     logger.info('모든 요청 취소', {
       count: this.abortControllers.size,
     })
-    this.abortControllers.forEach((controller, key) => {
+    this.abortControllers.forEach((controller, _key) => {
       controller.abort()
     })
     this.abortControllers.clear()
@@ -517,7 +529,7 @@ class OpenViduTestApiService {
           `Test API Error [${apiResponse.code}]: ${apiResponse.message}`,
         )
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const endTime = performance.now()
       const duration = Math.round(endTime - startTime)
 
@@ -526,10 +538,22 @@ class OpenViduTestApiService {
         this.abortControllers.delete(options.abortKey)
       }
 
+      const errorInfo = isErrorLike(error) ? {
+        name: error.name || '',
+        code: (error as { code?: string }).code || '',
+        msg: error.message || 'Unknown error',
+        status: (error as { response?: { status?: number } }).response?.status
+      } : {
+        name: '',
+        code: '',
+        msg: String(error),
+        status: undefined
+      }
+
       // 요청 취소 에러 체크
       if (
-        error.name === 'CanceledError' ||
-        error.code === 'ERR_CANCELED'
+        errorInfo.name === 'CanceledError' ||
+        errorInfo.code === 'ERR_CANCELED'
       ) {
         logger.warn('Test API 요청 취소', {
           endpoint,
@@ -541,9 +565,9 @@ class OpenViduTestApiService {
 
       logger.error('Test API 요청 실패', {
         endpoint,
-        msg: error.message,
+        msg: errorInfo.msg,
         durMs: duration,
-        status: error.response?.status,
+        status: errorInfo.status,
       })
       throw error
     } finally {
@@ -783,7 +807,7 @@ export class OpenViduApiError extends Error {
   constructor(
     public code: ApiErrorCode,
     public message: string,
-    public details?: any,
+    public details?: unknown,
   ) {
     super(message)
     this.name = 'OpenViduApiError'
@@ -793,7 +817,7 @@ export class OpenViduApiError extends Error {
 /**
  * v3 확장 에러 분석 및 복구 제안
  */
-export function analyzeV3Error(error: any): {
+export function analyzeV3Error(error: unknown): {
   category:
     | 'network'
     | 'media'
@@ -805,9 +829,17 @@ export function analyzeV3Error(error: any): {
   recoveryAction?: string
   requiresReconnect: boolean
 } {
-  const errorName = error.name || ''
-  const errorMessage = error.message || ''
-  const errorCode = (error as any)?.code || ''
+  const errorInfo = isErrorLike(error) ? {
+    name: error.name || '',
+    message: error.message || '',
+    code: (error as Error & { code?: string })?.code || ''
+  } : {
+    name: '',
+    message: String(error),
+    code: ''
+  }
+  
+  const { name: errorName, message: errorMessage, code: errorCode } = errorInfo
 
   // LiveKit/v3 특화 에러 패턴 분석
   if (errorName.includes('ICE') || errorMessage.includes('network')) {
@@ -865,10 +897,18 @@ export function analyzeV3Error(error: any): {
 /**
  * API 에러를 한국어 메시지로 변환 (v3 개선 버전)
  */
-export function getKoreanErrorMessage(error: any): string {
+export function getKoreanErrorMessage(error: unknown): string {
+  const errorInfo = isErrorLike(error) ? {
+    name: error.name || '',
+    message: error.message || ''
+  } : {
+    name: '',
+    message: String(error)
+  }
+
   logger.debug('에러 메시지 변환', {
-    name: error.name,
-    message: error.message,
+    name: errorInfo.name,
+    message: errorInfo.message,
     isOpenViduApiError: error instanceof OpenViduApiError,
   })
 
@@ -912,8 +952,8 @@ export function getKoreanErrorMessage(error: any): string {
     }
 
     logger.debug('API 에러 매핑', {
-      code: error.code,
-      originalMessage: error.message,
+      code: (error as { code?: string })?.code,
+      originalMessage: errorInfo.message,
       koreanMessage,
       category: analysis.category,
       severity: analysis.severity,
@@ -938,7 +978,7 @@ export function getKoreanErrorMessage(error: any): string {
     }
 
     logger.debug('v3 에러 처리', {
-      originalMessage: error.message,
+      originalMessage: errorInfo.message,
       koreanMessage,
       analysis,
     })

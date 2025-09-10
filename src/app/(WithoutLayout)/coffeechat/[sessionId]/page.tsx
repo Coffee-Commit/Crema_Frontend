@@ -1,26 +1,28 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, use } from 'react'
 
 import VideoCallRoom from '@/components/openvidu/VideoCallRoom'
+import type { CoffeeChatPageProps } from '@/features/video-call/types/page.types'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 const logger = createOpenViduLogger('CoffeeChatPage')
 
 // NOTE: Next 15's generated PageProps expects params/searchParams as Promise.
 // Use a permissive type here to satisfy the type constraint during type-check.
-function CoffeeChatRoomContent({ params }: any) {
+function CoffeeChatRoomContent({ params }: CoffeeChatPageProps) {
   const searchParams = useSearchParams()
+  const resolvedParams = use(params)
 
   // Path Param 우선, 없으면 쿼리 파라미터 fallback 허용(reservationId | coffeeChatId)
   const rawParam =
-    params.sessionId ||
+    resolvedParams.sessionId ||
     searchParams.get('reservationId') ||
     searchParams.get('coffeeChatId')
 
   logger.debug('파라미터 확인', {
-    pathSessionId: params.sessionId,
+    pathSessionId: resolvedParams.sessionId,
     queryReservationId: searchParams.get('reservationId'),
     queryCoffeeChatId: searchParams.get('coffeeChatId'),
   })
@@ -64,7 +66,9 @@ function CoffeeChatRoomContent({ params }: any) {
   return <VideoCallRoom reservationId={reservationId} />
 }
 
-export default function CoffeeChatPage({ params }: any) {
+export default function CoffeeChatPage({
+  params,
+}: CoffeeChatPageProps) {
   return (
     <Suspense
       fallback={

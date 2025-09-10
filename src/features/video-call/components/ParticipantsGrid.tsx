@@ -7,7 +7,7 @@ import ParticipantVideo from './ParticipantVideo'
 
 export default function ParticipantsGrid() {
   const participants = useParticipants()
-  const localParticipant = useLocalParticipant()
+  const _localParticipant = useLocalParticipant()
 
   // 로컬 참가자를 제외한 원격 참가자들만 표시
   const remoteParticipants = participants.filter((p) => !p.isLocal)

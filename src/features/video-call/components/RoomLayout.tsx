@@ -20,9 +20,9 @@ interface RoomLayoutProps {
 }
 
 function RoomLayoutInner({
-  username,
-  sessionName,
-  reservationId,
+  username: _username,
+  sessionName: _sessionName,
+  reservationId: _reservationId,
   onLeaveSession,
 }: RoomLayoutProps) {
   const sessionStatus = useSessionStatus()

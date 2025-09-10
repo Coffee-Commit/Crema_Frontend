@@ -10,20 +10,16 @@ import type {
   ImageUrlResponse,
   ApiResponse,
 } from '../types/api.types'
-
-interface JobSeekerInfo {
-  name: string
-  position: string
-  experience: string
-  skills: string[]
-  introduction: string
-}
+import type {
+  JobSeekerInfo,
+  MaterialError,
+} from '../types/materials.types'
 
 // SharedMaterial 타입은 api.types.ts에서 import
 
 export default function MaterialsPanel() {
   // 상태 관리
-  const [jobSeekerInfo, setJobSeekerInfo] =
+  const [jobSeekerInfo, _setJobSeekerInfo] =
     useState<JobSeekerInfo | null>(null)
   const [sharedMaterials, setSharedMaterials] = useState<
     SharedMaterial[]
@@ -31,7 +27,7 @@ export default function MaterialsPanel() {
   const [jobSeekerLoading, setJobSeekerLoading] = useState(true)
   const [materialsLoading, setMaterialsLoading] = useState(true)
   const [jobSeekerError, setJobSeekerError] = useState(false)
-  const [materialsError, setMaterialsError] = useState(false)
+  const [_materialsError, setMaterialsError] = useState(false)
 
   // 파일 업로드 관련 상태
   const [isUploading, setIsUploading] = useState(false)
@@ -117,7 +113,8 @@ export default function MaterialsPanel() {
 
       // 업로드 성공 후 새로운 자료를 목록에 추가
       const uploadResult =
-        (response.data as any).data || response.data.result
+        (response.data as unknown as ApiResponse<ImageUploadResponse>).result ||
+        (response.data as unknown as { data: ImageUploadResponse }).data
       const uploadedFile: SharedMaterial = {
         id: uploadResult.imageKey,
         imageKey: uploadResult.imageKey,
@@ -131,11 +128,12 @@ export default function MaterialsPanel() {
       setSharedMaterials((prev) => [...prev, uploadedFile])
 
       console.log('파일 업로드 성공:', uploadResult)
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const materialError = error as MaterialError
       console.error('파일 업로드 실패:', error)
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        materialError?.message ||
+        (error instanceof Error ? error.message : String(error)) ||
         '파일 업로드에 실패했습니다.'
       setUploadError(errorMessage)
     } finally {
@@ -174,16 +172,18 @@ export default function MaterialsPanel() {
       )
 
       const urlResult =
-        (response.data as any).data || response.data.result
+        (response.data as unknown as ApiResponse<ImageUrlResponse>).result ||
+        (response.data as unknown as { data: ImageUrlResponse }).data
       const downloadUrl = urlResult.presignedUrl
 
       // 새 탭에서 다운로드 URL 열기
       window.open(downloadUrl, '_blank')
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const materialError = error as MaterialError
       console.error('다운로드 URL 생성 실패:', error)
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        materialError?.message ||
+        (error instanceof Error ? error.message : String(error)) ||
         '다운로드에 실패했습니다.'
       alert(errorMessage)
     }

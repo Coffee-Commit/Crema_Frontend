@@ -17,7 +17,7 @@ import type {
   NetworkQuality,
   Participant,
 } from '../types'
-import { MEDIA_CONSTRAINTS } from '../types'
+import { MEDIA_CONSTRAINTS as _MEDIA_CONSTRAINTS } from '../types'
 
 const logger = createOpenViduLogger('OpenViduClient')
 
@@ -158,7 +158,10 @@ export class OpenViduClient implements OpenViduClientInterface {
     }
 
     try {
-      logger.info('Publisher 생성 시작', options as Record<string, unknown>)
+      logger.info(
+        'Publisher 생성 시작',
+        options as Record<string, unknown>,
+      )
 
       const publisherOptions = {
         audioSource: options.audioSource ?? true,

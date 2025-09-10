@@ -233,7 +233,10 @@ export class NetworkQualityMonitor {
 
     this.previousStats = { ...stats }
 
-    logger.debug('네트워크 품질 계산', quality as unknown as Record<string, unknown>)
+    logger.debug(
+      '네트워크 품질 계산',
+      quality as unknown as Record<string, unknown>,
+    )
 
     return quality
   }

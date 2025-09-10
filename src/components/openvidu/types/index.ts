@@ -1,8 +1,4 @@
-import {
-  Session,
-  Publisher,
-  StreamManager,
-} from 'openvidu-browser'
+import { Session, Publisher, StreamManager } from 'openvidu-browser'
 
 import type { ChatManager } from '@/lib/openvidu/chatManager'
 
@@ -57,7 +53,7 @@ export enum ApiErrorCode {
 // 세션 참가 관련 타입
 // ============================================================================
 
-export interface QuickJoinRequest {
+export interface QuickJoinRequest extends Record<string, never> {
   // 현재는 빈 객체, 추후 필요한 필드 추가 예정
 }
 
