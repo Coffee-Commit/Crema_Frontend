@@ -2,28 +2,31 @@
 
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import ThreeColumnLayout from '@/features/video-call/components/ThreeColumnLayout'
+
+import VideoCallRoom from '@/components/openvidu/VideoCallRoom'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 const logger = createOpenViduLogger('CoffeeChatPage')
 
-function CoffeeChatRoomContent({ params }: { params: { id: string } }) {
+// NOTE: Next 15's generated PageProps expects params/searchParams as Promise.
+// Use a permissive type here to satisfy the type constraint during type-check.
+function CoffeeChatRoomContent({ params }: any) {
   const searchParams = useSearchParams()
-  const coffeeChatIdParam = params.id || searchParams.get('coffeeChatId')
 
-  logger.debug('쿼리 파라미터 확인', {
-    pathId: params.id,
-    coffeeChatId: coffeeChatIdParam,
-    hasCoffeeChatId: !!coffeeChatIdParam,
-    paramsSize: searchParams.toString().length,
+  // Path Param 우선, 없으면 쿼리 파라미터 fallback 허용(reservationId | coffeeChatId)
+  const rawParam =
+    params.sessionId ||
+    searchParams.get('reservationId') ||
+    searchParams.get('coffeeChatId')
+
+  logger.debug('파라미터 확인', {
+    pathSessionId: params.sessionId,
+    queryReservationId: searchParams.get('reservationId'),
+    queryCoffeeChatId: searchParams.get('coffeeChatId'),
   })
 
-  if (!coffeeChatIdParam) {
-    logger.warn('필수 파라미터 누락', {
-      missingCoffeeChatId: !coffeeChatIdParam,
-      pathId: params.id,
-    })
-
+  if (!rawParam) {
+    logger.warn('필수 파라미터 누락')
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
         <div className="text-center text-[var(--color-fill-white)]">
@@ -31,47 +34,37 @@ function CoffeeChatRoomContent({ params }: { params: { id: string } }) {
             잘못된 접근
           </h2>
           <p className="font-body2 text-[var(--color-label-subtle)]">
-            커피챗 ID가 필요합니다.
+            예약 ID가 필요합니다.
           </p>
         </div>
       </div>
     )
   }
 
-  const coffeeChatId = parseInt(coffeeChatIdParam.trim(), 10)
-
-  if (isNaN(coffeeChatId) || coffeeChatId <= 0) {
-    logger.warn('유효하지 않은 커피챗 ID', {
-      coffeeChatIdParam,
-      parsedCoffeeChatId: coffeeChatId,
-    })
-
+  const reservationId = parseInt(String(rawParam).trim(), 10)
+  if (isNaN(reservationId) || reservationId <= 0) {
+    logger.warn('유효하지 않은 예약 ID', { rawParam })
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
         <div className="text-center text-[var(--color-fill-white)]">
           <h2 className="font-title3 mb-[var(--spacing-spacing-6xs)]">
-            유효하지 않은 커피챗 ID
+            유효하지 않은 예약 ID
           </h2>
           <p className="font-body2 text-[var(--color-label-subtle)]">
-            커피챗 ID는 양의 정수여야 합니다.
+            예약 ID는 양의 정수여야 합니다.
           </p>
         </div>
       </div>
     )
   }
 
-  logger.info('CoffeeChat Room 렌더링', {
-    coffeeChatId,
-  })
+  logger.info('CoffeeChat Room 진입', { reservationId })
 
-  return (
-    <ThreeColumnLayout
-      reservationId={coffeeChatId}
-    />
-  )
+  // 레거시 테스트룸과 동일 UI/로직 구성 요소 사용
+  return <VideoCallRoom reservationId={reservationId} />
 }
 
-export default function CoffeeChatPage({ params }: { params: { id: string } }) {
+export default function CoffeeChatPage({ params }: any) {
   return (
     <Suspense
       fallback={

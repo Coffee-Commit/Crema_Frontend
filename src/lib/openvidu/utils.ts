@@ -1,4 +1,5 @@
 import { StreamManager, Publisher } from 'openvidu-browser'
+
 import { logger } from '@/lib/utils/logger'
 
 // OpenVidu 관련 유틸리티 함수들
@@ -7,7 +8,9 @@ import { logger } from '@/lib/utils/logger'
  * Publisher에서 MediaStream 안전하게 가져오기
  * OpenVidu의 공식 API만 사용하여 내부 속성 접근 방지
  */
-export function getPublisherMediaStream(publisher: Publisher): MediaStream | null {
+export function getPublisherMediaStream(
+  publisher: Publisher,
+): MediaStream | null {
   try {
     return publisher.stream?.getMediaStream?.() ?? null
   } catch (error) {

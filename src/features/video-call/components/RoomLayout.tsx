@@ -1,15 +1,16 @@
 'use client'
 
-import React from 'react'
 import dynamic from 'next/dynamic'
-import { useSessionStatus, useError, useLoading } from '../store'
+import React from 'react'
+
 import { useEnvironmentInfo } from '../hooks'
+import { useSessionStatus, useError, useLoading } from '../store'
 import ControlsBar from './ControlsBar'
+import ErrorScreen from './ErrorScreen'
+import LoadingScreen from './LoadingScreen'
 import MainVideo from './MainVideo'
 import ParticipantsGrid from './ParticipantsGrid'
 import Sidebar from './Sidebar'
-import LoadingScreen from './LoadingScreen'
-import ErrorScreen from './ErrorScreen'
 
 interface RoomLayoutProps {
   username?: string
@@ -22,12 +23,12 @@ function RoomLayoutInner({
   username,
   sessionName,
   reservationId,
-  onLeaveSession
+  onLeaveSession,
 }: RoomLayoutProps) {
   const sessionStatus = useSessionStatus()
   const error = useError()
   const loading = useLoading()
-  
+
   // 환경 정보 로깅 (마운트 시 1회)
   useEnvironmentInfo()
 
@@ -69,7 +70,7 @@ function RoomLayoutInner({
 // SSR 방지를 위한 dynamic export (WebRTC는 브라우저 전용)
 const RoomLayout = dynamic(() => Promise.resolve(RoomLayoutInner), {
   ssr: false,
-  loading: () => <LoadingScreen message="비디오 통화 준비 중..." />
+  loading: () => <LoadingScreen message="비디오 통화 준비 중..." />,
 })
 
 export default RoomLayout

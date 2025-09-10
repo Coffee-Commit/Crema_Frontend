@@ -6,8 +6,8 @@ interface LoadingScreenProps {
   message?: string
 }
 
-export default function LoadingScreen({ 
-  message = "연결 중..." 
+export default function LoadingScreen({
+  message = '연결 중...',
 }: LoadingScreenProps) {
   return (
     <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)]">

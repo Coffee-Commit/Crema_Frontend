@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+
 import { useUnreadCount } from '../store'
 import ChatPanel from './ChatPanel'
 import MaterialsPanel from './MaterialsPanel'
@@ -8,7 +9,8 @@ import MaterialsPanel from './MaterialsPanel'
 type ModifiedSidebarTab = 'chat' | 'materials'
 
 export default function ModifiedSidebar() {
-  const [activeTab, setActiveTab] = useState<ModifiedSidebarTab>('materials') // 기본 선택: 공유된 자료
+  const [activeTab, setActiveTab] =
+    useState<ModifiedSidebarTab>('materials') // 기본 선택: 공유된 자료
   const unreadCount = useUnreadCount()
 
   const tabs: Array<{
@@ -19,12 +21,12 @@ export default function ModifiedSidebar() {
     {
       id: 'chat',
       label: '채팅',
-      badge: unreadCount > 0 ? unreadCount : undefined
+      badge: unreadCount > 0 ? unreadCount : undefined,
     },
     {
       id: 'materials',
-      label: '공유된 자료'
-    }
+      label: '공유된 자료',
+    },
   ]
 
   const renderTabContent = () => {
@@ -34,14 +36,18 @@ export default function ModifiedSidebar() {
       case 'materials':
         return <MaterialsPanel />
       default:
-        return <div className="p-4 text-center text-[var(--color-label-subtle)]">패널을 선택해주세요</div>
+        return (
+          <div className="p-4 text-center text-[var(--color-label-subtle)]">
+            패널을 선택해주세요
+          </div>
+        )
     }
   }
 
   return (
     <div className="flex h-full w-80 flex-col overflow-hidden border-l border-[var(--color-border-subtle)] bg-[var(--color-fill-white)]">
       {/* 탭 헤더 */}
-      <div className="shrink-0 flex border-b border-[var(--color-border-subtle)]">
+      <div className="flex shrink-0 border-b border-[var(--color-border-subtle)]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -54,7 +60,7 @@ export default function ModifiedSidebar() {
             title={tab.label}
           >
             <span>{tab.label}</span>
-            
+
             {/* 배지 표시 */}
             {tab.badge && tab.badge > 0 && (
               <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-label-error)] px-1 text-xs font-medium text-white">
@@ -66,7 +72,7 @@ export default function ModifiedSidebar() {
       </div>
 
       {/* 탭 컨텐츠 */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden">
         {renderTabContent()}
       </div>
     </div>

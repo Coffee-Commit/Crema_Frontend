@@ -3,13 +3,14 @@
  * 환경 설정에 따라 적절한 어댑터를 생성
  */
 
-import type { OpenViduSdkAdapter, AdapterFactory } from './base'
-import { OpenViduV2CompatibilityAdapter } from './v2compatibility'
 import {
   featureFlags,
   type OpenViduSdkVersion,
 } from '@/lib/config/env'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+
+import type { OpenViduSdkAdapter, AdapterFactory } from './base'
+import { OpenViduV2CompatibilityAdapter } from './v2compatibility'
 
 const logger = createOpenViduLogger('AdapterFactory')
 

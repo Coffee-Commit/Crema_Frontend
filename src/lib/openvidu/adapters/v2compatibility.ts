@@ -12,6 +12,9 @@ import {
   SignalEvent,
 } from 'openvidu-browser'
 
+import { featureFlags, getClientIceServers } from '@/lib/config/env'
+import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+
 import type {
   OpenViduSdkAdapter,
   AdapterPublisherConfig,
@@ -23,9 +26,6 @@ import type {
   QualityProfile,
   NetworkQualityInfo,
 } from './base'
-
-import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
-import { featureFlags, getClientIceServers } from '@/lib/config/env'
 
 const logger = createOpenViduLogger('V2CompatAdapter')
 
@@ -66,7 +66,7 @@ export class OpenViduV2CompatibilityAdapter
 
       // 클라이언트 ICE 서버 설정 (테스트용)
       const clientIceServers = getClientIceServers()
-      
+
       // ICE 고급 설정 - codex 권장사항 반영
       const advancedConfig: any = {
         // ICE 연결 끊김 예외 시간 조정 (기본값 4000ms → 8000ms)
@@ -76,21 +76,24 @@ export class OpenViduV2CompatibilityAdapter
       // ICE 서버 override가 있으면 추가
       if (clientIceServers.length > 0) {
         advancedConfig.iceServers = clientIceServers
-        
+
         // 진단용: TURN relay 강제 사용 (환경변수로 제어)
         if (process.env.NEXT_PUBLIC_FORCE_RELAY === 'true') {
           advancedConfig.iceTransportPolicy = 'relay'
-          logger.info('🔧 TURN relay 강제 사용 모드 활성화 - NAT/방화벽 환경 대응')
+          logger.info(
+            '🔧 TURN relay 강제 사용 모드 활성화 - NAT/방화벽 환경 대응',
+          )
         }
-        
+
         // codex 권장: ICE candidate 수집 강화
         advancedConfig.iceCandidatePoolSize = 10
       }
 
       this.openViduInstance.setAdvancedConfiguration(advancedConfig)
-      
+
       logger.info('🔧 OpenVidu ICE 고급 설정 적용', {
-        iceTimeout: advancedConfig.iceConnectionDisconnectedExceptionTimeout,
+        iceTimeout:
+          advancedConfig.iceConnectionDisconnectedExceptionTimeout,
         clientIceOverride: clientIceServers.length > 0,
         forceRelay: advancedConfig.iceTransportPolicy === 'relay',
         serverCount: clientIceServers.length,
@@ -98,7 +101,10 @@ export class OpenViduV2CompatibilityAdapter
 
       if (clientIceServers.length > 0) {
         logger.info('🔧 클라이언트 ICE 서버 상세', {
-          servers: clientIceServers.map(s => ({ urls: s.urls, hasCredentials: !!(s.username && s.credential) }))
+          servers: clientIceServers.map((s) => ({
+            urls: s.urls,
+            hasCredentials: !!(s.username && s.credential),
+          })),
         })
       }
 
@@ -149,7 +155,8 @@ export class OpenViduV2CompatibilityAdapter
         dots: (String(token).match(/\./g) || []).length,
         startsWithBearer: String(token).startsWith('Bearer '),
         firstChars: String(token).substring(0, 50) + '...',
-        lastChars: '...' + String(token).substring(String(token).length - 50),
+        lastChars:
+          '...' + String(token).substring(String(token).length - 50),
         // fullToken: String(token) // 보안상 제거 - 토큰 전체 내용 로깅 금지
       })
     }
@@ -180,7 +187,8 @@ export class OpenViduV2CompatibilityAdapter
     // Publisher가 생성될 때 WebRTC 이벤트 리스너 추가
     session.on('streamCreated', (event) => {
       const stream = event.stream
-      if (stream.isLocal()) { // 로컬 스트림 (Publisher)
+      if (stream.isLocal()) {
+        // 로컬 스트림 (Publisher)
         this.setupWebRTCEventListeners(stream)
       }
     })
@@ -195,9 +203,9 @@ export class OpenViduV2CompatibilityAdapter
       if (!webRtcPeer || !webRtcPeer.pc) return
 
       const pc = webRtcPeer.pc as RTCPeerConnection
-      
+
       logger.info('🔧 WebRTC 이벤트 리스너 설정 완료', {
-        streamId: stream.streamId
+        streamId: stream.streamId,
       })
 
       // codex 권장: ICE candidate error 로깅
@@ -206,7 +214,7 @@ export class OpenViduV2CompatibilityAdapter
           errorCode: event.errorCode,
           errorText: event.errorText,
           url: event.url,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         })
       })
 
@@ -214,7 +222,7 @@ export class OpenViduV2CompatibilityAdapter
       pc.addEventListener('icegatheringstatechange', () => {
         logger.info('🔄 ICE Gathering State Changed', {
           state: pc.iceGatheringState,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         })
       })
 
@@ -222,11 +230,14 @@ export class OpenViduV2CompatibilityAdapter
       pc.addEventListener('iceconnectionstatechange', () => {
         logger.info('🔄 ICE Connection State Changed', {
           state: pc.iceConnectionState,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         })
 
         // 연결 실패 시 상세 정보 수집
-        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        if (
+          pc.iceConnectionState === 'failed' ||
+          pc.iceConnectionState === 'disconnected'
+        ) {
           this.logIceCandidateStats(pc)
         }
       })
@@ -235,7 +246,7 @@ export class OpenViduV2CompatibilityAdapter
       pc.addEventListener('connectionstatechange', () => {
         logger.info('🔄 Connection State Changed', {
           state: pc.connectionState,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         })
       })
 
@@ -250,15 +261,14 @@ export class OpenViduV2CompatibilityAdapter
             priority: event.candidate.priority,
             foundation: event.candidate.foundation,
             component: event.candidate.component,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           })
         } else {
           logger.info('🧊 ICE Candidate 수집 완료', {
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           })
         }
       })
-
     } catch (error) {
       logger.warn('WebRTC 이벤트 리스너 설정 실패', { error })
     }
@@ -267,14 +277,19 @@ export class OpenViduV2CompatibilityAdapter
   /**
    * codex 권장: ICE candidate 통계 및 실패 원인 분석
    */
-  private async logIceCandidateStats(pc: RTCPeerConnection): Promise<void> {
+  private async logIceCandidateStats(
+    pc: RTCPeerConnection,
+  ): Promise<void> {
     try {
       const stats = await pc.getStats()
       const candidates: any[] = []
       const candidatePairs: any[] = []
 
       stats.forEach((report) => {
-        if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
+        if (
+          report.type === 'local-candidate' ||
+          report.type === 'remote-candidate'
+        ) {
           candidates.push({
             id: report.id,
             type: report.type,
@@ -282,7 +297,7 @@ export class OpenViduV2CompatibilityAdapter
             protocol: report.protocol,
             address: report.address,
             port: report.port,
-            priority: report.priority
+            priority: report.priority,
           })
         } else if (report.type === 'candidate-pair') {
           candidatePairs.push({
@@ -294,7 +309,7 @@ export class OpenViduV2CompatibilityAdapter
             bytesSent: report.bytesSent,
             bytesReceived: report.bytesReceived,
             currentRoundTripTime: report.currentRoundTripTime,
-            availableOutgoingBitrate: report.availableOutgoingBitrate
+            availableOutgoingBitrate: report.availableOutgoingBitrate,
           })
         }
       })
@@ -309,19 +324,29 @@ export class OpenViduV2CompatibilityAdapter
           return acc
         }, {}),
         candidatePairs: candidatePairs.length,
-        successfulPairs: candidatePairs.filter(p => p.state === 'succeeded').length,
-        failedPairs: candidatePairs.filter(p => p.state === 'failed').length,
-        timestamp: new Date().toISOString()
+        successfulPairs: candidatePairs.filter(
+          (p) => p.state === 'succeeded',
+        ).length,
+        failedPairs: candidatePairs.filter(
+          (p) => p.state === 'failed',
+        ).length,
+        timestamp: new Date().toISOString(),
       })
 
       // TURN candidate가 없으면 경고
-      const turnCandidates = candidates.filter(c => c.candidateType === 'relay')
+      const turnCandidates = candidates.filter(
+        (c) => c.candidateType === 'relay',
+      )
       if (turnCandidates.length === 0) {
-        logger.warn('⚠️ TURN relay candidate가 없습니다. TURN 서버 설정을 확인하세요.', {
-          availableCandidateTypes: [...new Set(candidates.map(c => c.candidateType))]
-        })
+        logger.warn(
+          '⚠️ TURN relay candidate가 없습니다. TURN 서버 설정을 확인하세요.',
+          {
+            availableCandidateTypes: [
+              ...new Set(candidates.map((c) => c.candidateType)),
+            ],
+          },
+        )
       }
-
     } catch (error) {
       logger.error('ICE 통계 수집 실패', { error })
     }
@@ -348,10 +373,12 @@ export class OpenViduV2CompatibilityAdapter
         this.state.activeConnections - 1,
       )
       this.updateMetrics()
-
     } catch (error) {
       // leaveRoom timeout 등은 debug 레벨로 처리 (unmount 시점에서 정상)
-      if (error instanceof Error && error.message.includes('leaveRoom')) {
+      if (
+        error instanceof Error &&
+        error.message.includes('leaveRoom')
+      ) {
         logger.debug('세션 연결 해제 중 leaveRoom 오류 (무시)', {
           msg: error.message,
         })
@@ -381,18 +408,27 @@ export class OpenViduV2CompatibilityAdapter
       }
 
       // 미디어 장치 사전 확인
-      let actualConfig = { ...config }
-      
+      const actualConfig = { ...config }
+
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices()
-        const hasVideoInput = devices.some(device => device.kind === 'videoinput')
-        const hasAudioInput = devices.some(device => device.kind === 'audioinput')
+        const devices =
+          await navigator.mediaDevices.enumerateDevices()
+        const hasVideoInput = devices.some(
+          (device) => device.kind === 'videoinput',
+        )
+        const hasAudioInput = devices.some(
+          (device) => device.kind === 'audioinput',
+        )
 
         logger.debug('미디어 장치 확인', {
           hasVideoInput,
           hasAudioInput,
-          videoInputCount: devices.filter(d => d.kind === 'videoinput').length,
-          audioInputCount: devices.filter(d => d.kind === 'audioinput').length
+          videoInputCount: devices.filter(
+            (d) => d.kind === 'videoinput',
+          ).length,
+          audioInputCount: devices.filter(
+            (d) => d.kind === 'audioinput',
+          ).length,
         })
 
         // 비디오 장치가 없으면 오디오 전용으로 폴백
@@ -409,7 +445,9 @@ export class OpenViduV2CompatibilityAdapter
           actualConfig.audioSource = false
         }
       } catch (deviceError) {
-        logger.warn('미디어 장치 열거 실패, 기본 설정 유지', { deviceError })
+        logger.warn('미디어 장치 열거 실패, 기본 설정 유지', {
+          deviceError,
+        })
       }
 
       // v2 호환성 설정 변환
@@ -421,7 +459,10 @@ export class OpenViduV2CompatibilityAdapter
         resolution: actualConfig.resolution,
         frameRate: actualConfig.frameRate,
         insertMode: actualConfig.insertMode || 'APPEND',
-        mirror: actualConfig.mirror !== undefined ? actualConfig.mirror : false,
+        mirror:
+          actualConfig.mirror !== undefined
+            ? actualConfig.mirror
+            : false,
       }
 
       // v3 성능 기능이 활성화된 경우 추가 설정
@@ -445,15 +486,15 @@ export class OpenViduV2CompatibilityAdapter
         ) {
           logger.warn('비디오 장치 에러로 인한 오디오 전용 재시도', {
             errorName: initError.name,
-            errorMessage: initError.message
+            errorMessage: initError.message,
           })
-          
+
           const audioOnlyOptions = {
             ...publisherOptions,
             publishVideo: false,
-            videoSource: false
+            videoSource: false,
           }
-          
+
           publisher = this.openViduInstance.initPublisher(
             undefined,
             audioOnlyOptions,
@@ -467,7 +508,7 @@ export class OpenViduV2CompatibilityAdapter
       logger.debug('Publisher 생성 완료', {
         durMs: Math.round(duration),
         publishAudio: actualConfig.publishAudio,
-        publishVideo: actualConfig.publishVideo
+        publishVideo: actualConfig.publishVideo,
       })
 
       return publisher

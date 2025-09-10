@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+
 import CircleButton from '@/components/ui/Buttons/CircleButton'
 import { logger } from '@/lib/utils/logger'
 
@@ -42,7 +43,9 @@ export default function CreateVideoCallPage() {
   const handleJoinSession = async () => {
     // 이미 진행 중인 경우 중복 클릭 방지
     if (isJoining) {
-      logger.warn('🚅 [ACTION] 이미 세션 참여 진행 중, 중복 클릭 무시')
+      logger.warn(
+        '🚅 [ACTION] 이미 세션 참여 진행 중, 중복 클릭 무시',
+      )
       return
     }
 
@@ -102,7 +105,9 @@ export default function CreateVideoCallPage() {
   const handleQuickJoin = () => {
     // 이미 진행 중인 경우 중복 클릭 방지
     if (isJoining) {
-      logger.warn('🚅 [ACTION] 이미 세션 참여 진행 중, 빠른 참여 무시')
+      logger.warn(
+        '🚅 [ACTION] 이미 세션 참여 진행 중, 빠른 참여 무시',
+      )
       return
     }
 
@@ -137,7 +142,7 @@ export default function CreateVideoCallPage() {
 
     // 빠른 참여시도 로딩 상태 설정
     setIsJoining(true)
-    
+
     try {
       router.push(targetUrl)
       logger.log('✅ [ACTION] 빠른 참여 성공')
@@ -150,7 +155,7 @@ export default function CreateVideoCallPage() {
         setIsJoining(false)
       }, 1000)
     }
-    
+
     logger.groupEnd()
   }
 

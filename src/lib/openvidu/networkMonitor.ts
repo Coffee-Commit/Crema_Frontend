@@ -120,7 +120,7 @@ export class NetworkQualityMonitor {
       const peerConnection = webRtcPeer.pc
       const stats = await peerConnection.getStats()
 
-      let connectionStats: ConnectionStats = {
+      const connectionStats: ConnectionStats = {
         bytesReceived: 0,
         bytesSent: 0,
         packetsReceived: 0,
@@ -173,7 +173,7 @@ export class NetworkQualityMonitor {
     // 이전 통계와 비교하여 품질 계산
     let level = 5 // 기본값: 최고 품질
     let packetLossRate = 0
-    let jitter = 0
+    const jitter = 0
 
     if (this.previousStats) {
       const timeDiff =
@@ -233,7 +233,7 @@ export class NetworkQualityMonitor {
 
     this.previousStats = { ...stats }
 
-    logger.debug('네트워크 품질 계산', quality)
+    logger.debug('네트워크 품질 계산', quality as unknown as Record<string, unknown>)
 
     return quality
   }

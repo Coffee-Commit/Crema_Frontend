@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import { useOpenViduStore } from '@/store/useOpenViduStore'
-import VideoControls from '@/components/openvidu/VideoControls'
-import ParticipantVideo from '@/components/openvidu/ParticipantsList/ParticipantVideo'
+import { useEffect, useState, useRef } from 'react'
+
 import ChatContainer from '@/components/openvidu/Chat/ChatContainer'
-import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import ParticipantVideo from '@/components/openvidu/ParticipantsList/ParticipantVideo'
+import VideoControls from '@/components/openvidu/VideoControls'
 import { openViduTestApi } from '@/lib/openvidu/api'
+import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import { useOpenViduStore } from '@/store/useOpenViduStore'
 
 interface VideoCallRoomProps {
   username?: string
@@ -91,21 +92,24 @@ function VideoCallRoomInner({
     // 컴포넌트 언마운트시 세션 종료
     return () => {
       logger.debug('컴포넌트 언마운트 시작')
-      
+
       // 현재 join 요청만 취소 (글로벌 취소 방지)
       if (joinAbortKeyRef.current) {
         openViduTestApi.cancelRequest(joinAbortKeyRef.current)
         joinAbortKeyRef.current = null
       }
-      
+
       // 세션 종료 (비동기, 오류 무시)
       leaveSession().catch((error) => {
         // unmount 중 세션 종료 실패는 정상 (leaveRoom timeout 등)
         logger.debug('언마운트 중 세션 종료 실패 (무시)', {
-          msg: error instanceof Error ? error.message : '알 수 없는 오류'
+          msg:
+            error instanceof Error
+              ? error.message
+              : '알 수 없는 오류',
         })
       })
-      
+
       logger.debug('컴포넌트 언마운트 완료')
     }
   }, [])
@@ -114,14 +118,14 @@ function VideoCallRoomInner({
   useEffect(() => {
     const handleBeforeUnload = () => {
       logger.debug('페이지 종료 감지, 세션 정리 시도')
-      
+
       // best-effort로 세션 종료 시도 (실패해도 무시)
       try {
         // 현재 join 요청만 취소 (동기)
         if (joinAbortKeyRef.current) {
           openViduTestApi.cancelRequest(joinAbortKeyRef.current)
         }
-        
+
         // 비동기 세션 종료는 시도만 하고 결과를 기다리지 않음
         leaveSession().catch(() => {
           // beforeunload에서는 로깅도 제한적
@@ -132,7 +136,7 @@ function VideoCallRoomInner({
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
@@ -154,11 +158,16 @@ function VideoCallRoomInner({
     }
 
     if (isTestMode && isProductionMode) {
-      logger.warn('양쪽 모드 파라미터가 모두 존재함, 테스트 모드 우선')
+      logger.warn(
+        '양쪽 모드 파라미터가 모두 존재함, 테스트 모드 우선',
+      )
     }
 
     // 이미 연결 시도중이거나 연결된 경우 중복 방지
-    if (isJoining || (isConnected && connectedUsername === username)) {
+    if (
+      isJoining ||
+      (isConnected && connectedUsername === username)
+    ) {
       logger.debug('이미 연결 시도중/연결됨, 중복 요청 무시', {
         isJoining,
         isConnected,
@@ -185,20 +194,20 @@ function VideoCallRoomInner({
     const myJoinSeq = joinSeqRef.current
 
     // 세션 정보 업데이트
-    currentSessionRef.current = isTestMode 
+    currentSessionRef.current = isTestMode
       ? { username: username!, sessionName: sessionName! }
       : { username: '', sessionName: '' }
     connectionAttempted.current = true
 
-    logger.info('세션 연결 시작', { 
+    logger.info('세션 연결 시작', {
       mode: isTestMode ? 'test' : 'production',
-      username, 
-      sessionName, 
+      username,
+      sessionName,
       reservationId,
-      joinSeq: myJoinSeq 
+      joinSeq: myJoinSeq,
     })
-    
-    const joinPromise = isTestMode 
+
+    const joinPromise = isTestMode
       ? joinTestSession(username!, sessionName!)
       : joinSessionByReservation(reservationId!)
 
@@ -206,14 +215,17 @@ function VideoCallRoomInner({
       .then(() => {
         // 오래된 요청인지 확인
         if (joinSeqRef.current === myJoinSeq) {
-          logger.debug('세션 연결 성공', { 
+          logger.debug('세션 연결 성공', {
             mode: isTestMode ? 'test' : 'production',
-            username, 
+            username,
             sessionName,
-            reservationId
+            reservationId,
           })
         } else {
-          logger.debug('오래된 연결 요청 무시', { myJoinSeq, current: joinSeqRef.current })
+          logger.debug('오래된 연결 요청 무시', {
+            myJoinSeq,
+            current: joinSeqRef.current,
+          })
         }
       })
       .catch((error) => {
@@ -229,7 +241,17 @@ function VideoCallRoomInner({
           })
         }
       })
-  }, [username, sessionName, reservationId, isJoining, isConnected, connectedUsername, joinSequence, joinTestSession, joinSessionByReservation])
+  }, [
+    username,
+    sessionName,
+    reservationId,
+    isJoining,
+    isConnected,
+    connectedUsername,
+    joinSequence,
+    joinTestSession,
+    joinSessionByReservation,
+  ])
 
   const participantsList = Array.from(participants.values())
 
@@ -418,16 +440,19 @@ function VideoCallRoomInner({
 }
 
 // SSR 방지를 위한 dynamic export (WebRTC는 브라우저 전용)
-const VideoCallRoom = dynamic(() => Promise.resolve(VideoCallRoomInner), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)]">
-      <div className="text-center text-[var(--color-fill-white)]">
-        <div className="mx-auto mb-[var(--spacing-spacing-md)] h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-label-primary)]"></div>
-        <p className="font-body2">비디오 통화 준비 중...</p>
+const VideoCallRoom = dynamic(
+  () => Promise.resolve(VideoCallRoomInner),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-[calc(100vh-68px)] items-center justify-center bg-[var(--color-gray-900)]">
+        <div className="text-center text-[var(--color-fill-white)]">
+          <div className="mx-auto mb-[var(--spacing-spacing-md)] h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-label-primary)]"></div>
+          <p className="font-body2">비디오 통화 준비 중...</p>
+        </div>
       </div>
-    </div>
-  ),
-})
+    ),
+  },
+)
 
 export default VideoCallRoom

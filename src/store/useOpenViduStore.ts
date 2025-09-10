@@ -1,47 +1,45 @@
 'use client'
 
-import { create } from 'zustand'
 import type {
   Session,
   Publisher,
-  Subscriber,
-  StreamManager,
 } from 'openvidu-browser'
 import type {
   ConnectionEvent,
   StreamEvent,
-  SignalEvent,
 } from 'openvidu-browser'
+import { create } from 'zustand'
 
 // 클라이언트 전용 어댑터 사용
-import {
-  createOpenViduAdapterDynamic,
-  assertBrowserOnly,
-  isBrowser,
-} from '@/lib/openvidu/client-only'
-import type {
-  OpenViduSdkAdapter,
-  AdapterEventHandlers,
-} from '@/lib/openvidu/adapters'
-
 import {
   OpenViduStore,
   Participant,
   ChatMessage,
+  ChatMessageType,
   QuickJoinResponse,
   SessionConfigResponse,
   OPENVIDU_CONSTANTS,
   OPENVIDU_V3_FEATURES,
 } from '@/components/openvidu/types'
+import { featureFlags } from '@/lib/config/env'
+import type {
+  OpenViduSdkAdapter,
+  AdapterEventHandlers,
+} from '@/lib/openvidu/adapters'
 import {
   openViduApi,
   openViduTestApi,
   getKoreanErrorMessage,
 } from '@/lib/openvidu/api'
 import { ChatManager } from '@/lib/openvidu/chatManager'
-import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
-import { featureFlags } from '@/lib/config/env'
+import {
+  createOpenViduAdapterDynamic,
+  assertBrowserOnly,
+  isBrowser,
+} from '@/lib/openvidu/client-only'
 import { getPublisherMediaStream } from '@/lib/openvidu/utils'
+import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import type { ScreenShareContext } from '@/shared/openvidu/replaceVideoTrack'
 
 // ============================================================================
 // 세션 종료 유틸리티
@@ -51,14 +49,14 @@ import { getPublisherMediaStream } from '@/lib/openvidu/utils'
  * 안전한 connection.data 파싱 (메타데이터 파싱 오류 방지)
  */
 const safeParseConnectionData = (
-  raw?: string
+  raw?: string,
 ): { nickname?: string; username?: string; raw?: string } => {
   if (!raw) return {}
-  
+
   try {
     // '%/%' 구분자가 있는 경우 분리 처리
     const parts = raw.split('%/%')
-    
+
     if (parts.length === 1) {
       // 순수 JSON만 있는 경우
       const trimmed = parts[0].trim()
@@ -70,7 +68,11 @@ const safeParseConnectionData = (
     } else {
       // 레거시 혼합 포맷 처리: "prefix%/%{json}"
       const jsonPart = parts[1]?.trim()
-      if (jsonPart && jsonPart.startsWith('{') && jsonPart.endsWith('}')) {
+      if (
+        jsonPart &&
+        jsonPart.startsWith('{') &&
+        jsonPart.endsWith('}')
+      ) {
         return JSON.parse(jsonPart)
       }
       // JSON 파싱 실패시 첫 번째 부분을 문자열로 사용
@@ -78,7 +80,10 @@ const safeParseConnectionData = (
     }
   } catch (error) {
     // 최후의 안전망: 원본 문자열을 그대로 사용
-    logger.debug('connection.data 파싱 실패, 원본 사용', { raw, error })
+    logger.debug('connection.data 파싱 실패, 원본 사용', {
+      raw,
+      error,
+    })
     return { nickname: raw, username: raw, raw }
   }
 }
@@ -88,12 +93,15 @@ const safeParseConnectionData = (
  */
 const withTimeout = <T>(
   promise: Promise<T>,
-  timeoutMs: number = 5000
+  timeoutMs: number = 5000,
 ): Promise<T> => {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Operation timeout')), timeoutMs)
+      setTimeout(
+        () => reject(new Error('Operation timeout')),
+        timeoutMs,
+      ),
     ),
   ])
 }
@@ -149,30 +157,6 @@ async function getAdapter(): Promise<OpenViduSdkAdapter> {
 /**
  * Publisher의 streamPlaying 이벤트를 Promise로 기다리는 유틸리티
  */
-function waitForStreamPlaying(publisher: Publisher, timeoutMs = 8000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let done = false
-    const clear = () => { 
-      done = true
-      clearTimeout(timer)
-      publisher.off('streamPlaying', onPlay)
-    }
-    const onPlay = () => { 
-      if (!done) { 
-        clear()
-        resolve()
-      }
-    }
-    const timer = setTimeout(() => { 
-      if (!done) { 
-        clear()
-        reject(new Error('NO_STREAM_PLAYING_EVENT'))
-      }
-    }, timeoutMs)
-    
-    publisher.once('streamPlaying', onPlay)
-  })
-}
 
 // ============================================================================
 // 초기 상태 정의
@@ -203,13 +187,13 @@ const initialState = {
   // 미디어 상태
   audioEnabled: true,
   videoEnabled: true,
-  
+
   // 화면공유 상태 (Codex 솔루션 적용)
   isScreenSharingToggling: false, // 화면공유 토글 중 플래그
-  screenPublisher: null as any, // 화면공유 전용 Publisher (호환성 유지)
+  screenPublisher: null as Publisher | null, // 화면공유 전용 Publisher (호환성 유지)
   originalVideoTrack: null as MediaStreamTrack | null, // replaceTrack 복원용 (호환성 유지)
-  originalPublisher: null as any, // Publisher 교체 복원용 (호환성 유지)
-  screenShareCtx: null as any, // ScreenShareContext 저장 (정리용)
+  originalPublisher: null as Publisher | null, // Publisher 교체 복원용 (호환성 유지)
+  screenShareCtx: null as ScreenShareContext | null, // ScreenShareContext 저장 (정리용)
 
   // 채팅
   chatMessages: [],
@@ -313,7 +297,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
             sessionConfig = await openViduApi.getConfig()
             set({ sessionConfig, configLoading: false })
             logger.debug('설정 로드 성공')
-          } catch (configError) {
+          } catch {
             set({ configLoading: false })
             logger.debug('설정 로드 실패, 기본값 사용')
             // 설정 로드 실패해도 계속 진행
@@ -353,9 +337,9 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
 
       // 조인 시퀀스 검증 (오래된 요청 무시)
       if (get().joinSequence !== myJoinSeq) {
-        logger.debug('오래된 조인 요청 무시', { 
+        logger.debug('오래된 조인 요청 무시', {
           currentSeq: get().joinSequence,
-          mySeq: myJoinSeq 
+          mySeq: myJoinSeq,
         })
         return
       }
@@ -368,9 +352,14 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       )
 
       // 연결 후 selfConnectionId 저장
-      const selfConnectionId = (session as any)?.connection?.connectionId || null
+      const selfConnectionId =
+        (
+          session as Session & {
+            connection?: { connectionId: string }
+          }
+        )?.connection?.connectionId || null
       set({ selfConnectionId })
-      
+
       if (selfConnectionId) {
         logger.debug('로컬 connectionId 저장', { selfConnectionId })
       }
@@ -397,7 +386,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       )
 
       // 8. v3 성능 최적화 기능 자동 활성화
-      const { enableSimulcast, enableDynacast, enableSvc } =
+      const { enableSimulcast, enableDynacast, enableSvc: _enableSvc } =
         featureFlags
 
       if (enableSimulcast) {
@@ -428,9 +417,9 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
 
       // 마지막 조인 시퀀스 검증
       if (get().joinSequence !== myJoinSeq) {
-        logger.debug('조인 완료 시점에서 시퀀스 불일치, 무시', { 
+        logger.debug('조인 완료 시점에서 시퀀스 불일치, 무시', {
           currentSeq: get().joinSequence,
-          mySeq: myJoinSeq 
+          mySeq: myJoinSeq,
         })
         // 이미 생성된 리소스 정리
         try {
@@ -479,7 +468,9 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
 
       // 오래된 요청인 경우 에러 무시
       if (get().joinSequence !== myJoinSeq) {
-        logger.debug('오래된 조인 요청 에러 무시', { mySeq: myJoinSeq })
+        logger.debug('오래된 조인 요청 에러 무시', {
+          mySeq: myJoinSeq,
+        })
         return
       }
 
@@ -496,7 +487,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         op: 'joinSessionByReservation',
         status: 'fail',
         durMs: Date.now() - startTime,
-        code: (error as any)?.code,
+        code: (error as Error & { code?: string })?.code,
         msg:
           error instanceof Error ? error.message : '알 수 없는 오류',
       })
@@ -517,12 +508,12 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         session,
         currentSessionId,
         chatMessages,
-        username,
+        username: _username,
         chatManager,
         updateConnectionState,
         publisher,
       } = get()
-      
+
       logger.info('세션 종료 시작', { sid: currentSessionId })
 
       // 상태를 먼저 disconnected로 변경 (UI 반응성)
@@ -540,41 +531,56 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
 
       // 로컬 Publisher 및 미디어 스트림 정리 (하드웨어 리소스 즉시 해제)
       const { screenPublisher, screenShareCtx } = get()
-      
+
       // Codex 솔루션: 화면공유 Context 우선 정리
       if (screenShareCtx) {
         try {
           // 리스너 정리
-          if (screenShareCtx.endedListener && screenShareCtx.screenTrack) {
-            screenShareCtx.screenTrack.removeEventListener('ended', screenShareCtx.endedListener)
+          if (
+            screenShareCtx.endedListener &&
+            screenShareCtx.screenTrack
+          ) {
+            screenShareCtx.screenTrack.removeEventListener(
+              'ended',
+              screenShareCtx.endedListener,
+            )
           }
-          
+
           // 화면공유 트랙 및 스트림 정리
           screenShareCtx.screenTrack?.stop()
-          screenShareCtx.displayStream?.getTracks().forEach((track: MediaStreamTrack) => {
-            track.stop()
-            logger.debug('화면공유 트랙 정지', { kind: track.kind, id: track.id })
-          })
+          screenShareCtx.displayStream
+            ?.getTracks()
+            .forEach((track: MediaStreamTrack) => {
+              track.stop()
+              logger.debug('화면공유 트랙 정지', {
+                kind: track.kind,
+                id: track.id,
+              })
+            })
           logger.debug('화면공유 context 정리 완료')
         } catch (error) {
           logger.warn('화면공유 context 정리 실패', { error })
         }
       }
-      
+
       // 레거시 호환: screenPublisher도 정리
       if (screenPublisher) {
         try {
-          const screenMediaStream = getPublisherMediaStream(screenPublisher)
-          screenMediaStream?.getTracks().forEach(track => {
+          const screenMediaStream =
+            getPublisherMediaStream(screenPublisher)
+          screenMediaStream?.getTracks().forEach((track) => {
             track.stop()
-            logger.debug('레거시 화면공유 트랙 정지', { kind: track.kind, id: track.id })
+            logger.debug('레거시 화면공유 트랙 정지', {
+              kind: track.kind,
+              id: track.id,
+            })
           })
           logger.debug('레거시 화면공유 미디어 스트림 정리 완료')
         } catch (error) {
           logger.warn('레거시 화면공유 정리 실패', { error })
         }
       }
-      
+
       if (publisher) {
         try {
           // Publisher 이벤트 리스너 제거
@@ -583,30 +589,41 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
           publisher.off('streamCreated')
           publisher.off('streamDestroyed')
           // publisher.off('exception') // OpenVidu v2에서는 'exception' 이벤트가 없음
-          
+
           // 미디어 스트림 정리
           const mediaStream = publisher.stream?.getMediaStream?.()
           if (mediaStream) {
-            mediaStream.getTracks().forEach((track: MediaStreamTrack) => {
-              try {
-                track.stop()
-                logger.debug('미디어 트랙 정지', { kind: track.kind, id: track.id })
-              } catch (e) {
-                // track.stop() 실패는 무시
-              }
-            })
+            mediaStream
+              .getTracks()
+              .forEach((track: MediaStreamTrack) => {
+                try {
+                  track.stop()
+                  logger.debug('미디어 트랙 정지', {
+                    kind: track.kind,
+                    id: track.id,
+                  })
+                } catch (_e) {
+                  // track.stop() 실패는 무시
+                }
+              })
           }
-          
+
           // Publisher 자체 정리 (가능한 경우)
-          if (typeof (publisher as any).destroy === 'function') {
+          if (
+            typeof (publisher as Publisher & { destroy?: () => void })
+              .destroy === 'function'
+          ) {
             try {
-              ;(publisher as any).destroy()
+              ;(
+                publisher as Publisher & { destroy: () => void }
+              ).destroy()
               logger.debug('Publisher 객체 정리 완료')
             } catch (e) {
-              logger.debug('Publisher destroy 실패 (무시)', { error: e })
+              logger.debug('Publisher destroy 실패 (무시)', {
+                error: e,
+              })
             }
           }
-          
         } catch (error) {
           logger.debug('로컬 Publisher 정리 중 오류', { error })
         }
@@ -617,18 +634,20 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         // 채팅 히스토리 저장 (선택적, 비차단)
         if (currentSessionId && chatMessages.length > 0) {
           // 백그라운드에서 실행하되 오류는 무시
-          openViduApi.saveChatHistory(currentSessionId, {
-            messages: chatMessages.map((msg) => ({
-              username: msg.nickname,
-              message: msg.message,
-              timestamp: msg.timestamp.toISOString(),
-              type: msg.type.toUpperCase() as any,
-            })),
-            sessionStartTime: new Date().toISOString(),
-            sessionEndTime: new Date().toISOString(),
-          }).catch(() => {
-            logger.debug('채팅 히스토리 저장 실패 (무시)')
-          })
+          openViduApi
+            .saveChatHistory(currentSessionId, {
+              messages: chatMessages.map((msg) => ({
+                username: msg.nickname,
+                message: msg.message,
+                timestamp: msg.timestamp.toISOString(),
+                type: msg.type.toUpperCase() as ChatMessageType,
+              })),
+              sessionStartTime: new Date().toISOString(),
+              sessionEndTime: new Date().toISOString(),
+            })
+            .catch(() => {
+              logger.debug('채팅 히스토리 저장 실패 (무시)')
+            })
         }
 
         // 세션 이벤트 리스너 정리 (먼저 수행)
@@ -648,29 +667,40 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
               session.off('reconnected')
               logger.debug('세션 이벤트 리스너 정리 완료')
             }
-            
+
             // WebSocket 연결 해제 (상태 확인 후 시도)
-            const ws = (session as any)?.openvidu?.openviduWS?.webSocket
+            const ws = (
+              session as Session & {
+                openvidu?: { openviduWS?: WebSocket }
+              }
+            )?.openvidu?.openviduWS
             const wsOpen = ws && ws.readyState === WebSocket.OPEN
 
             if (wsOpen && typeof session.disconnect === 'function') {
               logger.debug('WebSocket 열림 상태, 정상 연결 해제 시도')
-              
+
               // 어댑터를 통한 안전한 연결 해제 (타임아웃 적용)
               const adapter = await getAdapter()
               await withTimeout(
                 Promise.resolve(adapter.disconnectSession(session)),
-                3000 // 3초 타임아웃
+                3000, // 3초 타임아웃
               )
               logger.debug('세션 연결 해제 완룼')
             } else {
-              logger.debug('WebSocket 닫힘 또는 세션 무효, 서버 정리에 의존')
+              logger.debug(
+                'WebSocket 닫힘 또는 세션 무효, 서버 정리에 의존',
+              )
             }
           } catch (error) {
             // 연결 해제 실패는 로그만 남기고 무시 (unmount 시점에서는 정상)
             logger.debug('세션 연결 해제 실패 (무시)', {
-              msg: error instanceof Error ? error.message : '알 수 없는 오류',
-              isTimeout: error instanceof Error && error.message.includes('timeout')
+              msg:
+                error instanceof Error
+                  ? error.message
+                  : '알 수 없는 오류',
+              isTimeout:
+                error instanceof Error &&
+                error.message.includes('timeout'),
             })
           }
         }
@@ -678,7 +708,6 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         // 백그라운드 정리 작업 실패는 무시
         logger.debug('백그라운드 정리 작업 실패 (무시)', { error })
       }
-
     } finally {
       // 상태 초기화는 반드시 실행 (오류 발생 여부와 관계없이)
       try {
@@ -781,7 +810,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         if (configPromise) {
           try {
             sessionConfig = await configPromise
-          } catch (error) {
+          } catch (_error) {
             configPromise = null // Promise 초기화
           }
         }
@@ -805,7 +834,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
             sessionConfig = await configPromise
             set({ sessionConfig, configLoading: false })
             logger.debug('설정 로드 성공')
-          } catch (configError) {
+          } catch {
             set({ configLoading: false })
             configPromise = null // 실패시 Promise 초기화
             logger.debug('설정 로드 실패, 기본값 사용')
@@ -822,7 +851,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       if (activeQuickJoinKey === quickJoinKey && quickJoinPromise) {
         logger.debug('동일한 QuickJoin 요청 진행 중')
         try {
-          const quickJoinResponse = await quickJoinPromise
+          const _quickJoinResponse = await quickJoinPromise
           logger.debug('기존 Promise로 QuickJoin 완료')
           // QuickJoin 성공 후 계속 진행
         } catch (error) {
@@ -917,7 +946,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       )
 
       // 8. v3 성능 최적화 기능 자동 활성화 (테스트 환경)
-      const { enableSimulcast, enableDynacast, enableSvc } =
+      const { enableSimulcast, enableDynacast, enableSvc: _enableSvc } =
         featureFlags
 
       if (enableSimulcast) {
@@ -992,7 +1021,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         op: 'joinTestSession',
         status: 'fail',
         durMs: Date.now() - startTime,
-        code: (error as any)?.code,
+        code: (error as Error & { code?: string })?.code,
         msg:
           error instanceof Error ? error.message : '알 수 없는 오류',
       })
@@ -1054,25 +1083,28 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
   },
 
   startScreenShare: async () => {
-    const { publisher, isScreenSharing, isScreenSharingToggling } = get()
-    
+    const { publisher, isScreenSharing, isScreenSharingToggling } =
+      get()
+
     if (!publisher || isScreenSharing || isScreenSharingToggling) {
       logger.debug('화면공유 시작 불가', {
         hasPublisher: !!publisher,
         isScreenSharing,
-        isScreenSharingToggling
+        isScreenSharingToggling,
       })
       return
     }
 
     // 신규 공유 유틸리티 사용
-    const { swapToScreen } = await import('@/shared/openvidu/replaceVideoTrack')
-    
+    const { swapToScreen } = await import(
+      '@/shared/openvidu/replaceVideoTrack'
+    )
+
     set({ isScreenSharingToggling: true })
-    
+
     try {
       const ctx = await swapToScreen(publisher)
-      
+
       // 브라우저/OS UI에서 직접 중단 시도 대응 (리스너 정리를 위해 ctx에 저장)
       const endedListener = async () => {
         logger.debug('화면공유 트랙 자동 종료 감지')
@@ -1084,19 +1116,20 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       }
       ctx.endedListener = endedListener
       ctx.screenTrack?.addEventListener('ended', endedListener)
-      
-      set({ 
+
+      set({
         isScreenSharing: true,
         originalVideoTrack: ctx.cameraTrack, // 기존 호환성을 위해 유지
         screenShareCtx: ctx, // ScreenShareContext 저장 (정리용)
       })
       logger.info('화면공유 시작 완료 (신규 유틸리티 사용)')
-      
-    } catch (error: any) {
-      logger.error('화면공유 시작 실패', { error: error?.message || error })
-      
+    } catch (error: unknown) {
+      logger.error('화면공유 시작 실패', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+
       // 안전 복구
-      set({ 
+      set({
         isScreenSharing: false,
         originalVideoTrack: null,
         screenShareCtx: null,
@@ -1108,36 +1141,44 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
   },
 
   stopScreenShare: async () => {
-    const { publisher, isScreenSharingToggling, isScreenSharing, screenShareCtx } = get()
-    
+    const {
+      publisher,
+      isScreenSharingToggling,
+      isScreenSharing,
+      screenShareCtx,
+    } = get()
+
     if (!publisher || isScreenSharingToggling || !isScreenSharing) {
       return
     }
-    
+
     set({ isScreenSharingToggling: true })
-    
+
     try {
       logger.debug('화면공유 중지 시작 - 신규 유틸리티 사용')
-      
+
       // 신규 공유 유틸리티 사용
-      const { swapToCamera } = await import('@/shared/openvidu/replaceVideoTrack')
-      
+      const { swapToCamera } = await import(
+        '@/shared/openvidu/replaceVideoTrack'
+      )
+
       if (screenShareCtx) {
         // 저장된 ScreenShareContext 사용 (안전한 정리)
         await swapToCamera(publisher, screenShareCtx)
         logger.debug('저장된 context로 카메라 복원 완료')
       } else {
         // fallback: 레거시 호환을 위한 기본 처리
-        logger.warn('screenShareCtx가 없어 기본 비디오 비활성화로 처리')
+        logger.warn(
+          'screenShareCtx가 없어 기본 비디오 비활성화로 처리',
+        )
         await publisher.publishVideo(false)
       }
-      
     } catch (error) {
       logger.error('화면공유 중지 실패', { error })
       // 실패해도 상태는 정리
     } finally {
-      set({ 
-        isScreenSharing: false, 
+      set({
+        isScreenSharing: false,
         isScreenSharingToggling: false,
         originalVideoTrack: null,
         screenPublisher: null,
@@ -1149,7 +1190,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
 
   toggleScreenShare: async () => {
     const { isScreenSharing } = get()
-    
+
     if (isScreenSharing) {
       await get().stopScreenShare()
     } else {
@@ -1212,8 +1253,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
     }
 
     try {
-      const refreshResponse =
-        await openViduApi.refreshToken(currentSessionId)
+      await openViduApi.refreshToken(currentSessionId)
 
       // 새 토큰으로 재연결
       if (session) {
@@ -1230,7 +1270,12 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
   },
 
   autoReconnect: async () => {
-    const { currentSessionId, currentReservationId, selfConnectionId, currentUsername } = get()
+    const {
+      currentSessionId,
+      currentReservationId,
+      selfConnectionId,
+      currentUsername,
+    } = get()
 
     if (!currentSessionId) {
       throw new Error('재연결할 세션 ID가 없습니다.')
@@ -1241,9 +1286,9 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       if (currentReservationId) {
         const reconnectResponse = await openViduApi.autoReconnect(
           currentSessionId,
-          selfConnectionId || undefined
+          selfConnectionId || undefined,
         )
-        
+
         logger.info('예약 기반 자동 재연결 완료', {
           sessionId: reconnectResponse.sessionId,
           lastConnectionId: selfConnectionId,
@@ -1251,24 +1296,26 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       }
       // 테스트 세션인 경우 (joinTestSession 방식)
       else if (currentUsername) {
-        const reconnectResponse = await openViduTestApi.autoReconnect(
+        await openViduTestApi.autoReconnect(
           currentSessionId,
           currentUsername,
-          selfConnectionId || undefined
+          selfConnectionId || undefined,
         )
-        
+
         logger.info('테스트 세션 자동 재연결 완뢬', {
           sessionId: currentSessionId,
           username: currentUsername,
           lastConnectionId: selfConnectionId,
         })
       } else {
-        throw new Error('재연결에 필요한 정보가 부족합니다. (예약ID 또는 사용자명)')
+        throw new Error(
+          '재연결에 필요한 정보가 부족합니다. (예약ID 또는 사용자명)',
+        )
       }
-      
     } catch (error) {
       logger.error('자동 재연결 실패', {
-        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
         selfConnectionId,
         currentSessionId,
       })
@@ -1646,14 +1693,10 @@ function setupSessionEventHandlers(
         return
       }
 
-      const {
-        participants,
-        participantStates,
-        updateParticipantState,
-      } = get()
+      const { participants, updateParticipantState } = get()
 
       const connectionId = event.connection.connectionId
-      
+
       // 기존 참가자 목록에서 안전하게 제거 (존재하지 않아도 오류 없음)
       const newParticipants = new Map(participants)
       if (newParticipants.has(connectionId)) {
@@ -1661,7 +1704,9 @@ function setupSessionEventHandlers(
         set({ participants: newParticipants })
         eventLogger.debug('참가자 목록에서 제거', { connectionId })
       } else {
-        eventLogger.debug('이미 제거되었거나 존재하지 않는 참가자', { connectionId })
+        eventLogger.debug('이미 제거되었거나 존재하지 않는 참가자', {
+          connectionId,
+        })
       }
 
       // LiveKit 방식: 참가자 상태 업데이트 (완전 제거 대신 연결 끊김으로 표시)
@@ -1671,7 +1716,7 @@ function setupSessionEventHandlers(
 
       eventLogger.info('연결 종료', {
         cid: event.connection.connectionId,
-        reason: (event as any).reason || 'unknown',
+        reason: (event as { reason?: string }).reason || 'unknown',
         timestamp: new Date().toISOString(),
       })
 
@@ -1692,9 +1737,12 @@ function setupSessionEventHandlers(
       }
 
       // 현재 세션이 유효한지 확인 (HMR/언마운트 대응)
-      if (!session || (session as any).disposed) {
+      if (
+        !session ||
+        (session as Session & { disposed?: boolean }).disposed
+      ) {
         eventLogger.debug('세션이 무효하여 스트림 생성 무시', {
-          streamId: event.stream.streamId
+          streamId: event.stream.streamId,
         })
         return
       }
@@ -1702,8 +1750,11 @@ function setupSessionEventHandlers(
       const subscriber = session.subscribe(event.stream, undefined)
 
       // 안전한 메타데이터 파싱
-      const participantData = safeParseConnectionData(event.stream.connection.data)
-      const nickname = participantData.nickname || participantData.username || '-'
+      const participantData = safeParseConnectionData(
+        event.stream.connection.data,
+      )
+      const nickname =
+        participantData.nickname || participantData.username || '-'
 
       const participant: Participant = {
         connectionId: event.stream.connection.connectionId,
@@ -1765,29 +1816,32 @@ function setupSessionEventHandlers(
 
       const { participants, screenPublisher } = get()
       const connectionId = event.stream.connection.connectionId
-      
+
       // Codex 솔루션: 화면공유 Publisher 자동 정리
-      if (screenPublisher && screenPublisher.stream.streamId === event.stream.streamId) {
+      if (
+        screenPublisher &&
+        screenPublisher.stream.streamId === event.stream.streamId
+      ) {
         // 서버/브라우저 쪽에서 화면공유 스트림이 파괴된 경우 상태 정리
         set({ screenPublisher: null, isScreenSharing: false })
         eventLogger.info('화면공유 스트림 자동 정리 완료', {
-          streamId: event.stream.streamId
+          streamId: event.stream.streamId,
         })
       }
-      
+
       // 안전한 참가자 제거
       const newParticipants = new Map(participants)
       if (newParticipants.has(connectionId)) {
         newParticipants.delete(connectionId)
         set({ participants: newParticipants })
-        eventLogger.info('스트림 제거 완료', { 
+        eventLogger.info('스트림 제거 완료', {
           sid: event.stream.streamId,
-          connectionId 
+          connectionId,
         })
       } else {
-        eventLogger.debug('이미 제거된 스트림', { 
+        eventLogger.debug('이미 제거된 스트림', {
           sid: event.stream.streamId,
-          connectionId 
+          connectionId,
         })
       }
     },
@@ -1799,26 +1853,31 @@ function setupSessionEventHandlers(
         name: exception.name,
         msg: exception.message,
       })
-      
+
       // 심각한 예외의 경우 에러 상태로 업데이트
-      if (exception.name === 'ICE_CONNECTION_FAILED' || 
-          exception.name === 'GENERIC_ERROR') {
+      if (
+        exception.name === 'ICE_CONNECTION_FAILED' ||
+        exception.name === 'GENERIC_ERROR'
+      ) {
         set({ error: `연결 오류: ${exception.message}` })
       }
     },
 
     onSessionDisconnected: (event) => {
-      const reason = (event && (event as any).reason) || 'unknown'
+      const reason =
+        (event && (event as { reason?: string }).reason) || 'unknown'
       eventLogger.info('세션 종료', { reason })
-      
+
       // 강제 퇴장/서버 종료 사유일 때 중복 정리 방지
-      if (reason === 'forceDisconnectByUser' || 
-          reason === 'forceDisconnectByServer' || 
-          reason === 'networkDisconnect' || 
-          reason === 'sessionClosedByServer') {
+      if (
+        reason === 'forceDisconnectByUser' ||
+        reason === 'forceDisconnectByServer' ||
+        reason === 'networkDisconnect' ||
+        reason === 'sessionClosedByServer'
+      ) {
         const { updateConnectionState } = get()
         updateConnectionState('disconnected')
-        
+
         // 상태만 정리 (중복 leave 방지)
         try {
           const preservedConfig = get().sessionConfig
@@ -1828,7 +1887,9 @@ function setupSessionEventHandlers(
             apiCallCount: { config: 0, quickJoin: 0 },
             screenShareCtx: null,
           })
-          eventLogger.info('강제 종료로 인한 상태 정리 완료', { reason })
+          eventLogger.info('강제 종료로 인한 상태 정리 완료', {
+            reason,
+          })
         } catch (error) {
           eventLogger.error('강제 종료 상태 정리 실패', { error })
         }

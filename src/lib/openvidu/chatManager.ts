@@ -3,12 +3,10 @@
  * OpenVidu v3 / LiveKit 방식의 신뢰성 있는 메시지 전송
  */
 
-import type {
-  Session,
-  SignalEvent,
-} from 'openvidu-browser'
-import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import type { Session, SignalEvent } from 'openvidu-browser'
+
 import type { ChatMessage } from '@/components/openvidu/types'
+import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 const logger = createOpenViduLogger('ChatManager')
 
@@ -398,15 +396,25 @@ export class ChatManager {
         } else {
           // 레거시 혼합 포맷
           const jsonPart = parts[1]?.trim()
-          if (jsonPart && jsonPart.startsWith('{') && jsonPart.endsWith('}')) {
+          if (
+            jsonPart &&
+            jsonPart.startsWith('{') &&
+            jsonPart.endsWith('}')
+          ) {
             participantData = JSON.parse(jsonPart)
           } else {
-            participantData = { nickname: parts[0], username: parts[0] }
+            participantData = {
+              nickname: parts[0],
+              username: parts[0],
+            }
           }
         }
       }
     } catch (error) {
-      logger.debug('참가자 데이터 파싱 실패, 기본값 사용', { error, raw: from?.data })
+      logger.debug('참가자 데이터 파싱 실패, 기본값 사용', {
+        error,
+        raw: from?.data,
+      })
       participantData = { nickname: '사용자', username: '사용자' }
     }
 
@@ -515,15 +523,25 @@ export class ChatManager {
           }
         } else {
           const jsonPart = parts[1]?.trim()
-          if (jsonPart && jsonPart.startsWith('{') && jsonPart.endsWith('}')) {
+          if (
+            jsonPart &&
+            jsonPart.startsWith('{') &&
+            jsonPart.endsWith('}')
+          ) {
             participantData = JSON.parse(jsonPart)
           } else {
-            participantData = { nickname: parts[0], username: parts[0] }
+            participantData = {
+              nickname: parts[0],
+              username: parts[0],
+            }
           }
         }
       }
     } catch (error) {
-      logger.debug('청킹 메시지 참가자 데이터 파싱 실패', { error, raw: from?.data })
+      logger.debug('청킹 메시지 참가자 데이터 파싱 실패', {
+        error,
+        raw: from?.data,
+      })
       participantData = { nickname: '사용자', username: '사용자' }
     }
 

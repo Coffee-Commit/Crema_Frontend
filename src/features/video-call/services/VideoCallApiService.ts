@@ -2,13 +2,14 @@
 
 import api from '@/lib/http/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
-import type { 
-  ApiResponse, 
-  QuickJoinResponse, 
-  ConfigResponse, 
+
+import type {
+  ApiResponse,
+  QuickJoinResponse,
+  ConfigResponse,
   SessionStatusResponse,
   ChatHistoryResponse,
-  ChatSaveRequest
+  ChatSaveRequest,
 } from '../types/api.types'
 import { VideoCallApiError } from '../types/api.types'
 
@@ -27,12 +28,17 @@ export class VideoCallApiService {
   constructor() {
     // 현재 경로를 기반으로 테스트 모드 판단
     this.isTestMode = this.detectTestMode()
-    this.baseUrl = this.isTestMode ? '/api/test/video-call' : '/api/video-call'
-    
+    this.baseUrl = this.isTestMode
+      ? '/api/test/video-call'
+      : '/api/video-call'
+
     logger.info('VideoCallApiService 초기화', {
       isTestMode: this.isTestMode,
       baseUrl: this.baseUrl,
-      currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR'
+      currentPath:
+        typeof window !== 'undefined'
+          ? window.location.pathname
+          : 'SSR',
     })
   }
 
@@ -46,14 +52,15 @@ export class VideoCallApiService {
     }
 
     const pathname = window.location.pathname
-    const isTestroom = pathname.includes('/testroom') || 
-                      pathname.includes('/test-') ||
-                      pathname.includes('test')
+    const isTestroom =
+      pathname.includes('/testroom') ||
+      pathname.includes('/test-') ||
+      pathname.includes('test')
 
     logger.debug('테스트 모드 감지', {
       pathname,
       isTestroom,
-      searchParams: window.location.search
+      searchParams: window.location.search,
     })
 
     return isTestroom
@@ -62,11 +69,13 @@ export class VideoCallApiService {
   /**
    * 원클릭 세션 참가 API
    */
-  async quickJoin(params: QuickJoinParams): Promise<QuickJoinResponse> {
-    logger.info('Quick Join API 호출', { 
+  async quickJoin(
+    params: QuickJoinParams,
+  ): Promise<QuickJoinResponse> {
+    logger.info('Quick Join API 호출', {
       username: params.username,
       sessionName: params.sessionName,
-      mode: this.isTestMode ? 'TEST' : 'PROD'
+      mode: this.isTestMode ? 'TEST' : 'PROD',
     })
 
     try {
@@ -74,40 +83,40 @@ export class VideoCallApiService {
         // 테스트 API: 쿼리 파라미터로 전송
         const queryParams = new URLSearchParams({
           username: params.username,
-          sessionName: params.sessionName
+          sessionName: params.sessionName,
         })
 
-        const response = await api.post<ApiResponse<QuickJoinResponse>>(
-          `${this.baseUrl}/quick-join?${queryParams.toString()}`
-        )
+        const response = await api.post<
+          ApiResponse<QuickJoinResponse>
+        >(`${this.baseUrl}/quick-join?${queryParams.toString()}`)
 
-        logger.info('테스트 API Quick Join 성공', { 
+        logger.info('테스트 API Quick Join 성공', {
           sessionId: response.data.result.sessionId,
-          serverUrl: response.data.result.openviduServerUrl
+          serverUrl: response.data.result.openviduServerUrl,
         })
 
         return response.data.result
-
       } else {
         // 정규 API: 인증 헤더와 body로 전송
-        const requestBody = params.reservationId ? 
-          { reservationId: params.reservationId } : 
-          {}
+        const requestBody = params.reservationId
+          ? { reservationId: params.reservationId }
+          : {}
 
-        const response = await api.post<ApiResponse<QuickJoinResponse>>(
-          `${this.baseUrl}/quick-join`,
-          requestBody
-        )
+        const response = await api.post<
+          ApiResponse<QuickJoinResponse>
+        >(`${this.baseUrl}/quick-join`, requestBody)
 
-        logger.info('정규 API Quick Join 성공', { 
-          sessionId: response.data.result.sessionId 
+        logger.info('정규 API Quick Join 성공', {
+          sessionId: response.data.result.sessionId,
         })
 
         return response.data.result
       }
-
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error.message || 'Quick Join 실패'
+      const errorMessage =
+        error?.response?.data?.message ||
+        error.message ||
+        'Quick Join 실패'
       const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
       const statusCode = error?.response?.status
 
@@ -115,7 +124,7 @@ export class VideoCallApiService {
         error: errorMessage,
         code: errorCode,
         statusCode,
-        isTestMode: this.isTestMode
+        isTestMode: this.isTestMode,
       })
 
       throw new VideoCallApiError(errorCode, errorMessage, statusCode)
@@ -129,16 +138,20 @@ export class VideoCallApiService {
     logger.debug('Config API 호출', { isTestMode: this.isTestMode })
 
     try {
-      const response = await api.get<ApiResponse<ConfigResponse>>(`${this.baseUrl}/config`)
-      
-      logger.info('Config API 성공', { 
-        serverUrl: response.data.data.openviduServerUrl 
+      const response = await api.get<ApiResponse<ConfigResponse>>(
+        `${this.baseUrl}/config`,
+      )
+
+      logger.info('Config API 성공', {
+        serverUrl: response.data.result.openviduServerUrl,
       })
 
-      return response.data.data
-
+      return response.data.result
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error.message || 'Config 조회 실패'
+      const errorMessage =
+        error?.response?.data?.message ||
+        error.message ||
+        'Config 조회 실패'
       const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
       const statusCode = error?.response?.status
 
@@ -146,7 +159,7 @@ export class VideoCallApiService {
         error: errorMessage,
         code: errorCode,
         statusCode,
-        isTestMode: this.isTestMode
+        isTestMode: this.isTestMode,
       })
 
       throw new VideoCallApiError(errorCode, errorMessage, statusCode)
@@ -156,24 +169,31 @@ export class VideoCallApiService {
   /**
    * 세션 상태 조회 API
    */
-  async getSessionStatus(sessionId: string): Promise<SessionStatusResponse> {
-    logger.debug('Session Status API 호출', { sessionId, isTestMode: this.isTestMode })
+  async getSessionStatus(
+    sessionId: string,
+  ): Promise<SessionStatusResponse> {
+    logger.debug('Session Status API 호출', {
+      sessionId,
+      isTestMode: this.isTestMode,
+    })
 
     try {
-      const response = await api.get<ApiResponse<SessionStatusResponse>>(
-        `${this.baseUrl}/sessions/${sessionId}/status`
-      )
-      
-      logger.info('Session Status API 성공', { 
+      const response = await api.get<
+        ApiResponse<SessionStatusResponse>
+      >(`${this.baseUrl}/sessions/${sessionId}/status`)
+
+      logger.info('Session Status API 성공', {
         sessionId,
-        isActive: response.data.data.isActive,
-        participantCount: response.data.data.participantCount
+        isActive: response.data.result.isActive,
+        participantCount: response.data.result.participantCount,
       })
 
-      return response.data.data
-
+      return response.data.result
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error.message || '세션 상태 조회 실패'
+      const errorMessage =
+        error?.response?.data?.message ||
+        error.message ||
+        '세션 상태 조회 실패'
       const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
       const statusCode = error?.response?.status
 
@@ -182,7 +202,7 @@ export class VideoCallApiService {
         error: errorMessage,
         code: errorCode,
         statusCode,
-        isTestMode: this.isTestMode
+        isTestMode: this.isTestMode,
       })
 
       throw new VideoCallApiError(errorCode, errorMessage, statusCode)
@@ -192,8 +212,14 @@ export class VideoCallApiService {
   /**
    * 토큰 갱신 API
    */
-  async refreshToken(sessionId: string, username?: string): Promise<QuickJoinResponse> {
-    logger.info('Refresh Token API 호출', { sessionId, isTestMode: this.isTestMode })
+  async refreshToken(
+    sessionId: string,
+    username?: string,
+  ): Promise<QuickJoinResponse> {
+    logger.info('Refresh Token API 호출', {
+      sessionId,
+      isTestMode: this.isTestMode,
+    })
 
     try {
       if (this.isTestMode) {
@@ -203,25 +229,28 @@ export class VideoCallApiService {
         }
 
         const queryParams = new URLSearchParams({ username })
-        const response = await api.post<ApiResponse<QuickJoinResponse>>(
-          `${this.baseUrl}/sessions/${sessionId}/refresh-token?${queryParams.toString()}`
+        const response = await api.post<
+          ApiResponse<QuickJoinResponse>
+        >(
+          `${this.baseUrl}/sessions/${sessionId}/refresh-token?${queryParams.toString()}`,
         )
 
         logger.info('테스트 API 토큰 갱신 성공', { sessionId })
-        return response.data.data
-
+        return response.data.result
       } else {
         // 정규 API: 인증 헤더 사용
-        const response = await api.post<ApiResponse<QuickJoinResponse>>(
-          `${this.baseUrl}/sessions/${sessionId}/refresh-token`
-        )
+        const response = await api.post<
+          ApiResponse<QuickJoinResponse>
+        >(`${this.baseUrl}/sessions/${sessionId}/refresh-token`)
 
         logger.info('정규 API 토큰 갱신 성공', { sessionId })
-        return response.data.data
+        return response.data.result
       }
-
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error.message || '토큰 갱신 실패'
+      const errorMessage =
+        error?.response?.data?.message ||
+        error.message ||
+        '토큰 갱신 실패'
       const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
       const statusCode = error?.response?.status
 
@@ -230,7 +259,7 @@ export class VideoCallApiService {
         error: errorMessage,
         code: errorCode,
         statusCode,
-        isTestMode: this.isTestMode
+        isTestMode: this.isTestMode,
       })
 
       throw new VideoCallApiError(errorCode, errorMessage, statusCode)
@@ -241,14 +270,14 @@ export class VideoCallApiService {
    * 자동 재연결 API
    */
   async autoReconnect(
-    sessionId: string, 
-    username?: string, 
-    lastConnectionId?: string
+    sessionId: string,
+    username?: string,
+    lastConnectionId?: string,
   ): Promise<QuickJoinResponse> {
-    logger.info('Auto Reconnect API 호출', { 
-      sessionId, 
+    logger.info('Auto Reconnect API 호출', {
+      sessionId,
       lastConnectionId: lastConnectionId ? '[HIDDEN]' : undefined,
-      isTestMode: this.isTestMode 
+      isTestMode: this.isTestMode,
     })
 
     try {
@@ -263,13 +292,14 @@ export class VideoCallApiService {
           queryParams.append('lastConnectionId', lastConnectionId)
         }
 
-        const response = await api.post<ApiResponse<QuickJoinResponse>>(
-          `${this.baseUrl}/sessions/${sessionId}/auto-reconnect?${queryParams.toString()}`
+        const response = await api.post<
+          ApiResponse<QuickJoinResponse>
+        >(
+          `${this.baseUrl}/sessions/${sessionId}/auto-reconnect?${queryParams.toString()}`,
         )
 
         logger.info('테스트 API 자동 재연결 성공', { sessionId })
-        return response.data.data
-
+        return response.data.result
       } else {
         // 정규 API: form-urlencoded 방식
         const params = new URLSearchParams()
@@ -277,22 +307,26 @@ export class VideoCallApiService {
           params.append('lastConnectionId', lastConnectionId)
         }
 
-        const response = await api.post<ApiResponse<QuickJoinResponse>>(
+        const response = await api.post<
+          ApiResponse<QuickJoinResponse>
+        >(
           `${this.baseUrl}/sessions/${sessionId}/auto-reconnect`,
           params.toString(),
           {
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
-          }
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          },
         )
 
         logger.info('정규 API 자동 재연결 성공', { sessionId })
-        return response.data.data
+        return response.data.result
       }
-
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error.message || '자동 재연결 실패'
+      const errorMessage =
+        error?.response?.data?.message ||
+        error.message ||
+        '자동 재연결 실패'
       const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
       const statusCode = error?.response?.status
 
@@ -301,7 +335,7 @@ export class VideoCallApiService {
         error: errorMessage,
         code: errorCode,
         statusCode,
-        isTestMode: this.isTestMode
+        isTestMode: this.isTestMode,
       })
 
       throw new VideoCallApiError(errorCode, errorMessage, statusCode)
@@ -311,23 +345,31 @@ export class VideoCallApiService {
   /**
    * 채팅 기록 저장 API
    */
-  async saveChatHistory(sessionId: string, chatData: ChatSaveRequest): Promise<void> {
-    logger.info('채팅 기록 저장 API 호출', { 
-      sessionId, 
+  async saveChatHistory(
+    sessionId: string,
+    chatData: ChatSaveRequest,
+  ): Promise<void> {
+    logger.info('채팅 기록 저장 API 호출', {
+      sessionId,
       messageCount: chatData.messages.length,
-      isTestMode: this.isTestMode 
+      isTestMode: this.isTestMode,
     })
 
     try {
       await api.post<ApiResponse<null>>(
         `${this.baseUrl}/chat/${sessionId}/save`,
-        chatData
+        chatData,
       )
 
-      logger.info('채팅 기록 저장 성공', { sessionId, messageCount: chatData.messages.length })
-
+      logger.info('채팅 기록 저장 성공', {
+        sessionId,
+        messageCount: chatData.messages.length,
+      })
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error.message || '채팅 기록 저장 실패'
+      const errorMessage =
+        error?.response?.data?.message ||
+        error.message ||
+        '채팅 기록 저장 실패'
       const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
       const statusCode = error?.response?.status
 
@@ -336,7 +378,7 @@ export class VideoCallApiService {
         error: errorMessage,
         code: errorCode,
         statusCode,
-        isTestMode: this.isTestMode
+        isTestMode: this.isTestMode,
       })
 
       throw new VideoCallApiError(errorCode, errorMessage, statusCode)
@@ -346,23 +388,30 @@ export class VideoCallApiService {
   /**
    * 채팅 기록 조회 API
    */
-  async getChatHistory(sessionId: string): Promise<ChatHistoryResponse> {
-    logger.debug('채팅 기록 조회 API 호출', { sessionId, isTestMode: this.isTestMode })
+  async getChatHistory(
+    sessionId: string,
+  ): Promise<ChatHistoryResponse> {
+    logger.debug('채팅 기록 조회 API 호출', {
+      sessionId,
+      isTestMode: this.isTestMode,
+    })
 
     try {
-      const response = await api.get<ApiResponse<ChatHistoryResponse>>(
-        `${this.baseUrl}/chat/${sessionId}/history`
-      )
-      
-      logger.info('채팅 기록 조회 성공', { 
+      const response = await api.get<
+        ApiResponse<ChatHistoryResponse>
+      >(`${this.baseUrl}/chat/${sessionId}/history`)
+
+      logger.info('채팅 기록 조회 성공', {
         sessionId,
-        messageCount: response.data.data.totalMessages
+        messageCount: response.data.result.totalMessages,
       })
 
-      return response.data.data
-
+      return response.data.result
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error.message || '채팅 기록 조회 실패'
+      const errorMessage =
+        error?.response?.data?.message ||
+        error.message ||
+        '채팅 기록 조회 실패'
       const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
       const statusCode = error?.response?.status
 
@@ -371,7 +420,7 @@ export class VideoCallApiService {
         error: errorMessage,
         code: errorCode,
         statusCode,
-        isTestMode: this.isTestMode
+        isTestMode: this.isTestMode,
       })
 
       throw new VideoCallApiError(errorCode, errorMessage, statusCode)

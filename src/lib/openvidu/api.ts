@@ -1,4 +1,3 @@
-import api from '@/lib/http/api'
 import {
   ApiResponse,
   QuickJoinResponse,
@@ -10,8 +9,9 @@ import {
   ApiErrorCode,
   OPENVIDU_CONSTANTS,
 } from '@/components/openvidu/types'
-import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 import { featureFlags, getOpenViduConfig } from '@/lib/config/env'
+import api from '@/lib/http/api'
+import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 // ============================================================================
 // API 응답 정규화 함수
@@ -161,14 +161,14 @@ class OpenViduApiService {
 
   /**
    * 1. 원클릭 세션 참가
-   * POST /api/video-call/quick-join?reservationId={reservationId}
+   * POST /api/video-call/quick-join/{reservationId}
    */
   async quickJoin(reservationId: number): Promise<QuickJoinResponse> {
     logger.debug('세션 참가 시도', { reservationId })
 
     try {
       const result = await this.request<QuickJoinResponse>(
-        `/quick-join?reservationId=${reservationId}`,
+        `/quick-join/${reservationId}`,
         { method: 'POST' },
       )
 
@@ -256,13 +256,13 @@ class OpenViduApiService {
 
   /**
    * 6. 채팅 히스토리 저장
-   * POST /api/video-call/sessions/{sessionId}/chat/save
+   * POST /api/video-call/chat/{sessionId}/save
    */
   async saveChatHistory(
     sessionId: string,
     chatData: ChatHistorySaveRequest,
   ): Promise<void> {
-    return this.request<void>(`/sessions/${sessionId}/chat/save`, {
+    return this.request<void>(`/chat/${sessionId}/save`, {
       method: 'POST',
       data: chatData,
     })
@@ -270,13 +270,13 @@ class OpenViduApiService {
 
   /**
    * 7. 채팅 히스토리 조회
-   * GET /api/video-call/sessions/{sessionId}/chat
+   * GET /api/video-call/chat/{sessionId}/history
    */
   async getChatHistory(
     sessionId: string,
   ): Promise<ChatHistoryResponse> {
     return this.request<ChatHistoryResponse>(
-      `/sessions/${sessionId}/chat`,
+      `/chat/${sessionId}/history`,
     )
   }
 

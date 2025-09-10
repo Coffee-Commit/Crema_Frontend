@@ -6,7 +6,7 @@
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
-type LogData = Record<string, any>
+type LogData = Record<string, unknown>
 
 /**
  * OpenVidu 로거 생성 함수
@@ -73,7 +73,7 @@ export const createOpenViduLogger = (namespace: string) => {
           op: operation,
           status: 'fail',
           durMs: Date.now() - startTime,
-          code: (error as any)?.code,
+          code: (error as Error & { code?: string })?.code,
           msg:
             error instanceof Error
               ? error.message
@@ -104,7 +104,7 @@ function formatLog(
 
   // 데이터 필드를 키=값 형식으로 변환
   const fields = Object.entries(data)
-    .filter(([_, value]) => value !== undefined && value !== null)
+    .filter(([, value]) => value !== undefined && value !== null)
     .map(([key, value]) => {
       const redactedValue = redact(key, value)
       return `${key}=${formatValue(redactedValue)}`
@@ -117,7 +117,7 @@ function formatLog(
 /**
  * 값 포맷팅
  */
-function formatValue(value: any): string {
+function formatValue(value: unknown): string {
   if (typeof value === 'string') {
     // 공백이나 특수문자가 있으면 따옴표로 감싸기
     return value.includes(' ') || value.includes('=')
@@ -133,7 +133,7 @@ function formatValue(value: any): string {
 /**
  * 민감정보 마스킹
  */
-function redact(key: string, value: any): any {
+function redact(key: string, value: unknown): unknown {
   // 정확한 키 매칭을 위한 민감 필드 목록 (소문자 기준 비교)
   const exactSensitiveKeys = [
     'token',
@@ -218,5 +218,5 @@ export const toggleOpenViduDebug = (enable?: boolean) => {
 
 // 전역에서 쉽게 토글할 수 있도록 window 객체에 추가
 if (typeof window !== 'undefined') {
-  ;(window as any).toggleOpenViduDebug = toggleOpenViduDebug
+  ;(window as typeof window & { toggleOpenViduDebug: typeof toggleOpenViduDebug }).toggleOpenViduDebug = toggleOpenViduDebug
 }

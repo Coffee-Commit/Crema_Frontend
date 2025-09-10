@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 export default function VideoCallPage() {
   const params = useParams()
   const router = useRouter()
-  const sessionId = params.sessionId as string
+  const _sessionId = params.sessionId as string
 
   useEffect(() => {
     // 구식 URL 형식이므로 사용자에게 안내 후 홈으로 리다이렉트
