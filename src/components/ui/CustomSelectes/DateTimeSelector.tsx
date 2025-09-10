@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, Clock } from 'lucide-react'
+// import { Calendar, Clock } from 'lucide-react'
 import { useState } from 'react'
 
 const TIMES = Array.from({ length: 48 }, (_, i) => {
@@ -14,25 +14,25 @@ export default function DateTimeSelector() {
   const [selectedTime, setSelectedTime] = useState('')
 
   return (
-    <div className="gap-spacing-md flex">
+    <div className="gap-spacing-3xs flex">
       {/* 날짜 선택 */}
-      <label className="gap-spacing-3xs border-border-light bg-fill-button px-spacing-md py-spacing-xs text-label-secondary flex w-[168px] items-center rounded-md border">
-        <Calendar className="stroke-label-secondary h-4 w-4" />
+      <label className="font-caption2-medium border-border-subtle text-label-default rounded-2xs p-spacing-4xs flex h-[42px] w-[168px] items-center border">
+        {/* <Calendar className="stroke-label-default h-4 w-4" /> */}
         <input
           type="date"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
-          className="text-label-secondary w-full bg-transparent text-sm outline-none"
+          className="font-caption2-medium text-label-default w-full bg-transparent"
         />
       </label>
 
       {/* 시간 선택 */}
-      <label className="gap-spacing-3xs border-border-light bg-fill-button px-spacing-md py-spacing-xs text-label-secondary flex w-[168px] items-center rounded-md border">
-        <Clock className="stroke-label-secondary h-4 w-4" />
+      <label className="font-caption2-medium border-border-subtle text-label-default rounded-2xs p-spacing-4xs flex h-[42px] w-[168px] items-center border">
+        {/* <Clock className="stroke-label-secondary h-4 w-4" /> */}
         <select
           value={selectedTime}
           onChange={(e) => setSelectedTime(e.target.value)}
-          className="text-label-secondary w-full bg-transparent text-sm outline-none"
+          className="text-label-secondary w-full bg-transparent text-sm"
         >
           <option value="">시간 선택</option>
           {TIMES.map((t) => (

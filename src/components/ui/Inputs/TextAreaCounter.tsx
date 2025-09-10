@@ -31,7 +31,7 @@ export default function TextAreaCounter({
   return (
     <div
       className={clsx(
-        'border-border-subtler bg-fill-white px-spacing-4xs py-spacing-3xs flex flex-col gap-1 rounded-md border',
+        'border-border-subtler bg-fill-white px-spacing-4xs py-spacing-3xs rounded-2xs flex flex-col gap-1 border',
         className,
       )}
     >
@@ -40,9 +40,9 @@ export default function TextAreaCounter({
         onChange={(e) => setValue(e.target.value)}
         maxLength={maxLength}
         placeholder={placeholder}
-        className="font-body3 text-label-default placeholder:text-label-subtle focus:border-border-subtler min-h-[120px] w-full resize-none focus:outline-none"
+        className="font-body3 text-label-default placeholder:text-label-subtler focus:border-border-subtler min-h-[120px] w-full resize-none focus:outline-none"
       />
-      <div className="text-label-tertiary font-caption2 text-right">
+      <div className="text-label-subtler font-caption3 text-right">
         {value.length}/{maxLength}
       </div>
     </div>

@@ -237,7 +237,7 @@ export default function ProfileSidebar({
 
         <SquareButton
           onClick={() =>
-            router.push(`/reservation/${displayProfile.guideId}`)
+            router.push(`/coffeechatApply/${displayProfile.guideId}`)
           }
           variant="primary"
           size="xl"

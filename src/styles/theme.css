@@ -109,6 +109,7 @@
   --color-border-subtle: var(--color-gray-300);
   --color-border-subtler: var(--color-gray-200);
   --color-border-primary: var(--color-orange-500);
+  --color-border-secondary: var(--color-orange-200);
   --color-border-white: var(--color-white);
 
   /* Background - Primitive 색상 참조 */
