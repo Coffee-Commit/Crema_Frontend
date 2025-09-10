@@ -112,13 +112,26 @@ export class VideoCallApiService {
 
         return response.data.result
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const isAxiosError =
+        error && typeof error === 'object' && 'response' in error
+      const axiosError = isAxiosError
+        ? (error as {
+            response: {
+              data?: { message?: string; code?: string }
+              status?: number
+            }
+            message?: string
+          })
+        : null
+
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        axiosError?.response?.data?.message ||
+        (error instanceof Error ? error.message : '') ||
         'Quick Join 실패'
-      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
-      const statusCode = error?.response?.status
+      const errorCode =
+        axiosError?.response?.data?.code || 'UNKNOWN_ERROR'
+      const statusCode = axiosError?.response?.status
 
       logger.error('Quick Join API 실패', {
         error: errorMessage,
@@ -147,13 +160,26 @@ export class VideoCallApiService {
       })
 
       return response.data.result
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const isAxiosError =
+        error && typeof error === 'object' && 'response' in error
+      const axiosError = isAxiosError
+        ? (error as {
+            response: {
+              data?: { message?: string; code?: string }
+              status?: number
+            }
+            message?: string
+          })
+        : null
+
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        axiosError?.response?.data?.message ||
+        (error instanceof Error ? error.message : '') ||
         'Config 조회 실패'
-      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
-      const statusCode = error?.response?.status
+      const errorCode =
+        axiosError?.response?.data?.code || 'UNKNOWN_ERROR'
+      const statusCode = axiosError?.response?.status
 
       logger.error('Config API 실패', {
         error: errorMessage,
@@ -189,13 +215,26 @@ export class VideoCallApiService {
       })
 
       return response.data.result
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const isAxiosError =
+        error && typeof error === 'object' && 'response' in error
+      const axiosError = isAxiosError
+        ? (error as {
+            response: {
+              data?: { message?: string; code?: string }
+              status?: number
+            }
+            message?: string
+          })
+        : null
+
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        axiosError?.response?.data?.message ||
+        (error instanceof Error ? error.message : '') ||
         '세션 상태 조회 실패'
-      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
-      const statusCode = error?.response?.status
+      const errorCode =
+        axiosError?.response?.data?.code || 'UNKNOWN_ERROR'
+      const statusCode = axiosError?.response?.status
 
       logger.error('Session Status API 실패', {
         sessionId,
@@ -246,13 +285,26 @@ export class VideoCallApiService {
         logger.info('정규 API 토큰 갱신 성공', { sessionId })
         return response.data.result
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const isAxiosError =
+        error && typeof error === 'object' && 'response' in error
+      const axiosError = isAxiosError
+        ? (error as {
+            response: {
+              data?: { message?: string; code?: string }
+              status?: number
+            }
+            message?: string
+          })
+        : null
+
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        axiosError?.response?.data?.message ||
+        (error instanceof Error ? error.message : '') ||
         '토큰 갱신 실패'
-      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
-      const statusCode = error?.response?.status
+      const errorCode =
+        axiosError?.response?.data?.code || 'UNKNOWN_ERROR'
+      const statusCode = axiosError?.response?.status
 
       logger.error('Refresh Token API 실패', {
         sessionId,
@@ -322,13 +374,26 @@ export class VideoCallApiService {
         logger.info('정규 API 자동 재연결 성공', { sessionId })
         return response.data.result
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const isAxiosError =
+        error && typeof error === 'object' && 'response' in error
+      const axiosError = isAxiosError
+        ? (error as {
+            response: {
+              data?: { message?: string; code?: string }
+              status?: number
+            }
+            message?: string
+          })
+        : null
+
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        axiosError?.response?.data?.message ||
+        (error instanceof Error ? error.message : '') ||
         '자동 재연결 실패'
-      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
-      const statusCode = error?.response?.status
+      const errorCode =
+        axiosError?.response?.data?.code || 'UNKNOWN_ERROR'
+      const statusCode = axiosError?.response?.status
 
       logger.error('Auto Reconnect API 실패', {
         sessionId,
@@ -365,13 +430,26 @@ export class VideoCallApiService {
         sessionId,
         messageCount: chatData.messages.length,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const isAxiosError =
+        error && typeof error === 'object' && 'response' in error
+      const axiosError = isAxiosError
+        ? (error as {
+            response: {
+              data?: { message?: string; code?: string }
+              status?: number
+            }
+            message?: string
+          })
+        : null
+
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        axiosError?.response?.data?.message ||
+        (error instanceof Error ? error.message : '') ||
         '채팅 기록 저장 실패'
-      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
-      const statusCode = error?.response?.status
+      const errorCode =
+        axiosError?.response?.data?.code || 'UNKNOWN_ERROR'
+      const statusCode = axiosError?.response?.status
 
       logger.error('채팅 기록 저장 API 실패', {
         sessionId,
@@ -407,13 +485,26 @@ export class VideoCallApiService {
       })
 
       return response.data.result
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const isAxiosError =
+        error && typeof error === 'object' && 'response' in error
+      const axiosError = isAxiosError
+        ? (error as {
+            response: {
+              data?: { message?: string; code?: string }
+              status?: number
+            }
+            message?: string
+          })
+        : null
+
       const errorMessage =
-        error?.response?.data?.message ||
-        error.message ||
+        axiosError?.response?.data?.message ||
+        (error instanceof Error ? error.message : '') ||
         '채팅 기록 조회 실패'
-      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR'
-      const statusCode = error?.response?.status
+      const errorCode =
+        axiosError?.response?.data?.code || 'UNKNOWN_ERROR'
+      const statusCode = axiosError?.response?.status
 
       logger.error('채팅 기록 조회 API 실패', {
         sessionId,

@@ -1,6 +1,10 @@
 'use client'
 
-import type { Session, Publisher, Subscriber } from 'openvidu-browser'
+import type {
+  Session,
+  Publisher as _Publisher,
+  Subscriber as _Subscriber,
+} from 'openvidu-browser'
 
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
@@ -117,7 +121,7 @@ export class EventBridge {
 
       // 자동 구독
       try {
-        const subscriber = this.session!.subscribe(
+        const _subscriber = this.session!.subscribe(
           event.stream,
           undefined,
         )
@@ -208,7 +212,11 @@ export class EventBridge {
 
     // 신호 수신 (채팅, 커스텀 메시지)
     this.session.on('signal', (event) => {
-      this.handleSignal(event)
+      this.handleSignal({
+        type: event.type || '',
+        data: event.data,
+        from: { connectionId: event.from?.connectionId || '' },
+      })
     })
 
     // 세션 연결 해제
@@ -252,8 +260,11 @@ export class EventBridge {
     // 네트워크 품질 변경
     if ('networkQualityLevelChanged' in this.session) {
       this.session.on(
-        'networkQualityLevelChanged' as any,
-        (event: any) => {
+        'networkQualityLevelChanged' as const,
+        (event: {
+          connection: { connectionId: string }
+          newValue: number
+        }) => {
           logger.debug('네트워크 품질 변경', {
             connectionId: event.connection.connectionId,
             level: event.newValue,
@@ -261,7 +272,7 @@ export class EventBridge {
 
           // 네트워크 품질 정보 업데이트
           const quality: NetworkQuality = {
-            level: parseInt(event.newValue),
+            level: event.newValue,
             latency: 0, // 실제 구현에서는 측정된 값 사용
             jitter: 0,
             packetLoss: 0,
@@ -303,7 +314,11 @@ export class EventBridge {
   // 신호 처리
   // ============================================================================
 
-  private handleSignal(event: any): void {
+  private handleSignal(event: {
+    type: string
+    data: string | undefined
+    from: { connectionId: string }
+  }): void {
     const { type, data, from } = event
 
     logger.debug('신호 수신', {
@@ -311,6 +326,11 @@ export class EventBridge {
       from: from?.connectionId,
       dataLength: data?.length,
     })
+
+    if (!data) {
+      logger.warn('신호 데이터가 없음', { type })
+      return
+    }
 
     try {
       switch (type) {
@@ -334,7 +354,10 @@ export class EventBridge {
     }
   }
 
-  private handleChatMessage(data: string, from: any): void {
+  private handleChatMessage(
+    data: string,
+    from: { connectionId?: string },
+  ): void {
     try {
       const messageData = JSON.parse(data)
 
@@ -343,7 +366,7 @@ export class EventBridge {
           messageData.id ||
           `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         senderId: from?.connectionId || 'unknown',
-        senderName: from?.data || 'Unknown User',
+        senderName: messageData.senderName || 'Unknown User',
         content: messageData.message || messageData.content || '',
         timestamp: messageData.timestamp
           ? new Date(messageData.timestamp)
@@ -367,7 +390,10 @@ export class EventBridge {
     }
   }
 
-  private handleNotification(data: string, from: any): void {
+  private handleNotification(
+    data: string,
+    _from: { connectionId?: string },
+  ): void {
     try {
       const notificationData = JSON.parse(data)
 
