@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { Participant } from '@/components/openvidu/types'
 import clsx from 'clsx'
+import { useEffect, useRef } from 'react'
+
+import { Participant } from '@/components/openvidu/types'
 
 interface ParticipantVideoProps {
   participant: Participant
@@ -18,7 +19,8 @@ export default function ParticipantVideo({
   const videoRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (videoRef.current && participant.streamManager) {
+    const currentVideoRef = videoRef.current
+    if (currentVideoRef && participant.streamManager) {
       const videoElement = document.createElement('video')
       videoElement.autoplay = true
       videoElement.playsInline = true
@@ -26,12 +28,12 @@ export default function ParticipantVideo({
       videoElement.style.height = '100%'
       videoElement.style.objectFit = 'cover'
 
-      videoRef.current.appendChild(videoElement)
+      currentVideoRef.appendChild(videoElement)
       participant.streamManager.addVideoElement(videoElement)
 
       return () => {
-        if (videoRef.current && videoElement) {
-          videoRef.current.removeChild(videoElement)
+        if (currentVideoRef && videoElement) {
+          currentVideoRef.removeChild(videoElement)
         }
       }
     }

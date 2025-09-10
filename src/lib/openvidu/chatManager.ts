@@ -3,12 +3,16 @@
  * OpenVidu v3 / LiveKit 방식의 신뢰성 있는 메시지 전송
  */
 
-import type {
-  Session,
-  SignalEvent,
-} from 'openvidu-browser'
-import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import type { Session, SignalEvent } from 'openvidu-browser'
+
 import type { ChatMessage } from '@/components/openvidu/types'
+import {
+  isChatMessageLike,
+  isChatChunkLike as _isChatChunkLike,
+  isRecord,
+  safeString,
+} from '@/features/video-call/types/guards.types'
+import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 const logger = createOpenViduLogger('ChatManager')
 
@@ -371,22 +375,30 @@ export class ChatManager {
   /**
    * 수신된 메시지 처리
    */
-  private handleReceivedMessage(data: any, from: any): void {
+  private handleReceivedMessage(data: unknown, from: unknown): void {
+    if (!isChatMessageLike(data)) {
+      logger.warn('유효하지 않은 채팅 메시지 데이터', { data })
+      return
+    }
+
     // 중복 메시지 확인
     if (
       this.config.enableDeduplication &&
-      this.isDuplicateMessage(data.id)
+      this.isDuplicateMessage(safeString(data.id))
     ) {
       logger.debug('중복 메시지 무시', { messageId: data.id })
       return
     }
 
     // 안전한 connection.data 파싱
-    let participantData: any = {}
+    let participantData: Record<string, unknown> = {}
     try {
-      if (from?.data) {
+      const fromData = isRecord(from)
+        ? safeString((from as { data?: string }).data)
+        : ''
+      if (fromData) {
         // '%/%' 구분자 처리
-        const parts = from.data.split('%/%')
+        const parts = fromData.split('%/%')
         if (parts.length === 1) {
           // 순수 JSON 또는 문자열
           const trimmed = parts[0].trim()
@@ -398,35 +410,47 @@ export class ChatManager {
         } else {
           // 레거시 혼합 포맷
           const jsonPart = parts[1]?.trim()
-          if (jsonPart && jsonPart.startsWith('{') && jsonPart.endsWith('}')) {
+          if (
+            jsonPart &&
+            jsonPart.startsWith('{') &&
+            jsonPart.endsWith('}')
+          ) {
             participantData = JSON.parse(jsonPart)
           } else {
-            participantData = { nickname: parts[0], username: parts[0] }
+            participantData = {
+              nickname: parts[0],
+              username: parts[0],
+            }
           }
         }
       }
     } catch (error) {
-      logger.debug('참가자 데이터 파싱 실패, 기본값 사용', { error, raw: from?.data })
+      logger.debug('참가자 데이터 파싱 실패, 기본값 사용', {
+        error,
+        raw: isRecord(from)
+          ? (from as { data?: string }).data
+          : undefined,
+      })
       participantData = { nickname: '사용자', username: '사용자' }
     }
 
     const nickname =
-      participantData.nickname ||
-      participantData.username ||
-      data.username ||
+      safeString(participantData.nickname) ||
+      safeString(participantData.username) ||
+      safeString(data.username) ||
       '익명'
 
     const chatMessage: ChatMessage = {
-      id: data.id,
+      id: safeString(data.id),
       nickname,
-      message: data.message,
-      timestamp: new Date(data.timestamp),
+      message: safeString(data.message),
+      timestamp: new Date(safeString(data.timestamp)),
       type: 'user',
     }
 
     // 순서 보장
     if (this.config.enableOrdering) {
-      this.addToMessageHistory(data.id)
+      this.addToMessageHistory(safeString(data.id))
     }
 
     this.onMessageReceived(chatMessage)
@@ -434,7 +458,7 @@ export class ChatManager {
     logger.debug('채팅 메시지 수신', {
       messageId: data.id,
       from: nickname,
-      length: data.message.length,
+      length: safeString(data.message).length,
     })
   }
 
@@ -443,7 +467,7 @@ export class ChatManager {
    */
   private handleReceivedChunk(
     chunk: ChatMessageChunk,
-    from: any,
+    from: unknown,
   ): void {
     const { messageId, chunkIndex, totalChunks } = chunk
 
@@ -490,7 +514,7 @@ export class ChatManager {
    */
   private assembleChunkedMessage(
     buffer: MessageBuffer,
-    from: any,
+    from: unknown,
   ): void {
     const sortedChunks = Array.from(buffer.chunks.values()).sort(
       (a, b) => a.chunkIndex - b.chunkIndex,
@@ -501,11 +525,14 @@ export class ChatManager {
       .join('')
 
     // 안전한 connection.data 파싱 (assembleChunkedMessage)
-    let participantData: any = {}
+    let participantData: Record<string, unknown> = {}
     try {
-      if (from?.data) {
+      const fromData = isRecord(from)
+        ? safeString((from as { data?: string }).data)
+        : ''
+      if (fromData) {
         // '%/%' 구분자 처리
-        const parts = from.data.split('%/%')
+        const parts = fromData.split('%/%')
         if (parts.length === 1) {
           const trimmed = parts[0].trim()
           if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
@@ -515,20 +542,34 @@ export class ChatManager {
           }
         } else {
           const jsonPart = parts[1]?.trim()
-          if (jsonPart && jsonPart.startsWith('{') && jsonPart.endsWith('}')) {
+          if (
+            jsonPart &&
+            jsonPart.startsWith('{') &&
+            jsonPart.endsWith('}')
+          ) {
             participantData = JSON.parse(jsonPart)
           } else {
-            participantData = { nickname: parts[0], username: parts[0] }
+            participantData = {
+              nickname: parts[0],
+              username: parts[0],
+            }
           }
         }
       }
     } catch (error) {
-      logger.debug('청킹 메시지 참가자 데이터 파싱 실패', { error, raw: from?.data })
+      logger.debug('청킹 메시지 참가자 데이터 파싱 실패', {
+        error,
+        raw: isRecord(from)
+          ? (from as { data?: string }).data
+          : undefined,
+      })
       participantData = { nickname: '사용자', username: '사용자' }
     }
 
     const nickname =
-      participantData.nickname || participantData.username || '익명'
+      safeString(participantData.nickname) ||
+      safeString(participantData.username) ||
+      '익명'
 
     const chatMessage: ChatMessage = {
       id: buffer.messageId,
@@ -697,27 +738,33 @@ export class ChatManager {
   /**
    * 런타임 데이터 검증 유틸리티
    */
-  private isValidChatData(data: any): boolean {
+  private isValidChatData(
+    data: unknown,
+  ): data is Record<string, unknown> {
+    if (!isRecord(data)) return false
     return (
-      typeof data === 'object' &&
-      data !== null &&
-      typeof data.id === 'string' &&
-      typeof data.message === 'string' &&
-      typeof data.timestamp === 'string' &&
-      typeof data.username === 'string'
+      typeof (data as Record<string, unknown>).id === 'string' &&
+      typeof (data as Record<string, unknown>).message === 'string' &&
+      typeof (data as Record<string, unknown>).timestamp ===
+        'string' &&
+      typeof (data as Record<string, unknown>).username === 'string'
     )
   }
 
-  private isValidChunkData(chunk: any): boolean {
+  private isValidChunkData(
+    chunk: unknown,
+  ): chunk is Record<string, unknown> {
+    if (!isRecord(chunk)) return false
     return (
-      typeof chunk === 'object' &&
-      chunk !== null &&
-      typeof chunk.id === 'string' &&
-      typeof chunk.messageId === 'string' &&
-      typeof chunk.chunkIndex === 'number' &&
-      typeof chunk.totalChunks === 'number' &&
-      typeof chunk.data === 'string' &&
-      typeof chunk.timestamp === 'number'
+      typeof (chunk as Record<string, unknown>).id === 'string' &&
+      typeof (chunk as Record<string, unknown>).messageId ===
+        'string' &&
+      typeof (chunk as Record<string, unknown>).chunkIndex ===
+        'number' &&
+      typeof (chunk as Record<string, unknown>).totalChunks ===
+        'number' &&
+      typeof (chunk as Record<string, unknown>).data === 'string' &&
+      typeof (chunk as Record<string, unknown>).timestamp === 'number'
     )
   }
 

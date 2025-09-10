@@ -1,4 +1,5 @@
 import { StreamManager, Publisher } from 'openvidu-browser'
+
 import { logger } from '@/lib/utils/logger'
 
 // OpenVidu 관련 유틸리티 함수들
@@ -7,7 +8,9 @@ import { logger } from '@/lib/utils/logger'
  * Publisher에서 MediaStream 안전하게 가져오기
  * OpenVidu의 공식 API만 사용하여 내부 속성 접근 방지
  */
-export function getPublisherMediaStream(publisher: Publisher): MediaStream | null {
+export function getPublisherMediaStream(
+  publisher: Publisher,
+): MediaStream | null {
   try {
     return publisher.stream?.getMediaStream?.() ?? null
   } catch (error) {
@@ -19,8 +22,13 @@ export function getPublisherMediaStream(publisher: Publisher): MediaStream | nul
 /**
  * 객체가 MediaStream인지 타입 가드 함수
  */
-export function isMediaStream(x: any): x is MediaStream {
-  return x && typeof x.getTracks === 'function'
+export function isMediaStream(x: unknown): x is MediaStream {
+  return (
+    x != null &&
+    typeof x === 'object' &&
+    'getTracks' in x &&
+    typeof (x as { getTracks: unknown }).getTracks === 'function'
+  )
 }
 
 /**
@@ -107,8 +115,14 @@ export const VIDEO_RESOLUTIONS = {
 /**
  * OpenVidu 오류 메시지 한국어 변환
  */
-export const getKoreanErrorMessage = (error: any): string => {
-  const errorCode = error?.name || error?.code || 'UNKNOWN_ERROR'
+export const getKoreanErrorMessage = (error: unknown): string => {
+  const errorCode =
+    (error &&
+    typeof error === 'object' &&
+    ('name' in error || 'code' in error)
+      ? (error as { name?: string; code?: string }).name ||
+        (error as { name?: string; code?: string }).code
+      : null) || 'UNKNOWN_ERROR'
 
   const errorMessages: Record<string, string> = {
     DEVICE_ACCESS_DENIED: '카메라 또는 마이크 접근이 거부되었습니다.',
@@ -143,7 +157,7 @@ export const checkMediaPermissions = async (): Promise<{
     stream.getTracks().forEach((track) => track.stop())
 
     return { audio: true, video: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.warn('미디어 권한 확인 실패:', error)
 
     // 개별 권한 확인

@@ -6,7 +6,7 @@
 import type {
   Session,
   Publisher,
-  Subscriber,
+  Subscriber as _Subscriber,
   ConnectionEvent,
   StreamEvent,
   SignalEvent,
@@ -69,10 +69,10 @@ export interface AdapterEventHandlers {
   onStreamCreated?: (event: StreamEvent) => void
   onStreamDestroyed?: (event: StreamEvent) => void
   onSignal?: (event: SignalEvent) => void
-  onSessionDisconnected?: (event: any) => void
+  onSessionDisconnected?: (event: unknown) => void
   onReconnecting?: () => void
   onReconnected?: () => void
-  onException?: (exception: any) => void
+  onException?: (exception: unknown) => void
 }
 
 /**
@@ -218,7 +218,7 @@ export interface AdapterFactory {
 export class AdapterError extends Error {
   constructor(
     public readonly adapterType: string,
-    public readonly originalError: any,
+    public readonly originalError: unknown,
     message: string,
   ) {
     super(`[${adapterType}] ${message}`)

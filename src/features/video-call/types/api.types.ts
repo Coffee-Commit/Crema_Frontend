@@ -1,14 +1,14 @@
 // VideoCall API 응답 타입 정의
 
 // 실제 API 서버 응답 구조
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   message: string
   result: T
   success: boolean
 }
 
 // 명세서 기준 응답 구조 (호환성 유지)
-export interface ApiResponseLegacy<T = any> {
+export interface ApiResponseLegacy<T = unknown> {
   code: 'SUCCESS' | 'CREATED' | string
   message: string
   data: T
@@ -98,13 +98,13 @@ export enum ApiErrorCode {
   SESSION_NOT_FOUND = 'SESSION_NOT_FOUND',
   CHAT_NOT_FOUND = 'CHAT_NOT_FOUND',
   CHAT_SAVE_FAILED = 'CHAT_SAVE_FAILED',
-  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR'
+  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
 }
 
 // 공유 자료 관련 타입 (기존 이미지 API 활용)
 export interface SharedMaterial {
   id: string
-  imageKey: string  // S3 key
+  imageKey: string // S3 key
   fileName: string
   uploadedAt: string
   uploadedBy: string
@@ -148,7 +148,7 @@ export class VideoCallApiError extends Error {
   constructor(
     public code: string,
     message: string,
-    public statusCode?: number
+    public statusCode?: number,
   ) {
     super(message)
     this.name = 'VideoCallApiError'

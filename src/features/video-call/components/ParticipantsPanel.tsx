@@ -1,7 +1,12 @@
 'use client'
 
 import React from 'react'
-import { useParticipants, useParticipantCount, useVideoCallActions } from '../store'
+
+import {
+  useParticipants,
+  useParticipantCount,
+  useVideoCallActions,
+} from '../store'
 
 export default function ParticipantsPanel() {
   const participants = useParticipants()
@@ -16,7 +21,7 @@ export default function ParticipantsPanel() {
     return joinedAt.toLocaleTimeString('ko-KR', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
     })
   }
 
@@ -67,7 +72,7 @@ export default function ParticipantsPanel() {
                         {participant.nickname.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    
+
                     {/* 발화 중 표시 */}
                     {participant.speaking && (
                       <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 animate-pulse rounded-full bg-[var(--color-fill-primary)]" />
@@ -75,9 +80,9 @@ export default function ParticipantsPanel() {
                   </div>
 
                   {/* 이름 및 상태 */}
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
-                      <p className="font-body2 font-medium text-[var(--color-label-strong)] truncate">
+                      <p className="font-body2 truncate font-medium text-[var(--color-label-strong)]">
                         {participant.nickname}
                       </p>
                       {participant.isLocal && (
@@ -86,15 +91,19 @@ export default function ParticipantsPanel() {
                         </span>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-1 text-xs text-[var(--color-label-subtle)]">
-                      <span>입장 {formatJoinTime(participant.joinedAt)}</span>
-                      
+                      <span>
+                        입장 {formatJoinTime(participant.joinedAt)}
+                      </span>
+
                       {/* 화면 공유 표시 */}
                       {participant.isScreenSharing && (
                         <>
                           <span>•</span>
-                          <span className="text-[var(--color-fill-primary)]">화면 공유 중</span>
+                          <span className="text-[var(--color-fill-primary)]">
+                            화면 공유 중
+                          </span>
                         </>
                       )}
                     </div>
@@ -106,12 +115,19 @@ export default function ParticipantsPanel() {
                   {/* 미디어 상태 */}
                   <div className="flex items-center gap-0.5">
                     {/* 오디오 상태 */}
-                    <div className={`p-1 rounded ${
-                      participant.audioEnabled 
-                        ? 'text-[var(--color-label-default)]' 
-                        : 'text-[var(--color-label-error)]'
-                    }`}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <div
+                      className={`rounded p-1 ${
+                        participant.audioEnabled
+                          ? 'text-[var(--color-label-default)]'
+                          : 'text-[var(--color-label-error)]'
+                      }`}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
                         {participant.audioEnabled ? (
                           <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
                         ) : (
@@ -121,12 +137,19 @@ export default function ParticipantsPanel() {
                     </div>
 
                     {/* 비디오 상태 */}
-                    <div className={`p-1 rounded ${
-                      participant.videoEnabled 
-                        ? 'text-[var(--color-label-default)]' 
-                        : 'text-[var(--color-label-error)]'
-                    }`}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <div
+                      className={`rounded p-1 ${
+                        participant.videoEnabled
+                          ? 'text-[var(--color-label-default)]'
+                          : 'text-[var(--color-label-error)]'
+                      }`}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
                         {participant.videoEnabled ? (
                           <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
                         ) : (
@@ -139,11 +162,18 @@ export default function ParticipantsPanel() {
                   {/* 메인 화면에 핀 버튼 */}
                   {!participant.isLocal && (
                     <button
-                      onClick={() => handlePinParticipant(participant.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-[var(--color-gray-200)]"
+                      onClick={() =>
+                        handlePinParticipant(participant.id)
+                      }
+                      className="rounded p-1 opacity-0 transition-opacity hover:bg-[var(--color-gray-200)] group-hover:opacity-100"
                       title="메인 화면에 표시"
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
                         <path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
                       </svg>
                     </button>

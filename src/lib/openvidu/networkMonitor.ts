@@ -40,7 +40,7 @@ export class NetworkQualityMonitor {
   private readonly maxHistoryLength = 20
 
   constructor(
-    private session: any, // OpenVidu Session
+    private session: unknown, // OpenVidu Session
     private onQualityUpdate: (quality: NetworkQualityInfo) => void,
     private monitorInterval: number = 5000, // 5초마다 확인
   ) {}
@@ -83,9 +83,11 @@ export class NetworkQualityMonitor {
 
     try {
       // OpenVidu의 Publisher에서 통계 정보 가져오기
-      const publishers = this.session.streamManagers.filter(
-        (sm: any) => sm.stream.local,
-      )
+      const publishers = (
+        this.session as {
+          streamManagers: { stream: { local: boolean } }[]
+        }
+      ).streamManagers.filter((sm) => sm.stream.local)
 
       if (publishers.length === 0) return
 
@@ -108,10 +110,16 @@ export class NetworkQualityMonitor {
    * WebRTC 통계 정보 수집
    */
   private async getWebRTCStats(
-    streamManager: any,
+    streamManager: unknown,
   ): Promise<ConnectionStats | null> {
     try {
-      const webRtcPeer = streamManager.stream.webRtcPeer
+      const webRtcPeer = (
+        streamManager as {
+          stream: {
+            webRtcPeer: { pc?: { getStats(): Promise<unknown> } }
+          }
+        }
+      ).stream.webRtcPeer
 
       if (!webRtcPeer || !webRtcPeer.pc) {
         return null
@@ -120,7 +128,7 @@ export class NetworkQualityMonitor {
       const peerConnection = webRtcPeer.pc
       const stats = await peerConnection.getStats()
 
-      let connectionStats: ConnectionStats = {
+      const connectionStats: ConnectionStats = {
         bytesReceived: 0,
         bytesSent: 0,
         packetsReceived: 0,
@@ -131,7 +139,19 @@ export class NetworkQualityMonitor {
         availableIncomingBitrate: 0,
       }
 
-      stats.forEach((report: any) => {
+      for (const report of stats as Iterable<{
+        type: string
+        mediaType?: string
+        bytesReceived?: number
+        packetsReceived?: number
+        packetsLost?: number
+        currentRoundTripTime?: number
+        availableOutgoingBitrate?: number
+        availableIncomingBitrate?: number
+        bytesSent?: number
+        packetsSent?: number
+        state?: string
+      }>) {
         if (
           report.type === 'inbound-rtp' &&
           report.mediaType === 'video'
@@ -151,9 +171,9 @@ export class NetworkQualityMonitor {
           report.state === 'succeeded'
         ) {
           connectionStats.currentRTT =
-            report.currentRoundTripTime * 1000 || 0 // ms로 변환
+            (report.currentRoundTripTime ?? 0) * 1000 // ms로 변환
         }
-      })
+      }
 
       return connectionStats
     } catch (error) {
@@ -173,7 +193,7 @@ export class NetworkQualityMonitor {
     // 이전 통계와 비교하여 품질 계산
     let level = 5 // 기본값: 최고 품질
     let packetLossRate = 0
-    let jitter = 0
+    const jitter = 0
 
     if (this.previousStats) {
       const timeDiff =
@@ -233,7 +253,10 @@ export class NetworkQualityMonitor {
 
     this.previousStats = { ...stats }
 
-    logger.debug('네트워크 품질 계산', quality)
+    logger.debug(
+      '네트워크 품질 계산',
+      quality as unknown as Record<string, unknown>,
+    )
 
     return quality
   }

@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+
 import ThreeColumnLayout from '@/features/video-call/components/ThreeColumnLayout'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
@@ -9,7 +10,7 @@ const logger = createOpenViduLogger('TestRoomPage')
 
 function VideoCallRoomContent() {
   const searchParams = useSearchParams()
-  
+
   // 쿼리 파라미터에서만 가져오기
   const sessionNameParam = searchParams.get('sessionName')
   const usernameParam = searchParams.get('username')
@@ -37,7 +38,7 @@ function VideoCallRoomContent() {
           <p className="font-body2 text-[var(--color-label-subtle)]">
             사용자명과 세션명이 모두 필요합니다.
           </p>
-          <p className="font-body2 text-[var(--color-label-subtle)] mt-2">
+          <p className="font-body2 mt-2 text-[var(--color-label-subtle)]">
             예시: /testroom?sessionName=session123&username=user1
           </p>
         </div>

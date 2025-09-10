@@ -1,7 +1,13 @@
 import { useCallback } from 'react'
-import { useAsyncAction } from './useAsyncAction'
-import { useVideoCallActions, useAudioEnabled, useVideoEnabled } from '../store'
+
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+
+import { useAsyncAction } from './useAsyncAction'
+import {
+  useVideoCallActions,
+  useAudioEnabled,
+  useVideoEnabled,
+} from '../store'
 
 const logger = createOpenViduLogger('useToggleTrack')
 
@@ -14,16 +20,12 @@ export function useToggleAudio() {
     await toggleAudio()
   }, [toggleAudio, audioEnabled])
 
-  return useAsyncAction(
-    action,
-    'toggleAudio',
-    {
-      errorType: 'device',
-      onError: (error) => {
-        logger.error('오디오 토글 실패', { error: error.message })
-      }
-    }
-  )
+  return useAsyncAction(action, 'toggleAudio', {
+    errorType: 'device',
+    onError: (error) => {
+      logger.error('오디오 토글 실패', { error: error.message })
+    },
+  })
 }
 
 export function useToggleVideo() {
@@ -35,14 +37,10 @@ export function useToggleVideo() {
     await toggleVideo()
   }, [toggleVideo, videoEnabled])
 
-  return useAsyncAction(
-    action,
-    'toggleVideo',
-    {
-      errorType: 'device',
-      onError: (error) => {
-        logger.error('비디오 토글 실패', { error: error.message })
-      }
-    }
-  )
+  return useAsyncAction(action, 'toggleVideo', {
+    errorType: 'device',
+    onError: (error) => {
+      logger.error('비디오 토글 실패', { error: error.message })
+    },
+  })
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+
 import { useChatMessages, useVideoCallActions } from '../store'
 import type { ChatMessage } from '../types'
 
@@ -17,9 +18,9 @@ export default function ChatPanel() {
   useEffect(() => {
     const listElement = messagesListRef.current
     if (listElement) {
-      listElement.scrollTo({ 
-        top: listElement.scrollHeight, 
-        behavior: 'smooth' 
+      listElement.scrollTo({
+        top: listElement.scrollHeight,
+        behavior: 'smooth',
       })
     }
   }, [messages])
@@ -31,13 +32,13 @@ export default function ChatPanel() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!inputValue.trim() || isSending) {
       return
     }
 
     setIsSending(true)
-    
+
     try {
       await sendMessage(inputValue.trim())
       setInputValue('')
@@ -61,7 +62,7 @@ export default function ChatPanel() {
     return timestamp.toLocaleTimeString('ko-KR', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
     })
   }
 
@@ -79,9 +80,9 @@ export default function ChatPanel() {
   return (
     <div className="flex h-full flex-col">
       {/* 메시지 목록 */}
-      <div 
+      <div
         ref={messagesListRef}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-gutter-stable p-[var(--spacing-spacing-3xs)]"
+        className="scrollbar-gutter-stable min-h-0 flex-1 overflow-y-auto overscroll-contain p-[var(--spacing-spacing-3xs)]"
       >
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center">
@@ -95,8 +96,12 @@ export default function ChatPanel() {
               >
                 <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
               </svg>
-              <p className="font-body2">아직 채팅 메시지가 없습니다</p>
-              <p className="font-caption text-xs">첫 번째 메시지를 보내보세요!</p>
+              <p className="font-body2">
+                아직 채팅 메시지가 없습니다
+              </p>
+              <p className="font-caption text-xs">
+                첫 번째 메시지를 보내보세요!
+              </p>
             </div>
           </div>
         ) : (
@@ -116,11 +121,13 @@ export default function ChatPanel() {
                     </span>
                   </div>
                 )}
-                
-                <div className={`${message.type === 'user' ? 'font-body2' : 'font-caption'}`}>
+
+                <div
+                  className={`${message.type === 'user' ? 'font-body2' : 'font-caption'}`}
+                >
                   {message.content}
                 </div>
-                
+
                 {message.type !== 'user' && (
                   <div className="mt-1 text-xs text-[var(--color-label-subtle)]">
                     {formatTimestamp(message.timestamp)}
@@ -135,7 +142,10 @@ export default function ChatPanel() {
 
       {/* 메시지 입력 */}
       <div className="shrink-0 border-t border-[var(--color-border-subtle)] p-[var(--spacing-spacing-3xs)]">
-        <form onSubmit={handleSendMessage} className="flex gap-[var(--spacing-spacing-6xs)]">
+        <form
+          onSubmit={handleSendMessage}
+          className="flex gap-[var(--spacing-spacing-6xs)]"
+        >
           <input
             ref={inputRef}
             type="text"
@@ -153,13 +163,18 @@ export default function ChatPanel() {
             className={`flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] transition-all ${
               inputValue.trim() && !isSending
                 ? 'bg-[var(--color-fill-primary)] text-[var(--color-fill-white)] hover:brightness-110'
-                : 'bg-[var(--color-gray-200)] text-[var(--color-label-subtle)] cursor-not-allowed'
+                : 'cursor-not-allowed bg-[var(--color-gray-200)] text-[var(--color-label-subtle)]'
             }`}
           >
             {isSending ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
               </svg>
             )}

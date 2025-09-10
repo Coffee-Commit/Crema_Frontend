@@ -117,7 +117,7 @@ export async function requestMediaPermissions(): Promise<{
 
     // 즉시 스트림 중지
     stream.getTracks().forEach((track) => track.stop())
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.warn('미디어 권한 요청 실패:', error)
 
     // 개별 권한 확인
@@ -127,7 +127,7 @@ export async function requestMediaPermissions(): Promise<{
       })
       result.audio = true
       audioStream.getTracks().forEach((track) => track.stop())
-    } catch (audioError) {
+    } catch (_audioError) {
       result.errors.push('오디오 접근 거부')
     }
 
@@ -137,7 +137,7 @@ export async function requestMediaPermissions(): Promise<{
       })
       result.video = true
       videoStream.getTracks().forEach((track) => track.stop())
-    } catch (videoError) {
+    } catch (_videoError) {
       result.errors.push('비디오 접근 거부')
     }
   }
@@ -185,7 +185,7 @@ export function getEnvironmentInfo() {
  */
 if (isBrowser && featureFlags.debugMode) {
   // 전역 디버깅 함수 등록
-  ;(window as any).openViduDebug = {
+  ;(window as Window & { openViduDebug?: unknown }).openViduDebug = {
     checkSupport: checkWebRTCSupport,
     requestPermissions: requestMediaPermissions,
     getEnvInfo: getEnvironmentInfo,

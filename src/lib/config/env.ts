@@ -58,7 +58,9 @@ export const featureFlags = loadFeatureFlags()
  * 개발 전용: 런타임에서 피처 플래그 토글 (브라우저 콘솔에서 사용)
  */
 if (typeof window !== 'undefined' && featureFlags.debugMode) {
-  ;(window as any).toggleOpenViduSdk = () => {
+  ;(
+    window as Window & { toggleOpenViduSdk?: () => void }
+  ).toggleOpenViduSdk = () => {
     const current = featureFlags.openviduSdkVersion
     const newVersion: OpenViduSdkVersion =
       current === 'v2compatibility' ? 'v3native' : 'v2compatibility'
@@ -120,70 +122,80 @@ export const openViduServerConfig = {
  * 클라이언트 ICE 서버 설정
  * codex 권장: 올바른 RTCIceServer 형식 사용
  */
-export type ClientIceServer = { 
+export type ClientIceServer = {
   urls: string | string[]
   username?: string
-  credential?: string 
+  credential?: string
 }
 
 export function getClientIceServers(): ClientIceServer[] {
   // 환경변수로 클라이언트 ICE 서버 강제 사용 여부 결정
-  const forceClientIce = process.env.NEXT_PUBLIC_OV_FORCE_CLIENT_ICE === 'true'
-  
+  const forceClientIce =
+    process.env.NEXT_PUBLIC_OV_FORCE_CLIENT_ICE === 'true'
+
   if (!forceClientIce) {
-    console.log('🔧 클라이언트 ICE 서버 비활성화. OpenVidu 서버 제공 ICE 서버 사용')
+    console.log(
+      '🔧 클라이언트 ICE 서버 비활성화. OpenVidu 서버 제공 ICE 서버 사용',
+    )
     return []
   }
-  
+
   const turnHost = process.env.NEXT_PUBLIC_TURN_HOST // IP 또는 도메인
   const turnUser = process.env.NEXT_PUBLIC_TURN_USERNAME
   const turnPass = process.env.NEXT_PUBLIC_TURN_PASSWORD
   const turnDomain = process.env.NEXT_PUBLIC_TURN_DOMAIN // FQDN for TURNS
-  
+
   const iceServers: ClientIceServer[] = []
-  
+
   // Google Public STUN (fallback)
   iceServers.push({ urls: 'stun:stun.l.google.com:19302' })
-  
+
   if (turnHost && turnUser && turnPass) {
     // STUN 서버 (자체 호스트)
     iceServers.push({ urls: `stun:${turnHost}:3478` })
-    
+
     // TURN UDP/TCP 서버
     iceServers.push({
       urls: [
         `turn:${turnHost}:3478?transport=udp`,
-        `turn:${turnHost}:3478?transport=tcp`
+        `turn:${turnHost}:3478?transport=tcp`,
       ],
       username: turnUser,
-      credential: turnPass
+      credential: turnPass,
     })
-    
-    console.log(`🔧 TURN 서버 설정: ${turnHost} (사용자: ${turnUser})`)
+
+    console.log(
+      `🔧 TURN 서버 설정: ${turnHost} (사용자: ${turnUser})`,
+    )
   }
-  
+
   // TURNS (TLS) - 방화벽 환경 대응
   if (turnDomain && turnUser && turnPass) {
     iceServers.push({
       urls: `turns:${turnDomain}:443?transport=tcp`,
       username: turnUser,
-      credential: turnPass
+      credential: turnPass,
     })
-    
+
     console.log(`🔧 TURNS TLS 서버 설정: ${turnDomain}:443`)
   }
-  
-  if (iceServers.length === 1) { // Google STUN만 있는 경우
-    console.warn('⚠️ TURN 서버 설정이 없습니다. NAT/방화벽 환경에서 연결 실패 가능성 높음')
-    console.log('환경변수 설정: NEXT_PUBLIC_TURN_HOST, NEXT_PUBLIC_TURN_USERNAME, NEXT_PUBLIC_TURN_PASSWORD')
+
+  if (iceServers.length === 1) {
+    // Google STUN만 있는 경우
+    console.warn(
+      '⚠️ TURN 서버 설정이 없습니다. NAT/방화벽 환경에서 연결 실패 가능성 높음',
+    )
+    console.log(
+      '환경변수 설정: NEXT_PUBLIC_TURN_HOST, NEXT_PUBLIC_TURN_USERNAME, NEXT_PUBLIC_TURN_PASSWORD',
+    )
   }
-  
+
   console.log(`🔧 총 ${iceServers.length}개 ICE 서버 설정 완료`, {
-    servers: iceServers.map(s => ({ 
-      urls: s.urls, 
-      hasCredentials: !!(s.username && s.credential) 
-    }))
+    servers: iceServers.map((s) => ({
+      urls: s.urls,
+      hasCredentials: !!(s.username && s.credential),
+    })),
   })
-  
+
   return iceServers
 }

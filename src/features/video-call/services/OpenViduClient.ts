@@ -1,16 +1,23 @@
 'use client'
 
-import { OpenVidu, Session, Publisher, Subscriber } from 'openvidu-browser'
+import {
+  OpenVidu,
+  Session,
+  Publisher,
+  Subscriber,
+} from 'openvidu-browser'
+
+import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+
 import type {
   OpenViduClientInterface,
   SessionInfo,
   PublisherOptions,
   EventHandlers,
   NetworkQuality,
-  Participant
+  Participant,
 } from '../types'
-import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
-import { MEDIA_CONSTRAINTS } from '../types'
+import { MEDIA_CONSTRAINTS as _MEDIA_CONSTRAINTS } from '../types'
 
 const logger = createOpenViduLogger('OpenViduClient')
 
@@ -37,7 +44,7 @@ export class OpenViduClient implements OpenViduClientInterface {
 
     try {
       this.openVidu = new OpenVidu()
-      
+
       // OpenVidu 로그 레벨 설정 (개발 환경에서만)
       if (process.env.NODE_ENV === 'development') {
         this.openVidu.enableProdMode()
@@ -46,13 +53,17 @@ export class OpenViduClient implements OpenViduClientInterface {
       logger.info('OpenVidu 클라이언트 초기화 완료')
     } catch (error) {
       logger.error('OpenVidu 클라이언트 초기화 실패', {
-        error: error instanceof Error ? error.message : '알 수 없는 오류'
+        error:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
   }
 
-  async connect(sessionInfo: SessionInfo, username: string): Promise<Session> {
+  async connect(
+    sessionInfo: SessionInfo,
+    username: string,
+  ): Promise<Session> {
     if (!this.openVidu) {
       await this.init()
     }
@@ -66,31 +77,33 @@ export class OpenViduClient implements OpenViduClientInterface {
       logger.info('OpenVidu 세션 연결 시작', {
         sessionId: sessionInfo.id,
         username,
-        serverUrl: sessionInfo.serverUrl
+        serverUrl: sessionInfo.serverUrl,
       })
 
       // 세션 생성
       this.session = this.openVidu!.initSession()
-      
+
       // 이벤트 리스너 등록
       this.setupEventListeners()
 
       // 세션 연결
-      await this.session.connect(sessionInfo.token, { clientData: username })
-      
+      await this.session.connect(sessionInfo.token, {
+        clientData: username,
+      })
+
       logger.info('OpenVidu 세션 연결 완료', {
         sessionId: sessionInfo.id,
-        connectionId: this.session.connection.connectionId
+        connectionId: this.session.connection.connectionId,
       })
 
       return this.session
-
     } catch (error) {
       logger.error('OpenVidu 세션 연결 실패', {
         sessionId: sessionInfo.id,
-        error: error instanceof Error ? error.message : '알 수 없는 오류'
+        error:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
-      
+
       this.session = null
       throw error
     }
@@ -104,7 +117,7 @@ export class OpenViduClient implements OpenViduClientInterface {
 
     try {
       logger.info('OpenVidu 세션 연결 해제 시작')
-      
+
       // Publisher 정리
       if (this.publisher) {
         await this.unpublish(this.publisher)
@@ -118,12 +131,12 @@ export class OpenViduClient implements OpenViduClientInterface {
       this.session = null
 
       logger.info('OpenVidu 세션 연결 해제 완료')
-
     } catch (error) {
       logger.error('OpenVidu 세션 연결 해제 실패', {
-        error: error instanceof Error ? error.message : '알 수 없는 오류'
+        error:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
-      
+
       // 실패해도 상태는 초기화
       this.session = null
       throw error
@@ -145,7 +158,10 @@ export class OpenViduClient implements OpenViduClientInterface {
     }
 
     try {
-      logger.info('Publisher 생성 시작', options)
+      logger.info(
+        'Publisher 생성 시작',
+        options as Record<string, unknown>,
+      )
 
       const publisherOptions = {
         audioSource: options.audioSource ?? true,
@@ -155,30 +171,30 @@ export class OpenViduClient implements OpenViduClientInterface {
         resolution: options.resolution ?? '1280x720',
         frameRate: options.frameRate ?? 30,
         insertMode: 'APPEND' as const,
-        mirror: false
+        mirror: false,
       }
 
       this.publisher = await this.openVidu!.initPublisherAsync(
         undefined, // targetElement (나중에 설정)
-        publisherOptions
+        publisherOptions,
       )
 
       // 세션에 게시
       await this.session.publish(this.publisher)
-      
+
       logger.info('Publisher 생성 및 게시 완료', {
         streamId: this.publisher.stream?.streamId,
         hasAudio: this.publisher.stream?.hasAudio,
-        hasVideo: this.publisher.stream?.hasVideo
+        hasVideo: this.publisher.stream?.hasVideo,
       })
 
       return this.publisher
-
     } catch (error) {
       logger.error('Publisher 생성 실패', {
-        error: error instanceof Error ? error.message : '알 수 없는 오류'
+        error:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
-      
+
       this.publisher = null
       throw error
     }
@@ -192,18 +208,18 @@ export class OpenViduClient implements OpenViduClientInterface {
 
     try {
       logger.info('Publisher 게시 해제 시작')
-      
+
       await this.session.unpublish(publisher)
-      
+
       if (publisher === this.publisher) {
         this.publisher = null
       }
 
       logger.info('Publisher 게시 해제 완료')
-
     } catch (error) {
       logger.error('Publisher 게시 해제 실패', {
-        error: error instanceof Error ? error.message : '알 수 없는 오류'
+        error:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
@@ -216,7 +232,7 @@ export class OpenViduClient implements OpenViduClientInterface {
   subscribeToEvents(handlers: EventHandlers): void {
     this.eventHandlers = { ...this.eventHandlers, ...handlers }
     logger.debug('이벤트 핸들러 등록', {
-      handlerCount: Object.keys(handlers).length
+      handlerCount: Object.keys(handlers).length,
     })
   }
 
@@ -227,14 +243,14 @@ export class OpenViduClient implements OpenViduClientInterface {
     this.session.on('connectionCreated', (event) => {
       logger.info('참가자 연결됨', {
         connectionId: event.connection.connectionId,
-        clientData: event.connection.data
+        clientData: event.connection.data,
       })
     })
 
     // 참가자 연결 해제
     this.session.on('connectionDestroyed', (event) => {
       logger.info('참가자 연결 해제됨', {
-        connectionId: event.connection.connectionId
+        connectionId: event.connection.connectionId,
       })
     })
 
@@ -244,11 +260,14 @@ export class OpenViduClient implements OpenViduClientInterface {
         streamId: event.stream.streamId,
         connectionId: event.stream.connection.connectionId,
         hasAudio: event.stream.hasAudio,
-        hasVideo: event.stream.hasVideo
+        hasVideo: event.stream.hasVideo,
       })
 
       // 자동 구독
-      const subscriber = this.session!.subscribe(event.stream, undefined)
+      const subscriber = this.session!.subscribe(
+        event.stream,
+        undefined,
+      )
       this.subscribers.set(event.stream.streamId, subscriber)
 
       // 참가자 정보 구성
@@ -258,14 +277,14 @@ export class OpenViduClient implements OpenViduClientInterface {
         nickname: event.stream.connection.data || 'Unknown',
         isLocal: false,
         streams: {
-          camera: event.stream.getMediaStream()
+          camera: event.stream.getMediaStream(),
         },
         audioLevel: 0,
         speaking: false,
         audioEnabled: event.stream.hasAudio,
         videoEnabled: event.stream.hasVideo,
         isScreenSharing: event.stream.typeOfVideo === 'SCREEN',
-        joinedAt: new Date()
+        joinedAt: new Date(),
       }
 
       this.eventHandlers.onParticipantJoined?.(participant)
@@ -275,11 +294,13 @@ export class OpenViduClient implements OpenViduClientInterface {
     this.session.on('streamDestroyed', (event) => {
       logger.info('스트림 제거됨', {
         streamId: event.stream.streamId,
-        connectionId: event.stream.connection.connectionId
+        connectionId: event.stream.connection.connectionId,
       })
 
       this.subscribers.delete(event.stream.streamId)
-      this.eventHandlers.onParticipantLeft?.(event.stream.connection.connectionId)
+      this.eventHandlers.onParticipantLeft?.(
+        event.stream.connection.connectionId,
+      )
     })
 
     // 시그널 수신 (채팅 메시지)
@@ -291,7 +312,10 @@ export class OpenViduClient implements OpenViduClientInterface {
         } catch (error) {
           logger.warn('채팅 메시지 파싱 실패', {
             data: event.data,
-            error: error instanceof Error ? error.message : '알 수 없는 오류'
+            error:
+              error instanceof Error
+                ? error.message
+                : '알 수 없는 오류',
           })
         }
       }
@@ -301,14 +325,14 @@ export class OpenViduClient implements OpenViduClientInterface {
     this.session.on('exception', (exception) => {
       logger.error('OpenVidu 예외 발생', {
         name: exception.name,
-        message: exception.message
+        message: exception.message,
       })
 
       const error = {
         code: exception.name,
         message: exception.message,
         type: 'connection' as const,
-        recoverable: true
+        recoverable: true,
       }
 
       this.eventHandlers.onError?.(error)
@@ -321,14 +345,16 @@ export class OpenViduClient implements OpenViduClientInterface {
 
   async getNetworkStats(): Promise<NetworkQuality> {
     if (!this.session || !this.publisher) {
-      throw new Error('세션 또는 Publisher가 활성화되어 있지 않습니다')
+      throw new Error(
+        '세션 또는 Publisher가 활성화되어 있지 않습니다',
+      )
     }
 
     try {
       // WebRTC stats API를 사용하여 네트워크 통계 수집
       // 실제 구현에서는 WebRTC getStats API를 사용
       // const stats = await this.publisher.stream?.getMediaStream()?.getTracks()[0]?.getStats()
-      
+
       // 임시 데이터 반환 (실제로는 WebRTC stats에서 계산)
       const networkQuality: NetworkQuality = {
         level: 4, // 0-4 (4가 최고)
@@ -337,15 +363,15 @@ export class OpenViduClient implements OpenViduClientInterface {
         packetLoss: 0.01, // 0-1 (백분율)
         bandwidth: {
           upload: 1000, // kbps
-          download: 1500 // kbps
-        }
+          download: 1500, // kbps
+        },
       }
 
       return networkQuality
-
     } catch (error) {
       logger.error('네트워크 통계 수집 실패', {
-        error: error instanceof Error ? error.message : '알 수 없는 오류'
+        error:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
