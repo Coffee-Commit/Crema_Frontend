@@ -3,7 +3,7 @@ import type { Publisher } from 'openvidu-browser'
 import {
   swapToScreen,
   swapToCamera,
-  ScreenShareContext,
+  ScreenShareContext as _ScreenShareContext,
 } from '@/shared/openvidu/replaceVideoTrack'
 
 import { useScreenShareStore } from './model/screenShare.store'
@@ -23,7 +23,7 @@ export async function startScreenShare(publisher: Publisher) {
 
     store.setCtx(ctx)
     store.setIsScreenSharing(true)
-  } catch (err: any) {
+  } catch (err: unknown) {
     // NotAllowedError, AbortError 등 권한/취소 대응
     store.setIsScreenSharing(false)
     // TODO: 토스트/로그
@@ -40,7 +40,7 @@ export async function stopScreenShare(publisher: Publisher) {
   store.setToggling(true)
   try {
     await swapToCamera(publisher, store.ctx)
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Screen share stop failed:', err)
   } finally {
     store.clearCtx()

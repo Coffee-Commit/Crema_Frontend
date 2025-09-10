@@ -28,7 +28,9 @@ export interface TestRoomPageProps {
 
 export interface CoffeeChatPageProps {
   params: Promise<{ sessionId: string }>
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
+  searchParams?: Promise<
+    Record<string, string | string[] | undefined>
+  >
 }
 
 // 환경 정보 타입

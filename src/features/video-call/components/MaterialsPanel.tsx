@@ -113,8 +113,10 @@ export default function MaterialsPanel() {
 
       // 업로드 성공 후 새로운 자료를 목록에 추가
       const uploadResult =
-        (response.data as unknown as ApiResponse<ImageUploadResponse>).result ||
-        (response.data as unknown as { data: ImageUploadResponse }).data
+        (response.data as unknown as ApiResponse<ImageUploadResponse>)
+          .result ||
+        (response.data as unknown as { data: ImageUploadResponse })
+          .data
       const uploadedFile: SharedMaterial = {
         id: uploadResult.imageKey,
         imageKey: uploadResult.imageKey,
@@ -172,7 +174,8 @@ export default function MaterialsPanel() {
       )
 
       const urlResult =
-        (response.data as unknown as ApiResponse<ImageUrlResponse>).result ||
+        (response.data as unknown as ApiResponse<ImageUrlResponse>)
+          .result ||
         (response.data as unknown as { data: ImageUrlResponse }).data
       const downloadUrl = urlResult.presignedUrl
 

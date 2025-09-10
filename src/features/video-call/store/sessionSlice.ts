@@ -1,4 +1,4 @@
-import type { Session } from 'openvidu-browser'
+import type { Session as _Session } from 'openvidu-browser'
 import { StateCreator } from 'zustand'
 
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
@@ -7,7 +7,7 @@ import type {
   SessionSlice,
   SessionStatus,
   SessionInfo,
-  VideoCallError,
+  VideoCallError as _VideoCallError,
 } from '../types'
 
 const logger = createOpenViduLogger('SessionSlice')

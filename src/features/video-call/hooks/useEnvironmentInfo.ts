@@ -148,12 +148,23 @@ function getBrowserInfo(userAgent: string) {
 // 네트워크 연결 정보
 function getConnectionInfo() {
   if ('connection' in navigator) {
-    const connection = (navigator as any).connection
-    return {
-      effectiveType: connection.effectiveType,
-      downlink: connection.downlink,
-      rtt: connection.rtt,
-      saveData: connection.saveData,
+    const connection = (
+      navigator as Navigator & {
+        connection?: {
+          effectiveType?: string
+          downlink?: number
+          rtt?: number
+          saveData?: boolean
+        }
+      }
+    ).connection
+    if (connection) {
+      return {
+        effectiveType: connection.effectiveType,
+        downlink: connection.downlink,
+        rtt: connection.rtt,
+        saveData: connection.saveData,
+      }
     }
   }
 

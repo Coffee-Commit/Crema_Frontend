@@ -19,7 +19,12 @@ export default function RemoteVideoPanel() {
   const displayParticipant = remoteParticipants[0] || null
 
   useEffect(() => {
-    if (!videoRef.current || !displayParticipant || !sessionReady) {
+    const currentVideoElement = videoRef.current
+    if (
+      !currentVideoElement ||
+      !displayParticipant ||
+      !sessionReady
+    ) {
       return
     }
 
@@ -33,8 +38,8 @@ export default function RemoteVideoPanel() {
     videoElement.style.objectFit = 'cover'
 
     // 기존 비디오 엘리먼트 정리
-    videoRef.current.innerHTML = ''
-    videoRef.current.appendChild(videoElement)
+    currentVideoElement.innerHTML = ''
+    currentVideoElement.appendChild(videoElement)
 
     // 미디어 스트림 연결
     if (displayParticipant.streams.camera) {
@@ -45,8 +50,8 @@ export default function RemoteVideoPanel() {
 
     // 정리 함수
     return () => {
-      if (videoRef.current) {
-        videoRef.current.innerHTML = ''
+      if (currentVideoElement) {
+        currentVideoElement.innerHTML = ''
       }
     }
   }, [displayParticipant, sessionReady])

@@ -56,7 +56,7 @@ export const createNetworkSlice: StateCreator<
     participantId: string,
     stats: NetworkQuality,
   ) => {
-    const currentState = get()
+    const _currentState = get()
 
     logger.debug('참가자 네트워크 통계 업데이트', {
       participantId,
@@ -138,7 +138,7 @@ export const createNetworkSlice: StateCreator<
 // ============================================================================
 
 export const getQualityLevel = (
-  get: any,
+  get: () => NetworkSlice,
 ): 'excellent' | 'good' | 'fair' | 'poor' | 'unknown' => {
   const quality = get().quality
 
@@ -150,7 +150,9 @@ export const getQualityLevel = (
   return 'poor'
 }
 
-export const getQualityDescription = (get: any): string => {
+export const getQualityDescription = (
+  get: () => NetworkSlice,
+): string => {
   const quality = get().quality
 
   if (!quality) return '네트워크 상태를 확인할 수 없습니다'
@@ -171,7 +173,9 @@ export const getQualityDescription = (get: any): string => {
   }
 }
 
-export const shouldShowNetworkWarning = (get: any): boolean => {
+export const shouldShowNetworkWarning = (
+  get: () => NetworkSlice,
+): boolean => {
   const quality = get().quality
 
   if (!quality) return false
@@ -184,7 +188,9 @@ export const shouldShowNetworkWarning = (get: any): boolean => {
   )
 }
 
-export const getNetworkRecommendations = (get: any): string[] => {
+export const getNetworkRecommendations = (
+  get: () => NetworkSlice,
+): string[] => {
   const quality = get().quality
   const recommendations: string[] = []
 
@@ -224,7 +230,9 @@ export const getNetworkRecommendations = (get: any): string[] => {
 }
 
 // 참가자별 네트워크 상태 요약
-export const getParticipantsNetworkSummary = (get: any) => {
+export const getParticipantsNetworkSummary = (
+  get: () => NetworkSlice,
+) => {
   const connectionStats = get().connectionStats
   const summary = {
     total: connectionStats.size,
@@ -234,7 +242,7 @@ export const getParticipantsNetworkSummary = (get: any) => {
     poor: 0,
   }
 
-  connectionStats.forEach((stats: any) => {
+  connectionStats.forEach((stats: { level: number }) => {
     if (stats.level >= 4) summary.excellent++
     else if (stats.level >= 3) summary.good++
     else if (stats.level >= 2) summary.fair++

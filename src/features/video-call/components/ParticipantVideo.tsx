@@ -18,7 +18,8 @@ export default function ParticipantVideo({
   const { pinParticipant } = useVideoCallActions()
 
   useEffect(() => {
-    if (!videoRef.current || !participant) {
+    const currentVideoElement = videoRef.current
+    if (!currentVideoElement || !participant) {
       return
     }
 
@@ -32,8 +33,8 @@ export default function ParticipantVideo({
     videoElement.style.objectFit = 'cover'
 
     // 기존 엘리먼트 정리
-    videoRef.current.innerHTML = ''
-    videoRef.current.appendChild(videoElement)
+    currentVideoElement.innerHTML = ''
+    currentVideoElement.appendChild(videoElement)
 
     // 미디어 스트림 연결
     if (participant.streams.camera) {
@@ -43,8 +44,8 @@ export default function ParticipantVideo({
     }
 
     return () => {
-      if (videoRef.current) {
-        videoRef.current.innerHTML = ''
+      if (currentVideoElement) {
+        currentVideoElement.innerHTML = ''
       }
     }
   }, [participant])

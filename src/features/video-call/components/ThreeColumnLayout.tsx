@@ -17,7 +17,7 @@ import LocalVideoPanel from './LocalVideoPanel'
 import ModifiedControlsBar from './ModifiedControlsBar'
 import ModifiedSidebar from './ModifiedSidebar'
 import RemoteVideoPanel from './RemoteVideoPanel'
-import type { SafeAny } from '../types/common.types'
+import type { SafeAny as _SafeAny } from '../types/common.types'
 import { isRecord } from '../types/guards.types'
 
 interface ThreeColumnLayoutProps {
@@ -260,7 +260,14 @@ function ThreeColumnLayoutInner({
         cleanupRef.current()
       }
     }
-  }, [username, sessionName, reservationId, sessionStatus, actions])
+  }, [
+    username,
+    sessionName,
+    reservationId,
+    sessionStatus,
+    actions,
+    environmentInfo?.hasVideoDevice,
+  ])
 
   // Publisher 생성 완료 시 로컬 참가자 ID 설정
   useEffect(() => {
@@ -268,12 +275,23 @@ function ThreeColumnLayoutInner({
       const state = actions.getState?.()
       if (isRecord(state) && state.participants instanceof Map) {
         const localParticipants = Array.from(
-          (state.participants as unknown as Map<string, Record<string, unknown>>).values()
+          (
+            state.participants as unknown as Map<
+              string,
+              Record<string, unknown>
+            >
+          ).values(),
         ).filter((p: Record<string, unknown>) => p.isLocal === true)
 
-        if (localParticipants.length > 0 && isRecord(localParticipants[0]) && localParticipants[0].id) {
+        if (
+          localParticipants.length > 0 &&
+          isRecord(localParticipants[0]) &&
+          localParticipants[0].id
+        ) {
           // 첫 번째 로컬 참가자를 현재 localParticipantId로 설정
-          actions.setLocalParticipantId?.(String(localParticipants[0].id))
+          actions.setLocalParticipantId?.(
+            String(localParticipants[0].id),
+          )
         }
       }
     }

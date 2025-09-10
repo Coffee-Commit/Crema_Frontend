@@ -112,7 +112,7 @@ function VideoCallRoomInner({
 
       logger.debug('컴포넌트 언마운트 완료')
     }
-  }, [])
+  }, [leaveSession, sessionName, username])
 
   // 페이지 나가기 이벤트 처리 (안전한 세션 정리)
   useEffect(() => {

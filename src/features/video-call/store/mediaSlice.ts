@@ -1,10 +1,10 @@
-import type { Publisher } from 'openvidu-browser'
+import type { Publisher as _Publisher } from 'openvidu-browser'
 import { StateCreator } from 'zustand'
 
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 import type { MediaSlice, MediaDevice, MediaSettings } from '../types'
-import { MEDIA_CONSTRAINTS } from '../types'
+import { MEDIA_CONSTRAINTS as _MEDIA_CONSTRAINTS } from '../types'
 
 const logger = createOpenViduLogger('MediaSlice')
 
