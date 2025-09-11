@@ -120,6 +120,19 @@ export class OpenViduClient implements OpenViduClientInterface {
 
       // Publisher 정리
       if (this.publisher) {
+        try {
+          // 게시 해제 전에 로컬 트랙을 먼저 중지하여 디바이스 점유 해제 보장
+          const ms = this.publisher.stream?.getMediaStream?.()
+          if (ms) {
+            try {
+              ms.getTracks().forEach((t) => {
+                try {
+                  t.stop()
+                } catch {}
+              })
+            } catch {}
+          }
+        } catch {}
         await this.unpublish(this.publisher)
       }
 
@@ -210,6 +223,18 @@ export class OpenViduClient implements OpenViduClientInterface {
       logger.info('Publisher 게시 해제 시작')
 
       await this.session.unpublish(publisher)
+
+      // 브라우저 자원 해제 보장: 트랙 중지
+      try {
+        const ms = publisher.stream?.getMediaStream?.()
+        if (ms) {
+          ms.getTracks().forEach((t) => {
+            try {
+              t.stop()
+            } catch {}
+          })
+        }
+      } catch {}
 
       if (publisher === this.publisher) {
         this.publisher = null

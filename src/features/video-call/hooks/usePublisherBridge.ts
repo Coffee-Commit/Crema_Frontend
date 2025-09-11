@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useCallback } from 'react'
 import type { Session, Publisher } from 'openvidu-browser'
+import { useRef, useCallback } from 'react'
+
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 const logger = createOpenViduLogger('PublisherBridge')
@@ -174,7 +175,9 @@ export const usePublisherBridge = (
         }
 
         // replaceTrack이 없거나 실패하면 ensurePublisher로 폴백
-        logger.debug('replaceTrack 미지원 또는 실패, ensurePublisher 폴백')
+        logger.debug(
+          'replaceTrack 미지원 또는 실패, ensurePublisher 폴백',
+        )
         await ensurePublisher(stream)
       } catch (error) {
         logger.warn('트랙 교체 실패', { error })

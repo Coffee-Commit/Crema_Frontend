@@ -370,6 +370,20 @@ export class EventBridge {
           this.handleNotification(data, from)
           break
 
+        case 'signal:file-share':
+          // 파일 공유 신호는 페이지 단에서 처리하는 경우가 있어 노이즈 로그 방지
+          try {
+            const parsed = JSON.parse(data)
+            logger.debug('파일 공유 신호 수신', {
+              id: parsed?.id,
+              name: parsed?.name,
+              sizeBytes: parsed?.sizeBytes,
+            })
+          } catch {
+            logger.debug('파일 공유 신호(파싱 실패)', { length: data?.length })
+          }
+          break
+
         default:
           logger.debug('알 수 없는 신호 타입', { type })
       }
@@ -388,6 +402,15 @@ export class EventBridge {
   ): void {
     try {
       const messageData = JSON.parse(data)
+
+      // 자기 자신이 보낸 신호는 로컬 낙관적 추가가 이미 있으므로 무시하여 에코 방지
+      try {
+        const myConn = useVideoCallStore.getState().session?.connection?.connectionId
+        if (from?.connectionId && myConn && from.connectionId === myConn) {
+          logger.debug('자기 신호(chat) 에코 무시', { messageId: messageData?.id })
+          return
+        }
+      } catch {}
 
       const chatMessage: ChatMessage = {
         id:

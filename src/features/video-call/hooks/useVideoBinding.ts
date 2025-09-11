@@ -1,6 +1,7 @@
 'use client'
 
 import { RefObject, useCallback } from 'react'
+
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 const logger = createOpenViduLogger('VideoBinding')

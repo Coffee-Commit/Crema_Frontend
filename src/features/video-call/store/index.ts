@@ -374,7 +374,7 @@ if (typeof window !== 'undefined') {
       remoteCount,
       clearLocalAsRemote,
     }
-    // eslint-disable-next-line no-console
+
     console.log('[__vc] debug helper ready')
   } catch {
     // ignore

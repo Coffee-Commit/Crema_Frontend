@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 const logger = createOpenViduLogger('LocalMediaController')
@@ -54,6 +55,18 @@ export const useLocalMediaController = (): LocalMediaController => {
         video: true,
         audio: true,
       })
+
+      // 비디오 트랙 힌트 설정: 카메라에는 motion 권장
+      try {
+        const vtrack = stream.getVideoTracks()[0]
+        if (vtrack) {
+          // @ts-expect-error - 실험적 속성
+          if (!vtrack.contentHint || vtrack.contentHint !== 'motion') {
+            // @ts-expect-error - 실험적 속성
+            vtrack.contentHint = 'motion'
+          }
+        }
+      } catch {}
 
       streamRef.current = stream
       setMode('camera')
@@ -111,7 +124,10 @@ export const useLocalMediaController = (): LocalMediaController => {
           // 화면공유는 텍스트/디테일 우선
           // 일부 브라우저는 contentHint 설정을 지원
           // @ts-expect-error - 실험적 속성
-          if (!videoTrack.contentHint || videoTrack.contentHint !== 'detail') {
+          if (
+            !videoTrack.contentHint ||
+            videoTrack.contentHint !== 'detail'
+          ) {
             // @ts-expect-error - 실험적 속성
             videoTrack.contentHint = 'detail'
           }

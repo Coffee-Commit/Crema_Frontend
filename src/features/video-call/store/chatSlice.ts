@@ -1,3 +1,4 @@
+import type { Session as _Session } from 'openvidu-browser'
 import { StateCreator } from 'zustand'
 
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
@@ -9,6 +10,8 @@ import { VIDEO_CALL_CONSTANTS } from '../types'
 type VideoCallStore = ChatSlice & {
   localParticipantId: string | null
   currentUsername: string | null
+  // 실제 Store에는 SessionSlice가 병합되어 있으며, 여기서 타입만 확장해 접근합니다.
+  session: _Session | null
 }
 
 const logger = createOpenViduLogger('ChatSlice')
@@ -38,7 +41,7 @@ export const createChatSlice: StateCreator<
       (m) => m.id === message.id,
     )
     if (isDuplicate) {
-      logger.warn('중복 메시지 추가 시도', { messageId: message.id })
+      logger.debug('중복 메시지 추가 시도', { messageId: message.id })
       return
     }
 
@@ -85,9 +88,11 @@ export const createChatSlice: StateCreator<
       contentLength: trimmedContent.length,
     })
 
+    let pendingMessageId: string | null = null
     try {
       // 메시지 ID 생성 (타임스탬프 + 랜덤)
       const messageId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      pendingMessageId = messageId
 
       // 현재 사용자 정보를 store에서 가져오기
       const state = get()
@@ -107,8 +112,31 @@ export const createChatSlice: StateCreator<
       // 로컬에 먼저 추가 (낙관적 업데이트)
       get().addMessage(localMessage)
 
-      // TODO: 실제 채팅 서비스를 통해 다른 참가자들에게 전송
-      // await chatService.sendMessage(trimmedContent)
+      // 실제 OpenVidu 세션을 통해 시그널 전송
+      const session = state.session
+      if (!session) {
+        // 롤백 처리
+        set((s) => ({
+          messages: s.messages.filter((m) => m.id !== messageId),
+          unreadCount: s.unreadCount > 0 ? s.unreadCount - 1 : 0,
+        }))
+        throw new Error(
+          '세션이 준비되지 않았습니다. 연결 상태를 확인해주세요.',
+        )
+      }
+
+      const payload = {
+        id: messageId,
+        message: trimmedContent,
+        timestamp: localMessage.timestamp.toISOString(),
+        // EventBridge는 senderName을 사용하므로 명시적으로 포함
+        senderName: currentUsername,
+      }
+
+      await session.signal({
+        type: 'chat',
+        data: JSON.stringify(payload),
+      })
 
       logger.info('채팅 메시지 전송 완료', { messageId })
     } catch (error) {
@@ -118,7 +146,19 @@ export const createChatSlice: StateCreator<
       })
 
       // 전송 실패시 로컬 메시지 제거 (rollback)
-      // 실제 구현에서는 메시지 상태를 'failed'로 변경할 수도 있음
+      // 참고: 현재 unreadCount는 사용자 메시지에도 증가하므로, 최소한의 보정만 수행합니다.
+      try {
+        const idToRemove = pendingMessageId
+        if (idToRemove) {
+          set((s) => ({
+            messages: s.messages.filter((m) => m.id !== idToRemove),
+            unreadCount: s.unreadCount > 0 ? s.unreadCount - 1 : 0,
+          }))
+        }
+      } catch {
+        // noop - 롤백 보조 실패는 무시
+      }
+
       throw error
     }
   },
