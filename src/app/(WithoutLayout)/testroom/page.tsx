@@ -27,6 +27,7 @@ import {
   useChatMessages,
   useVideoCallStore,
 } from '@/features/video-call/store'
+import { createCleanupCall } from '@/features/video-call/utils/cleanup'
 import type { ChatMessage } from '@/features/video-call/types'
 import { globalSessionManager } from '@/features/video-call/utils/sessionManager'
 import { featureFlags } from '@/lib/config/env'
@@ -145,24 +146,58 @@ function VideoCallRoomContent() {
     _publisherBridge,
   ])
 
-  // 브라우저 뒤로가기(popstate) 시 자동 연결 해제 (확인창 없이)
+  // 비디오 요소 레퍼런스 (클린업에서 사용)
+  const myCamVideoRef = useRef<HTMLVideoElement>(null)
+  const remoteCamVideoRef = useRef<HTMLVideoElement>(null)
+  const shareVideoRef = useRef<HTMLVideoElement>(null)
+  const initializingRef = useRef(false)
+  const sessionKeyRef = useRef<string | null>(null)
+
+  // 멱등 클린업 함수 생성
+  const cleanupCall = useMemo(
+    () =>
+      createCleanupCall({
+        actions,
+        localMediaController,
+        publisherBridge: _publisherBridge,
+        videoElements: [myCamVideoRef, remoteCamVideoRef, shareVideoRef],
+      }),
+    [actions, localMediaController, _publisherBridge],
+  )
+
+  // 브라우저 뒤로가기(popstate) 및 페이지 숨김(pagehide) 시 즉시 정리
   useEffect(() => {
     if (typeof window === 'undefined') return
+
     const onPopState = () => {
       try {
         const status = actions.getState?.().status
         logger.info('브라우저 뒤로가기 감지', { status })
         if (status && status !== 'idle') {
-          // 비동기 실행하여 브라우저 네비게이션을 블로킹하지 않음
-          setTimeout(() => leaveWithoutConfirm(), 0)
+          // 네비게이션을 막지 않도록 마이크/카메라 즉시 정리
+          setTimeout(() => {
+            cleanupCall('popstate')
+            // 서버 세션 종료 확인창 없이 로컬 단절만 보장
+          }, 0)
         }
       } catch (e) {
         console.error('뒤로가기 처리 중 오류', e)
       }
     }
+
+    const onPageHide = () => {
+      try {
+        setTimeout(() => cleanupCall('pagehide'), 0)
+      } catch {}
+    }
+
     window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
-  }, [leaveWithoutConfirm, actions])
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [actions, cleanupCall])
 
   const sessionNameParam = searchParams.get('sessionName')
   const usernameParam = searchParams.get('username')
@@ -214,13 +249,6 @@ function VideoCallRoomContent() {
   const [previewName, setPreviewName] = useState<string>('')
   const [previewMime, setPreviewMime] =
     useState<string>('application/pdf')
-
-  
-  const myCamVideoRef = useRef<HTMLVideoElement>(null)
-  const remoteCamVideoRef = useRef<HTMLVideoElement>(null)
-  const shareVideoRef = useRef<HTMLVideoElement>(null)
-  const initializingRef = useRef(false)
-  const sessionKeyRef = useRef<string | null>(null)
 
   // 타이머는 세션 연결 후에만 실행 (불필요한 재렌더링 방지)
   useEffect(() => {
@@ -361,8 +389,7 @@ function VideoCallRoomContent() {
             logger.info('지연된 세션 cleanup 실행', { sessionKey })
             if (actions.getState().status === 'connected') {
               try {
-                await actions.destroyPublisher?.()
-                await actions.disconnect()
+                await cleanupCall('unmount-scheduled')
                 logger.info('세션 cleanup 완료', { sessionKey })
               } catch (error) {
                 logger.error('세션 cleanup 실패:', { error })
@@ -374,6 +401,8 @@ function VideoCallRoomContent() {
       }
 
       initializingRef.current = false
+      // 즉시 정리도 한 번 더 시도 (멱등)
+      cleanupCall('unmount-immediate').catch(() => {})
     }
   }, [
     usernameParam,
@@ -876,6 +905,8 @@ function VideoCallRoomContent() {
         logger.error('세션 종료 실패:', { error: String(leaveError) })
         // 세션 종료도 실패한 경우에도 최소한 로그는 남김
       }
+      // 로컬 미디어/퍼블리셔/스토어까지 확실히 정리
+      await cleanupCall('explicit-leave')
     }
   }
 
