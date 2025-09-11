@@ -1,6 +1,7 @@
 'use client'
 
 import clsx from 'clsx'
+import Image from 'next/image'
 import { CalendarDays, Clock, Coffee } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -46,8 +47,17 @@ export default function ScheduleTable({
         className="gap-spacing-2xs flex flex-col"
       >
         {pagedItems.length === 0 && (
-          <div className="py-spacing-md font-body3 text-label-subtle text-center">
-            표시할 일정이 없습니다.
+          <div className="py-spacing-md flex flex-col items-center justify-center gap-4">
+            <Image
+              src="/images/emptyState.png"
+              alt="일정 없음"
+              width={248}
+              height={248}
+              className="object-contain"
+            />
+            <span className="font-body3 text-label-subtle text-center">
+              표시할 일정이 없습니다.
+            </span>
           </div>
         )}
 

@@ -34,7 +34,6 @@ export default function ScheduleSelector({
     setLocal(updated)
     onChange?.(updated)
   }
-  
   const handleTimeChange = (
     type: 'startTime' | 'endTime',
     value: string,
