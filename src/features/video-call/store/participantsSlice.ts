@@ -27,31 +27,61 @@ export const createParticipantsSlice: StateCreator<
   addParticipant: (participant: Participant) => {
     const currentState = get()
 
-    // 이미 존재하는 참가자인지 확인
-    if (currentState.participants.has(participant.id)) {
+    // 세션의 내 connectionId와 동일하면 로컬로 보정
+    const myConnectionId = currentState.session?.connection?.connectionId
+    const corrected: Participant =
+      myConnectionId && participant.connectionId === myConnectionId
+        ? { ...participant, isLocal: true }
+        : participant
+
+    // 이미 동일 ID 보유 시 스킵
+    if (currentState.participants.has(corrected.id)) {
       logger.warn('이미 존재하는 참가자 추가 시도', {
-        participantId: participant.id,
-        nickname: participant.nickname,
+        participantId: corrected.id,
+        nickname: corrected.nickname,
       })
       return
     }
 
     logger.info('참가자 추가', {
-      participantId: participant.id,
-      nickname: participant.nickname,
-      isLocal: participant.isLocal,
+      participantId: corrected.id,
+      nickname: corrected.nickname,
+      isLocal: corrected.isLocal,
     })
 
     set((state) => {
       const newParticipants = new Map(state.participants)
-      newParticipants.set(participant.id, participant)
+
+      // connectionId 기준 중복 제거 (동일 연결의 기존 엔트리 제거)
+      for (const [pid, p] of newParticipants) {
+        if (p.connectionId === corrected.connectionId && pid !== corrected.id) {
+          newParticipants.delete(pid)
+        }
+      }
+
+      newParticipants.set(corrected.id, corrected)
+
+      try {
+        logger.debug('참가자 추가(set) 직후 수', {
+          size: newParticipants.size,
+          added: {
+            id: corrected.id,
+            conn: corrected.connectionId,
+            isLocal: corrected.isLocal,
+          },
+        })
+      } catch {}
+
+      // 로컬 참가자 ID 갱신
+      const nextLocalId = corrected.isLocal
+        ? corrected.id
+        : newParticipants.get(state.localParticipantId || '')?.isLocal
+          ? state.localParticipantId
+          : state.localParticipantId
 
       return {
         participants: newParticipants,
-        // 로컬 참가자인 경우 로컬 ID 설정
-        localParticipantId: participant.isLocal
-          ? participant.id
-          : state.localParticipantId,
+        localParticipantId: nextLocalId,
       }
     })
   },
@@ -103,6 +133,13 @@ export const createParticipantsSlice: StateCreator<
     set((state) => {
       const newParticipants = new Map(state.participants)
       newParticipants.delete(id)
+
+      try {
+        logger.debug('참가자 제거(set) 직후 수', {
+          size: newParticipants.size,
+          removedId: id,
+        })
+      } catch {}
 
       return {
         participants: newParticipants,
