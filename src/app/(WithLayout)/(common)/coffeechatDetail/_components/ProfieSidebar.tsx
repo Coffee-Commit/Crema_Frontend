@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { RefObject, useEffect, useState } from 'react'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
+import api from '@/lib/http/api'
 
 interface SideBarProps {
   summaryRef: RefObject<HTMLDivElement | null>
@@ -21,7 +22,11 @@ type GuideProfileResponse = {
   profileImageUrl: string | null
   companyName: string
   workingPeriod: string
-  jobField: { id: number; jobName: string }
+  guideJobField?: {
+    guideId: number
+    jobName: string
+    jobNameDescription: string
+  }
 }
 
 type CoffeeChatStatsResponse = {
@@ -29,23 +34,6 @@ type CoffeeChatStatsResponse = {
   averageStar: number
   totalReviews: number
   thumbsUpCount: number
-}
-
-// ✅ 목데이터 (Fallback)
-const mockProfile: GuideProfileResponse = {
-  guideId: 0,
-  nickname: '멩파치',
-  profileImageUrl: null,
-  companyName: '회사명 최대16글자',
-  workingPeriod: '2년차',
-  jobField: { id: 0, jobName: '직무명 최대16글자' },
-}
-
-const mockStats: CoffeeChatStatsResponse = {
-  totalCoffeeChats: 15,
-  averageStar: 4.5,
-  totalReviews: 10,
-  thumbsUpCount: 10,
 }
 
 const sections = [
@@ -77,39 +65,22 @@ export default function ProfileSidebar({
     const fetchProfileAndStats = async () => {
       try {
         const [profileRes, statsRes] = await Promise.all([
-          fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/guides/${id}/profile`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-              },
-            },
-          ),
-          fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/guides/${id}/coffeechat-stats`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-              },
-            },
-          ),
+          api.get(`/api/guides/${id}/profile`),
+          api.get(`/api/guides/${id}/coffeechat-stats`),
         ])
 
-        if (!profileRes.ok || !statsRes.ok)
-          throw new Error('API 요청 실패')
+        console.log('📦 프로필 응답:', profileRes.data)
+        console.log('📦 스탯 응답:', statsRes.data)
 
-        const profileData = await profileRes.json()
-        const statsData = await statsRes.json()
-
-        setProfile(profileData)
-        setStats(statsData)
+        setProfile(profileRes.data?.data ?? null)
+        setStats(statsRes.data?.data ?? null)
       } catch (error) {
         console.error(
           '❌ ProfileSidebar 데이터 불러오기 실패:',
           error,
         )
-        setProfile(mockProfile)
-        setStats(mockStats)
+        setProfile(null)
+        setStats(null)
       } finally {
         setLoading(false)
       }
@@ -153,9 +124,8 @@ export default function ProfileSidebar({
 
   if (loading)
     return <div className="py-10 text-center">로딩중...</div>
-
-  const displayProfile = profile ?? mockProfile
-  const displayStats = stats ?? mockStats
+  if (!profile || !stats)
+    return <div className="py-10 text-center">데이터 없음</div>
 
   return (
     <aside className="gap-spacing-3xl sticky top-[120px] z-10 -mt-[200px] flex h-[434px] flex-row">
@@ -163,10 +133,10 @@ export default function ProfileSidebar({
       <div className="gap-spacing-xs flex w-[300px] flex-col">
         <div className="gap-spacing-xs bg-fill-white border-border-subtle p-spacing-2xs shadow-card flex w-full flex-col items-center rounded-lg border">
           <div className="gap-spacing-3xs flex w-full flex-row items-center">
-            {displayProfile.profileImageUrl ? (
+            {profile.profileImageUrl ? (
               <Image
-                src={displayProfile.profileImageUrl}
-                alt={`${displayProfile.nickname} 프로필`}
+                src={profile.profileImageUrl}
+                alt={`${profile.nickname} 프로필`}
                 width={64}
                 height={64}
                 className="rounded-full object-cover"
@@ -175,22 +145,24 @@ export default function ProfileSidebar({
               <div className="bg-fill-input-gray h-[64px] w-[64px] rounded-full" />
             )}
             <span className="font-title3 text-label-deep">
-              {displayProfile.nickname}
+              {profile.nickname}
             </span>
           </div>
 
           <ul className="text-label-default font-label4-medium gap-spacing-3xs flex w-full flex-col justify-center">
             <li>
-              <span className="mr-spacing-5xs">·</span>{' '}
-              {displayProfile.jobField.jobName}
+              <span className="mr-spacing-5xs">·</span>
+              {profile.guideJobField?.jobNameDescription ??
+                profile.guideJobField?.jobName ??
+                '직무 정보 없음'}
             </li>
             <li>
-              <span className="mr-spacing-5xs">·</span>{' '}
-              {displayProfile.workingPeriod}
+              <span className="mr-spacing-5xs">·</span>
+              {profile.workingPeriod ?? '경력 정보 없음'}
             </li>
             <li>
-              <span className="mr-spacing-5xs">·</span>{' '}
-              {displayProfile.companyName}
+              <span className="mr-spacing-5xs">·</span>
+              {profile.companyName ?? '회사 정보 없음'}
             </li>
           </ul>
 
@@ -202,9 +174,9 @@ export default function ProfileSidebar({
                 fill="currentColor"
               />
               <span>
-                {displayStats.averageStar.toFixed(1)}
+                {stats.averageStar.toFixed(1)}
                 <span className="text-label-default font-caption2-medium">
-                  ({displayStats.totalReviews})
+                  ({stats.totalReviews})
                 </span>
               </span>
             </div>
@@ -214,7 +186,7 @@ export default function ProfileSidebar({
                 size={16}
               />
               <span>
-                {displayStats.totalCoffeeChats}
+                {stats.totalCoffeeChats}
                 <span className="text-label-default font-caption2-medium">
                   명
                 </span>
@@ -226,7 +198,7 @@ export default function ProfileSidebar({
                 size={16}
               />
               <span>
-                {displayStats.thumbsUpCount}
+                {stats.thumbsUpCount}
                 <span className="text-label-default font-caption2-medium">
                   번 도움 됐어요
                 </span>
@@ -237,7 +209,7 @@ export default function ProfileSidebar({
 
         <SquareButton
           onClick={() =>
-            router.push(`/coffeechatApply/${displayProfile.guideId}`)
+            router.push(`/coffeechatApply/${profile.guideId}`)
           }
           variant="primary"
           size="xl"

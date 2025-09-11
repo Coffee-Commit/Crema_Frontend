@@ -10,9 +10,9 @@ type FileStatus = 'empty' | 'pending' | 'completed'
 
 interface FileUploadCardProps {
   className?: string
-  status?: FileStatus // 부모에서 상태를 넘겨줄 수도 있음
-  files?: File[] // 부모에서 파일 배열을 넘겨줄 수도 있음
-  onChange?: (files: File[], status: FileStatus) => void // 파일 변경 시 콜백
+  status?: FileStatus
+  files?: File[]
+  onChange?: (files: File[], status: FileStatus) => void
 }
 
 export default function FileUploadCard({
@@ -35,16 +35,21 @@ export default function FileUploadCard({
       ? Array.from(e.target.files)
       : []
     if (selectedFiles.length > 0) {
-      if (!propFiles) setInternalFiles(selectedFiles)
+      const file = selectedFiles[0] // ✅ 한 개만 선택
+      console.log('📂 업로드 파일 정보:', file)
+      console.log('파일 타입:', file.type)
+      console.log('파일 이름:', file.name)
+      console.log('파일 크기:', file.size, 'bytes')
+
+      if (!propFiles) setInternalFiles([file])
       if (!propStatus) setInternalStatus('pending')
 
-      // 부모에도 알림
-      onChange?.(selectedFiles, 'pending')
+      onChange?.([file], 'pending')
 
       // 예시: 2초 후 인증 완료 처리
       setTimeout(() => {
         if (!propStatus) setInternalStatus('completed')
-        onChange?.(selectedFiles, 'completed')
+        onChange?.([file], 'completed')
       }, 2000)
     }
   }
@@ -71,8 +76,7 @@ export default function FileUploadCard({
               <input
                 type="file"
                 accept="application/pdf"
-                multiple
-                className="hidden"
+                className="hidden" // ✅ multiple 제거
                 onChange={handleFileChange}
               />
             </label>
@@ -134,8 +138,7 @@ export default function FileUploadCard({
                 <input
                   type="file"
                   accept="application/pdf"
-                  multiple
-                  className="hidden"
+                  className="hidden" // ✅ multiple 제거
                   onChange={handleFileChange}
                 />
               </label>
