@@ -19,6 +19,7 @@ import ModifiedSidebar from './ModifiedSidebar'
 import RemoteVideoPanel from './RemoteVideoPanel'
 import type { SafeAny as _SafeAny } from '../types/common.types'
 import { isRecord } from '../types/guards.types'
+import { globalSessionManager } from '../utils/sessionManager'
 
 interface ThreeColumnLayoutProps {
   username?: string
@@ -44,18 +45,28 @@ function ThreeColumnLayoutInner({
 
   // 세션 연결 및 Publisher 생성 (StrictMode-safe)
   const initializingRef = useRef(false)
-  const cleanupRef = useRef<(() => void) | null>(null)
+  const sessionKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
-    // React StrictMode에서 중복 실행 방지
+    // React StrictMode에서 중복 실행 방지 - 전역 세션 관리자 사용
     if (initializingRef.current) {
       return
     }
     initializingRef.current = true
+
+    // cleanup timeout 취소 (컴포넌트가 다시 마운트된 경우)
+    globalSessionManager.cancelCleanup()
     // Case 1: reservationId가 있는 경우 (정규 API 사용)
     if (reservationId) {
+      const sessionKey = `reservation-${reservationId}`
+      sessionKeyRef.current = sessionKey
+
       if (sessionStatus !== 'idle') {
-        return // 이미 연결 중이거나 연결됨
+        console.log(
+          '⚠️ 세션이 이미 연결 중이거나 연결됨, 초기화 생략',
+        )
+        initializingRef.current = false
+        return
       }
 
       const initializeWithReservation = async () => {
@@ -71,8 +82,8 @@ function ThreeColumnLayoutInner({
           )
 
           const apiResponse = await videoCallApiService.quickJoin({
-            username: 'User', // 실제로는 API에서 받아온 사용자 정보 사용
-            sessionName: `reservation-${reservationId}`,
+            username: 'User',
+            sessionName: sessionKey,
             reservationId,
           })
 
@@ -103,8 +114,8 @@ function ThreeColumnLayoutInner({
             )
 
             await actions.createPublisher({
-              publishAudio: true, // 기본값: 마이크 켜짐
-              publishVideo: hasVideoDevice, // 장치 있을 때만 비디오 켜짐
+              publishAudio: true,
+              publishVideo: hasVideoDevice,
               resolution:
                 apiResponse.configInfo?.defaultResolution ||
                 '1280x720',
@@ -122,8 +133,8 @@ function ThreeColumnLayoutInner({
               streams: {},
               audioLevel: 0,
               speaking: false,
-              audioEnabled: true, // 기본값: 마이크 켜짐
-              videoEnabled: hasVideoDevice, // 장치 있을 때만 카메라 켜짐
+              audioEnabled: true,
+              videoEnabled: hasVideoDevice,
               isScreenSharing: false,
               joinedAt: new Date(),
             })
@@ -134,31 +145,31 @@ function ThreeColumnLayoutInner({
           }
         } catch (error) {
           console.error('❌ 예약 기반 세션 초기화 실패:', error)
+          throw error
+        } finally {
+          initializingRef.current = false
         }
       }
 
-      initializeWithReservation()
-
-      // cleanup 함수 설정
-      cleanupRef.current = async () => {
-        initializingRef.current = false
-        if (actions.getState().status === 'connected') {
-          try {
-            // Publisher 제거
-            await actions.destroyPublisher?.()
-            // 세션 연결 해제
-            await actions.disconnect()
-          } catch (error) {
-            console.error('❌ cleanup 실패:', error)
-          }
-        }
-      }
+      // 전역 세션 관리자를 통한 초기화
+      globalSessionManager
+        .initializeSession(sessionKey, initializeWithReservation)
+        .catch((error) => {
+          console.error('❌ 전역 세션 관리자 초기화 실패:', error)
+        })
     }
 
     // Case 2: username과 sessionName이 있는 경우 (테스트룸)
     else if (username && sessionName) {
+      const sessionKey = `testroom-${username}-${sessionName}`
+      sessionKeyRef.current = sessionKey
+
       if (sessionStatus !== 'idle') {
-        return // 이미 연결 중이거나 연결됨
+        console.log(
+          '⚠️ 세션이 이미 연결 중이거나 연결됨, 초기화 생략',
+        )
+        initializingRef.current = false
+        return
       }
 
       const initializeSession = async () => {
@@ -193,7 +204,7 @@ function ThreeColumnLayoutInner({
 
             await actions.createPublisher({
               publishAudio: true,
-              publishVideo: hasVideoDevice, // 장치 있을 때만 비디오 켜짐
+              publishVideo: hasVideoDevice,
               resolution: '1280x720',
               frameRate: 30,
             })
@@ -209,7 +220,7 @@ function ThreeColumnLayoutInner({
               audioLevel: 0,
               speaking: false,
               audioEnabled: true,
-              videoEnabled: hasVideoDevice, // 장치 있을 때만 카메라 켜짐
+              videoEnabled: hasVideoDevice,
               isScreenSharing: false,
               joinedAt: new Date(),
             })
@@ -220,25 +231,18 @@ function ThreeColumnLayoutInner({
           }
         } catch (error) {
           console.error('❌ 세션 초기화 실패:', error)
+          throw error
+        } finally {
+          initializingRef.current = false
         }
       }
 
-      initializeSession()
-
-      // cleanup 함수 설정
-      cleanupRef.current = async () => {
-        initializingRef.current = false
-        if (actions.getState().status === 'connected') {
-          try {
-            // Publisher 제거
-            await actions.destroyPublisher?.()
-            // 세션 연결 해제
-            await actions.disconnect()
-          } catch (error) {
-            console.error('❌ cleanup 실패:', error)
-          }
-        }
-      }
+      // 전역 세션 관리자를 통한 초기화
+      globalSessionManager
+        .initializeSession(sessionKey, initializeSession)
+        .catch((error) => {
+          console.error('❌ 전역 세션 관리자 초기화 실패:', error)
+        })
     }
 
     // Case 3: 필수 파라미터 누락
@@ -254,11 +258,29 @@ function ThreeColumnLayoutInner({
       initializingRef.current = false
     }
 
-    // cleanup 함수 반환 (StrictMode-safe)
+    // cleanup 함수 반환 (StrictMode-safe) - 전역 세션 관리자 사용
     return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current()
+      if (sessionKeyRef.current) {
+        const sessionKey = sessionKeyRef.current
+        globalSessionManager.scheduleCleanup(
+          sessionKey,
+          async () => {
+            console.log('🧹 지연된 세션 cleanup 실행', sessionKey)
+            if (actions.getState().status === 'connected') {
+              try {
+                await actions.destroyPublisher?.()
+                await actions.disconnect()
+                console.log('✅ 세션 cleanup 완료', sessionKey)
+              } catch (error) {
+                console.error('❌ 세션 cleanup 실패:', error)
+              }
+            }
+          },
+          500, // 500ms 지연으로 StrictMode cleanup과 실제 cleanup 구분
+        )
       }
+
+      initializingRef.current = false
     }
   }, [
     username,
@@ -295,7 +317,7 @@ function ThreeColumnLayoutInner({
         }
       }
     }
-  }, [publisher, sessionStatus, actions])
+  }, [publisher, sessionStatus]) // actions 제거
 
   // 로딩 상태 표시
   if (loading || sessionStatus === 'connecting') {
