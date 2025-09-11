@@ -263,6 +263,18 @@ export class OpenViduClient implements OpenViduClientInterface {
         hasVideo: event.stream.hasVideo,
       })
 
+      // 로컬 퍼블리셔의 스트림은 구독/참가자 처리에서 제외
+      const myConnectionId = this.session?.connection?.connectionId
+      if (
+        myConnectionId &&
+        event.stream.connection.connectionId === myConnectionId
+      ) {
+        logger.debug('로컬 스트림 감지됨: 구독/참가자 처리 스킵', {
+          connectionId: event.stream.connection.connectionId,
+        })
+        return
+      }
+
       // 자동 구독
       const subscriber = this.session!.subscribe(
         event.stream,
