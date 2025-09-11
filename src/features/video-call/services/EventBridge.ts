@@ -91,6 +91,17 @@ export class EventBridge {
 
     // 스트림 생성 (참가자의 미디어 스트림 생성)
     this.session.on('streamCreated', (event) => {
+      // 자기 스트림인 경우 구독/추가하지 않음 (중복 표시 방지)
+      if (
+        event.stream.connection.connectionId ===
+        this.session?.connection?.connectionId
+      ) {
+        logger.debug('자기 스트림 감지됨: 구독/참가자 추가 스킵', {
+          connectionId: event.stream.connection.connectionId,
+        })
+        return
+      }
+
       logger.info('스트림 생성 이벤트', {
         streamId: event.stream.streamId,
         connectionId: event.stream.connection.connectionId,
