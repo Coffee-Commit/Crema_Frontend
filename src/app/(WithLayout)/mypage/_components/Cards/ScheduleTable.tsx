@@ -1,8 +1,8 @@
 'use client'
 
 import clsx from 'clsx'
-import Image from 'next/image'
 import { CalendarDays, Clock, Coffee } from 'lucide-react'
+import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 
 import Pagination from '@/components/ui/Paginations/Pagination'
