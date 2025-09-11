@@ -13,6 +13,7 @@ export interface FeatureFlags {
   enableDynacast: boolean
   enableSvc: boolean
   debugMode: boolean
+  useNewCameraComponents: boolean
 }
 
 // 기본 설정값
@@ -22,6 +23,7 @@ const defaultFeatures: FeatureFlags = {
   enableDynacast: false,
   enableSvc: false,
   debugMode: process.env.NODE_ENV === 'development',
+  useNewCameraComponents: false, // 기본값은 false (기존 구현 사용)
 }
 
 /**
@@ -47,6 +49,10 @@ function loadFeatureFlags(): FeatureFlags {
   if (process.env.NEXT_PUBLIC_DEBUG_MODE !== undefined) {
     features.debugMode = process.env.NEXT_PUBLIC_DEBUG_MODE === 'true'
   }
+
+  // 새 카메라 컴포넌트 사용 여부
+  features.useNewCameraComponents =
+    process.env.NEXT_PUBLIC_NEW_CAMERA === 'true'
 
   return features
 }

@@ -28,7 +28,11 @@ export const createParticipantsSlice: StateCreator<
     const currentState = get()
 
     // 세션의 내 connectionId와 동일하면 로컬로 보정
-    const myConnectionId = currentState.session?.connection?.connectionId
+    const myConnectionId = (
+      currentState as {
+        session?: { connection?: { connectionId?: string } }
+      }
+    ).session?.connection?.connectionId
     const corrected: Participant =
       myConnectionId && participant.connectionId === myConnectionId
         ? { ...participant, isLocal: true }
@@ -54,7 +58,10 @@ export const createParticipantsSlice: StateCreator<
 
       // connectionId 기준 중복 제거 (동일 연결의 기존 엔트리 제거)
       for (const [pid, p] of newParticipants) {
-        if (p.connectionId === corrected.connectionId && pid !== corrected.id) {
+        if (
+          p.connectionId === corrected.connectionId &&
+          pid !== corrected.id
+        ) {
           newParticipants.delete(pid)
         }
       }

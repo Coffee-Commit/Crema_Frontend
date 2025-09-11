@@ -347,10 +347,12 @@ if (typeof window !== 'undefined') {
         hasCam: !!p.streams.camera,
       }))
     }
-    const myConnId = () => getState().session?.connection?.connectionId ?? null
+    const myConnId = () =>
+      getState().session?.connection?.connectionId ?? null
     const remoteCount = () =>
-      Array.from(getState().participants.values()).filter((p) => !p.isLocal)
-        .length
+      Array.from(getState().participants.values()).filter(
+        (p) => !p.isLocal,
+      ).length
     const clearLocalAsRemote = () => {
       const s = getState()
       const mine = s.session?.connection?.connectionId

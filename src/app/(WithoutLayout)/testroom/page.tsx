@@ -11,6 +11,8 @@ import {
   useLeaveSession,
   useEnvironmentInfo,
 } from '@/features/video-call/hooks'
+import { useLocalMediaController } from '@/features/video-call/hooks/useLocalMediaController'
+import { usePublisherBridge } from '@/features/video-call/hooks/usePublisherBridge'
 import {
   useSessionStatus,
   useParticipants,
@@ -24,6 +26,11 @@ import {
 } from '@/features/video-call/store'
 import type { ChatMessage } from '@/features/video-call/types'
 import { globalSessionManager } from '@/features/video-call/utils/sessionManager'
+import LocalVideo from '@/features/video-call/components/LocalVideo'
+import RemoteVideo from '@/features/video-call/components/RemoteVideo'
+import ScreenShareView from '@/features/video-call/components/ScreenShareView'
+
+import { featureFlags } from '@/lib/config/env'
 import { openViduTestApi } from '@/lib/openvidu/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
@@ -85,6 +92,49 @@ function VideoCallRoomContent() {
   const toggleVideo = useToggleVideo()
   const { execute: toggleScreenShare } = useScreenShare()
   const { execute: leaveSession } = useLeaveSession()
+
+  // 새로운 훅들 (항상 호출, React Hooks 규칙 준수)
+  const useNewComponents = featureFlags.useNewCameraComponents
+  const localMediaController = useLocalMediaController()
+  const session = useVideoCallStore((s) => s.session)
+  const _publisherBridge = usePublisherBridge(session)
+
+  // 새 파이프라인: 화면공유 토글 핸들러 (replace 우선, 실패 시 publish)
+  const handleToggleShare = useMemo(() => {
+    return async () => {
+      if (!useNewComponents) {
+        // 레거시 경로 유지
+        return toggleScreenShare()
+      }
+      try {
+        if (!screenSharing) {
+          await localMediaController.startScreen()
+          const s = localMediaController.currentStreamRef.current
+          if (s) {
+            try {
+              await _publisherBridge.replaceFrom(s)
+            } catch {
+              await _publisherBridge.publishFrom(s)
+            }
+          }
+          actions.updateSettings?.({ screenSharing: true })
+        } else {
+          await localMediaController.startCamera()
+          const s = localMediaController.currentStreamRef.current
+          if (s) {
+            try {
+              await _publisherBridge.replaceFrom(s)
+            } catch {
+              await _publisherBridge.publishFrom(s)
+            }
+          }
+          actions.updateSettings?.({ screenSharing: false })
+        }
+      } catch (e) {
+        console.error('화면공유 토글 실패', e)
+      }
+    }
+  }, [useNewComponents, toggleScreenShare, screenSharing, localMediaController, _publisherBridge, actions])
 
   const sessionNameParam = searchParams.get('sessionName')
   const usernameParam = searchParams.get('username')
@@ -229,38 +279,71 @@ function VideoCallRoomContent() {
 
         logger.info('세션 연결 완료')
 
-        try {
-          const hasVideoDevice =
-            environmentInfo?.hasVideoDevice ?? true
-          logger.info(
-            `비디오 장치 확인: ${hasVideoDevice ? '있음' : '없음 - 오디오 전용 모드'}`,
-          )
+        if (!useNewComponents) {
+          try {
+            const hasVideoDevice =
+              environmentInfo?.hasVideoDevice ?? true
+            logger.info(
+              `비디오 장치 확인: ${hasVideoDevice ? '있음' : '없음 - 오디오 전용 모드'}`,
+            )
 
-          await actions.createPublisher({
-            publishAudio: true,
-            publishVideo: hasVideoDevice,
-            resolution: '1280x720',
-            frameRate: 30,
-          })
-          logger.info('Publisher 생성 완료')
+            await actions.createPublisher({
+              publishAudio: true,
+              publishVideo: hasVideoDevice,
+              resolution: '1280x720',
+              frameRate: 30,
+            })
+            logger.info('Publisher 생성 완료')
 
-          actions.addParticipant({
-            id: `local-${Date.now()}`,
-            connectionId: `local-connection-${Date.now()}`,
-            nickname: quickJoinResponse.username,
-            isLocal: true,
-            streams: {},
-            audioLevel: 0,
-            speaking: false,
-            audioEnabled: true,
-            videoEnabled: hasVideoDevice,
-            isScreenSharing: false,
-            joinedAt: new Date(),
-          })
+            actions.addParticipant({
+              id: `local-${Date.now()}`,
+              connectionId: `local-connection-${Date.now()}`,
+              nickname: quickJoinResponse.username,
+              isLocal: true,
+              streams: {},
+              audioLevel: 0,
+              speaking: false,
+              audioEnabled: true,
+              videoEnabled: hasVideoDevice,
+              isScreenSharing: false,
+              joinedAt: new Date(),
+            })
 
-          logger.info('로컬 참가자 추가 완료')
-        } catch (error) {
-          console.error('Publisher 생성 실패:', error)
+            logger.info('로컬 참가자 추가 완료')
+          } catch (error) {
+            console.error('Publisher 생성 실패:', error)
+          }
+        } else {
+          // 새 파이프라인: 카메라 시작 후 해당 스트림으로 게시
+          try {
+            await localMediaController.startCamera()
+            const stream = localMediaController.currentStreamRef.current
+            if (stream) {
+              await _publisherBridge.publishFrom(stream, {
+                publishAudio: true,
+                publishVideo: true,
+              })
+              logger.info('새 파이프라인으로 게시 완료')
+
+              actions.addParticipant({
+                id: `local-${Date.now()}`,
+                connectionId: session?.connection?.connectionId || `local-connection-${Date.now()}`,
+                nickname: quickJoinResponse.username,
+                isLocal: true,
+                streams: {},
+                audioLevel: 0,
+                speaking: false,
+                audioEnabled: true,
+                videoEnabled: true,
+                isScreenSharing: false,
+                joinedAt: new Date(),
+              })
+            } else {
+              logger.warn('카메라 스트림이 없어 게시 생략')
+            }
+          } catch (error) {
+            console.error('새 파이프라인 게시 실패:', error)
+          }
         }
       } catch (error) {
         console.error('세션 초기화 실패:', error)
@@ -308,6 +391,8 @@ function VideoCallRoomContent() {
     environmentInfo?.hasVideoDevice,
   ]) // actions 제거
 
+  // 전환은 handleToggleShare에서만 수행(중복 방지)
+
   useEffect(() => {
     if (
       publisher &&
@@ -326,6 +411,9 @@ function VideoCallRoomContent() {
   // 컴포넌트 언마운트 감지 (전역 세션 관리자 사용으로 제거)
 
   useEffect(() => {
+    // 새로운 컴포넌트 사용 시 직접 바인딩 스킵
+    if (useNewComponents) return
+
     const el = myCamVideoRef.current
     if (el && publisher && publisher.stream) {
       const ms = publisher.stream.getMediaStream()
@@ -338,10 +426,13 @@ function VideoCallRoomContent() {
       el.muted = true
       el.play().catch(() => {})
     }
-  }, [publisher])
+  }, [publisher, useNewComponents])
 
   // 화면 공유 상태에 따른 비디오 스트림 관리
   useEffect(() => {
+    // 새로운 컴포넌트 사용 시 직접 바인딩 스킵
+    if (useNewComponents) return
+
     const shareEl = shareVideoRef.current
     const myCamEl = myCamVideoRef.current
 
@@ -374,7 +465,7 @@ function VideoCallRoomContent() {
         myCamEl.play().catch(() => {})
       }
     }
-  }, [publisher, screenSharing])
+  }, [publisher, screenSharing, useNewComponents])
 
   const myConnectionId = useVideoCallStore(
     (s) => s.session?.connection?.connectionId ?? null,
@@ -384,7 +475,9 @@ function VideoCallRoomContent() {
     if (!(participants instanceof Map)) return []
     const all = Array.from(participants.values())
     return all.filter(
-      (p) => !p.isLocal && (!myConnectionId || p.connectionId !== myConnectionId),
+      (p) =>
+        !p.isLocal &&
+        (!myConnectionId || p.connectionId !== myConnectionId),
     )
   }, [participants, myConnectionId])
 
@@ -428,6 +521,9 @@ function VideoCallRoomContent() {
   }, [participants, myConnectionId])
 
   useEffect(() => {
+    // 새로운 컴포넌트 사용 시 직접 바인딩 스킵
+    if (useNewComponents) return
+
     const el = remoteCamVideoRef.current
     if (el) {
       if (
@@ -453,7 +549,7 @@ function VideoCallRoomContent() {
         logger.info('원격 비디오 소스 해제')
       }
     }
-  }, [remoteParticipants])
+  }, [remoteParticipants, useNewComponents])
 
   // 전역 디버그 헬퍼 노출
   useEffect(() => {
@@ -614,57 +710,92 @@ function VideoCallRoomContent() {
 
       <div className="relative flex flex-1 flex-row overflow-hidden">
         <div className="flex flex-1 flex-row gap-4 p-4">
-          {screenSharing ? (
-            <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-black">
-              <video
-                ref={shareVideoRef}
-                className="h-full w-full object-contain"
-                muted
-                playsInline
-                autoPlay
-              />
-              <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-[2px] text-[12px] text-white">
-                {myNickname} (화면공유)
-              </div>
-            </div>
-          ) : (
+          {useNewComponents ? (
+            // 새로운 컴포넌트 기반 렌더링
             <>
-              <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-gray-300">
-                <video
-                  ref={remoteCamVideoRef}
-                  className="h-full w-full object-cover"
-                  playsInline
-                  autoPlay
+              {screenSharing ? (
+                <ScreenShareView
+                  stream={localMediaController.currentStreamRef.current}
+                  label={`${myNickname} (화면공유)`}
+                  className="flex-1"
+                  onScreenShareEnd={handleToggleShare}
                 />
-                <div className="text-label-subtle absolute inset-0 grid place-items-center">
-                  상대 화면
+              ) : (
+                <>
+                  <RemoteVideo
+                    participant={
+                      remoteParticipants.length > 0
+                        ? remoteParticipants[0]
+                        : null
+                    }
+                    className="flex-1"
+                  />
+                  <LocalVideo
+                    stream={localMediaController.currentStreamRef.current}
+                    label={myNickname}
+                    audioEnabled={audioEnabled}
+                    videoEnabled={videoEnabled}
+                    className="flex-1"
+                  />
+                </>
+              )}
+            </>
+          ) : (
+            // 기존 레거시 렌더링
+            <>
+              {screenSharing ? (
+                <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-black">
+                  <video
+                    ref={shareVideoRef}
+                    className="h-full w-full object-contain"
+                    muted
+                    playsInline
+                    autoPlay
+                  />
+                  <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-[2px] text-[12px] text-white">
+                    {myNickname} (화면공유)
+                  </div>
                 </div>
-                <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
-                  {peerNickname}
-                </div>
-              </div>
-
-              <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-gray-300">
-                <video
-                  ref={myCamVideoRef}
-                  className="h-full w-full object-cover"
-                  muted
-                  playsInline
-                  autoPlay
-                />
-                <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
-                  {!audioEnabled && (
-                    <Image
-                      src="/icons/videoChat/micOff.svg"
-                      alt="mic-off"
-                      width={14}
-                      height={14}
-                      className="mr-1 inline-block"
+              ) : (
+                <>
+                  <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-gray-300">
+                    <video
+                      ref={remoteCamVideoRef}
+                      className="h-full w-full object-cover"
+                      playsInline
+                      autoPlay
                     />
-                  )}
-                  {myNickname}
-                </div>
-              </div>
+                    <div className="text-label-subtle absolute inset-0 grid place-items-center">
+                      상대 화면
+                    </div>
+                    <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
+                      {peerNickname}
+                    </div>
+                  </div>
+
+                  <div className="relative grid flex-1 place-items-center overflow-hidden rounded-md bg-gray-300">
+                    <video
+                      ref={myCamVideoRef}
+                      className="h-full w-full object-cover"
+                      muted
+                      playsInline
+                      autoPlay
+                    />
+                    <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
+                      {!audioEnabled && (
+                        <Image
+                          src="/icons/videoChat/micOff.svg"
+                          alt="mic-off"
+                          width={14}
+                          height={14}
+                          className="mr-1 inline-block"
+                        />
+                      )}
+                      {myNickname}
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -854,7 +985,7 @@ function VideoCallRoomContent() {
         <button
           className={`rounded-full p-3 ${screenSharing ? 'bg-orange-100' : 'bg-gray-100'}`}
           title="화면 공유"
-          onClick={() => toggleScreenShare()}
+          onClick={handleToggleShare}
         >
           <Image
             src="/icons/videoChat/screenShare.svg"
