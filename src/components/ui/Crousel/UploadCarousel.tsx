@@ -92,7 +92,8 @@ export default function UploadCarousel({
                 {...card}
                 onClick={
                   card.id && card.id > 0
-                    ? () => router.push(`/guides/${card.id}`)
+                    ? () =>
+                        router.push(`/coffeechatDetail/${card.id}`)
                     : undefined
                 }
               />

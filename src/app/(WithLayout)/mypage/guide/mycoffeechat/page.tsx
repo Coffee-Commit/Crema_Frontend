@@ -539,7 +539,6 @@ export default function CoffeechatRegisterPage() {
           alert('해시태그 등록 실패')
         }
       }
-
       // 5) 경험 목록 등록
       if (experiences.length > 0) {
         // ✅ 경험마다 주제 선택 여부 확인
@@ -549,14 +548,17 @@ export default function CoffeechatRegisterPage() {
             return
           }
         }
+
         const expPayload = {
           groups: experiences.map((exp) => ({
-            guideChatTopicId: exp.categories[0], // ✅ ENUM 문자열 (한 개만)
+            topicName: exp.categories[0], // ✅ 이제 topicName으로 보냄
             experienceTitle: exp.title,
             experienceContent: exp.content,
           })),
         }
+
         console.log('📌 경험 등록 payload:', expPayload)
+
         await api.post('/api/guides/me/experiences', expPayload)
         console.log('✅ 경험 목록 등록 성공')
       }

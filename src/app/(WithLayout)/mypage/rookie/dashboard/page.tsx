@@ -122,9 +122,7 @@ export default function DashboardPage() {
   const group = useMemo(() => {
     const now = nowRef.current
 
-    const pending = chats.filter(
-      (c) => c.status === 'pending' || c.status === 'rejected',
-    )
+    const pending = chats.filter((c) => c.status === 'pending')
 
     const accepted = chats.filter((c) => c.status === 'accepted')
     const withEnd = accepted.map((c) => ({
