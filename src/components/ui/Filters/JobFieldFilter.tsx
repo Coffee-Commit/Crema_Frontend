@@ -2,20 +2,20 @@
 
 interface Option {
   label: string
-  value: string
+  value: string // API ENUM 값
 }
 
 const JOB_FIELDS: Option[] = [
-  { label: '디자인', value: '디자인' },
-  { label: '기획 / 전략', value: '기획/전략' },
-  { label: '마케팅 / 홍보', value: '마케팅/홍보' },
-  { label: '경영 / 지원', value: '경영/지원' },
-  { label: 'IT 개발 / 데이터', value: 'IT 개발/데이터' },
-  { label: '연구 / R&D', value: '연구/R&D' },
+  { label: '디자인', value: 'DESIGN' },
+  { label: '기획 / 전략', value: 'PLANNING_STRATEGY' },
+  { label: '마케팅 / 홍보', value: 'MARKETING_PR' },
+  { label: '경영 / 지원', value: 'MANAGEMENT_SUPPORT' },
+  { label: 'IT 개발 / 데이터', value: 'IT_DEVELOPMENT_DATA' },
+  { label: '연구 / R&D', value: 'RESEARCH_RND' },
 ]
 
 interface JobFieldFilterProps {
-  selected: string[]
+  selected: string[] // ENUM 값 배열
   onChange: (values: string[]) => void
 }
 
