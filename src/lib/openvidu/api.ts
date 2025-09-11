@@ -9,6 +9,35 @@ import {
   ApiErrorCode,
   OPENVIDU_CONSTANTS,
 } from '@/components/openvidu/types'
+
+// 추가 타입 정의 (임시)
+interface ParticipantInfoResponse {
+  participantId: string
+  nickname: string
+  role: string
+  joinedAt: string
+}
+
+interface SharedFileListResponse {
+  files: Array<{
+    fileId: string
+    fileName: string
+    fileSize?: number
+    fileType?: string
+    fileUrl: string
+    uploadTime: string
+    uploader: string
+  }>
+}
+
+interface SharedFileResponse {
+  fileId: string
+  fileName: string
+  fileSize: number
+  fileType: string
+  fileUrl: string
+  uploadTime: string
+}
 import {
   isApiResponseLike,
   isErrorLike,
@@ -290,17 +319,6 @@ class OpenViduApiService {
     })
   }
 
-  /**
-   * 7. 채팅 히스토리 조회
-   * GET /api/video-call/chat/{sessionId}/history
-   */
-  async getChatHistory(
-    sessionId: string,
-  ): Promise<ChatHistoryResponse> {
-    return this.request<ChatHistoryResponse>(
-      `/chat/${sessionId}/history`,
-    )
-  }
 
   /**
    * 8. 화면 공유 상태 알림
@@ -418,6 +436,194 @@ class OpenViduApiService {
     return this.request(
       `/sessions/${sessionId}/participants/${participantId}/stats`,
     )
+  }
+
+  // ============================================================================
+  // 추가 API 메서드들
+  // ============================================================================
+
+  /**
+   * 화상통화 세션 종료
+   * POST /api/video-call/sessions/{sessionId}/end
+   */
+  async endSession(
+    sessionId: string,
+    chatData?: ChatHistorySaveRequest,
+  ): Promise<void> {
+    logger.debug('세션 종료 시도', { sessionId })
+
+    try {
+      await this.request<void>(`/sessions/${sessionId}/end`, {
+        method: 'POST',
+        data: chatData,
+      })
+      logger.info('세션 종료 완료', { sessionId })
+    } catch (error) {
+      logger.error('세션 종료 실패', {
+        sessionId,
+        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 참가자 정보 조회
+   * GET /api/video-call/sessions/{sessionId}/participant
+   */
+  async getParticipantInfo(
+    sessionId: string,
+  ): Promise<ParticipantInfoResponse> {
+    logger.debug('참가자 정보 조회 시도', { sessionId })
+
+    try {
+      const result = await this.request<ParticipantInfoResponse>(
+        `/sessions/${sessionId}/participant`,
+      )
+      logger.info('참가자 정보 조회 완료', { sessionId })
+      return result
+    } catch (error) {
+      logger.error('참가자 정보 조회 실패', {
+        sessionId,
+        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 공유 자료 목록 조회
+   * GET /api/video-call/sessions/{sessionId}/materials
+   */
+  async getMaterials(sessionId: string): Promise<SharedFileListResponse> {
+    logger.debug('공유 자료 목록 조회 시도', { sessionId })
+
+    try {
+      const result = await this.request<SharedFileListResponse>(
+        `/sessions/${sessionId}/materials`,
+      )
+      logger.info('공유 자료 목록 조회 완료', {
+        sessionId,
+        fileCount: result.files?.length || 0,
+      })
+      return result
+    } catch (error) {
+      logger.error('공유 자료 목록 조회 실패', {
+        sessionId,
+        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 공유 자료 등록 (파일 직접 업로드)
+   * POST /api/video-call/sessions/{sessionId}/materials
+   */
+  async uploadMaterial(
+    sessionId: string,
+    file: File,
+  ): Promise<SharedFileResponse> {
+    logger.debug('공유 자료 업로드 시도', {
+      sessionId,
+      fileName: file.name,
+      fileSize: file.size,
+    })
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await api({
+        url: `${this.baseUrl}/sessions/${sessionId}/materials`,
+        method: 'POST',
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      const apiResponse = normalizeApiResponse<SharedFileResponse>(
+        response.data,
+      )
+
+      if (isSuccessResponse(apiResponse)) {
+        logger.info('공유 자료 업로드 완료', {
+          sessionId,
+          fileName: file.name,
+          fileId: apiResponse.result.fileId,
+        })
+        return apiResponse.result
+      } else {
+        logger.error('공유 자료 업로드 실패', {
+          sessionId,
+          fileName: file.name,
+          code: apiResponse.code,
+          msg: apiResponse.message,
+        })
+        throw new Error(
+          `API Error [${apiResponse.code}]: ${apiResponse.message}`,
+        )
+      }
+    } catch (error) {
+      logger.error('공유 자료 업로드 실패', {
+        sessionId,
+        fileName: file.name,
+        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 공유 자료 삭제
+   * DELETE /api/video-call/sessions/{sessionId}/materials?imageKey={imageKey}
+   */
+  async deleteMaterial(
+    sessionId: string,
+    imageKey: string,
+  ): Promise<void> {
+    logger.debug('공유 자료 삭제 시도', { sessionId, imageKey })
+
+    try {
+      await this.request<void>(
+        `/sessions/${sessionId}/materials?imageKey=${encodeURIComponent(imageKey)}`,
+        { method: 'DELETE' },
+      )
+      logger.info('공유 자료 삭제 완료', { sessionId, imageKey })
+    } catch (error) {
+      logger.error('공유 자료 삭제 실패', {
+        sessionId,
+        imageKey,
+        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 채팅 기록 조회
+   * GET /api/video-call/chat/{reservationId}/history
+   */
+  async getChatHistory(reservationId: string): Promise<ChatHistoryResponse> {
+    logger.debug('채팅 기록 조회 시도', { reservationId })
+
+    try {
+      const result = await this.request<ChatHistoryResponse>(
+        `/chat/${reservationId}/history`,
+      )
+      logger.info('채팅 기록 조회 완료', {
+        reservationId,
+        messageCount: result.messages?.length || 0,
+      })
+      return result
+    } catch (error) {
+      logger.error('채팅 기록 조회 실패', {
+        reservationId,
+        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
   }
 }
 
@@ -834,6 +1040,12 @@ class OpenViduTestApiService {
       data: { profile },
     })
   }
+
+  // ============================================================================
+  // 추가 테스트 API 메서드들
+  // ============================================================================
+
+
 }
 
 // ============================================================================
