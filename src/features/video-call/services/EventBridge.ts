@@ -99,12 +99,21 @@ export class EventBridge {
         typeOfVideo: event.stream.typeOfVideo,
       })
 
+      const myConnectionId = this.session?.connection?.connectionId
+      const streamConnId = event.stream.connection.connectionId
+      const isLocalCalculated = myConnectionId === streamConnId
+      logger.debug('streamCreated 판별', {
+        myConnectionId,
+        streamConnId,
+        isLocalCalculated,
+      })
+
       // 참가자 객체 생성
       const participant: Participant = {
         id: event.stream.connection.connectionId,
         connectionId: event.stream.connection.connectionId,
         nickname: event.stream.connection.data || 'Unknown User',
-        isLocal: false,
+        isLocal: isLocalCalculated,
         streams: {
           camera: event.stream.getMediaStream(),
         },
@@ -118,6 +127,10 @@ export class EventBridge {
 
       // Store에 참가자 추가
       useVideoCallStore.getState().addParticipant(participant)
+      try {
+        const size = useVideoCallStore.getState().participants.size
+        logger.debug('참가자 추가 후 현재 수', { size })
+      } catch {}
 
       // 자동 구독
       try {
@@ -150,6 +163,10 @@ export class EventBridge {
       useVideoCallStore
         .getState()
         .removeParticipant(event.stream.connection.connectionId)
+      try {
+        const size = useVideoCallStore.getState().participants.size
+        logger.debug('참가자 제거 후 현재 수', { size })
+      } catch {}
     })
 
     // 스트림 속성 변경 (음소거/비디오 끄기 등)

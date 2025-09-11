@@ -74,7 +74,7 @@ export default function CreateVideoCallPage() {
     setIsJoining(true)
 
     try {
-      const targetUrl = `/video-call-legacy/testroom?username=${encodeURIComponent(trimmedUsername)}&sessionName=${encodeURIComponent(trimmedSessionName)}`
+      const targetUrl = `/testroom?username=${encodeURIComponent(trimmedUsername)}&sessionName=${encodeURIComponent(trimmedSessionName)}`
       logger.log('📍 내비게이션 시도:', {
         targetUrl,
         username: trimmedUsername,
@@ -133,7 +133,7 @@ export default function CreateVideoCallPage() {
       sessionName: inputSessionName.trim(),
     })
 
-    const targetUrl = `/video-call-legacy/testroom?username=${encodeURIComponent(inputUsername.trim())}&sessionName=${encodeURIComponent(inputSessionName.trim())}`
+    const targetUrl = `/testroom?username=${encodeURIComponent(inputUsername.trim())}&sessionName=${encodeURIComponent(inputSessionName.trim())}`
     logger.log('📍 내비게이션 시도:', {
       targetUrl,
       username: inputUsername.trim(),

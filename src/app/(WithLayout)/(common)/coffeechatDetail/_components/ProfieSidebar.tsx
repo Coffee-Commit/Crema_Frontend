@@ -1,9 +1,10 @@
 'use client'
 
-import Image from 'next/image'
-import { RefObject, useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
 import { Star, User, ThumbsUp } from 'lucide-react'
+import Image from 'next/image'
+import { useParams, useRouter } from 'next/navigation'
+import { RefObject, useEffect, useState } from 'react'
+
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 
 interface SideBarProps {

@@ -1,8 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 
 import Banner from '@/components/layout/Banner'
 import ExperienceCard from '@/components/ui/Cards/ExperienceCard'

@@ -4,8 +4,8 @@ import { useState } from 'react'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import SelectedChips from '@/components/ui/Chips/SelectedChips'
-import JobFieldFilter from '@/components/ui/Filters/JobFieldFilter'
 import CategoryFilter from '@/components/ui/Filters/CategoryFilter'
+import JobFieldFilter from '@/components/ui/Filters/JobFieldFilter'
 
 // 경험 항목 타입
 interface Experience {
