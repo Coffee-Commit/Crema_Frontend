@@ -387,6 +387,7 @@ import { Schedule } from '@/components/ui/CustomSelectes/Schedule/ScheduleSelect
 import CategoryFilter from '@/components/ui/Filters/CategoryFilter'
 import JobFieldFilter from '@/components/ui/Filters/JobFieldFilter'
 import api from '@/lib/http/api'
+import { useAuthStore } from '@/store/useAuthStore'
 
 // 경험 항목 타입
 interface Experience {
@@ -467,6 +468,13 @@ export default function CoffeechatRegisterPage() {
         chatDescription: intro,
       })
       console.log('✅ 커피챗 등록 성공:', chatRes.data)
+      // ✅ guideId 저장
+      const newGuideId = chatRes.data?.data?.guide.id
+      if (newGuideId) {
+        const { setGuideId } = useAuthStore.getState()
+        setGuideId(newGuideId)
+        console.log('📌 guideId 저장 완료:', newGuideId)
+      }
 
       // 2) 직무 분야 등록
       if (jobFields.length > 0) {

@@ -381,6 +381,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
         <ScheduleTable
           items={scheduleData}
           onEnter={(id) => {

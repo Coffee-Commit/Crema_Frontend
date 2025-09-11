@@ -46,6 +46,7 @@ type State = {
   isLoggedIn: boolean
   loading: boolean
   tokens: Tokens | null
+  guideId: number | null // ✅ 추가된 부분
   init: () => Promise<void>
   login: (provider: Provider) => void
   loginTest: (nickname: string) => Promise<void>
@@ -55,26 +56,44 @@ type State = {
   logout: () => Promise<void>
   setAuth: (payload: { user: User; tokens: Tokens }) => void
   refreshUser: () => Promise<void> // ✅ 추가
+  setGuideId: (id: number) => void // ✅ 추가된 부분
 }
 
 function getInitialAuth(): Pick<
   State,
-  'user' | 'isLoggedIn' | 'tokens'
+  'user' | 'isLoggedIn' | 'tokens' | 'guideId'
 > {
   if (typeof window === 'undefined')
-    return { user: null, isLoggedIn: false, tokens: null }
+    return {
+      user: null,
+      isLoggedIn: false,
+      tokens: null,
+      guideId: null,
+    }
   try {
     const raw = localStorage.getItem('auth-storage')
-    if (!raw) return { user: null, isLoggedIn: false, tokens: null }
+    if (!raw)
+      return {
+        user: null,
+        isLoggedIn: false,
+        tokens: null,
+        guideId: null,
+      }
     const parsed = JSON.parse(raw)
     const saved = parsed?.state ?? parsed
     return {
       user: saved?.user ?? null,
       isLoggedIn: Boolean(saved?.isLoggedIn),
       tokens: saved?.tokens ?? null,
+      guideId: saved?.guideId ?? null, // ✅ 추가된 부분
     }
   } catch {
-    return { user: null, isLoggedIn: false, tokens: null }
+    return {
+      user: null,
+      isLoggedIn: false,
+      tokens: null,
+      guideId: null,
+    }
   }
 }
 
@@ -86,6 +105,7 @@ export const useAuthStore = create<State>()(
       user: initial.user,
       isLoggedIn: initial.isLoggedIn,
       tokens: initial.tokens,
+      guideId: initial.guideId, // ✅ 추가된 부분
       loading: false,
 
       init: async () => {
@@ -106,11 +126,21 @@ export const useAuthStore = create<State>()(
             const me = await api.get<ApiResp<User>>('/api/member/me')
             set({ user: me.data.result, isLoggedIn: true })
           } else {
-            set({ user: null, isLoggedIn: false, tokens: null })
+            set({
+              user: null,
+              isLoggedIn: false,
+              tokens: null,
+              guideId: null,
+            })
           }
         } catch (e) {
           console.error('init 실패:', e)
-          set({ user: null, isLoggedIn: false, tokens: null })
+          set({
+            user: null,
+            isLoggedIn: false,
+            tokens: null,
+            guideId: null,
+          })
         } finally {
           set({ loading: false })
         }
@@ -170,20 +200,35 @@ export const useAuthStore = create<State>()(
           if (provider === 'test') {
             localStorage.removeItem('accessToken')
             localStorage.removeItem('refreshToken')
-            set({ user: null, isLoggedIn: false, tokens: null })
+            set({
+              user: null,
+              isLoggedIn: false,
+              tokens: null,
+              guideId: null,
+            }) // ✅ guideId도 초기화
             window.location.assign('/')
             return
           }
           await api.post('/api/auth/logout')
           localStorage.removeItem('accessToken')
           localStorage.removeItem('refreshToken')
-          set({ user: null, isLoggedIn: false, tokens: null })
+          set({
+            user: null,
+            isLoggedIn: false,
+            tokens: null,
+            guideId: null,
+          }) // ✅ guideId도 초기화
           window.location.assign('/')
         } catch (e) {
           console.error('로그아웃 실패:', e)
           localStorage.removeItem('accessToken')
           localStorage.removeItem('refreshToken')
-          set({ user: null, isLoggedIn: false, tokens: null })
+          set({
+            user: null,
+            isLoggedIn: false,
+            tokens: null,
+            guideId: null,
+          }) // ✅ guideId도 초기화
           window.location.assign('/')
         }
       },
@@ -191,7 +236,6 @@ export const useAuthStore = create<State>()(
       setAuth: ({ user, tokens }) =>
         set({ user, tokens, isLoggedIn: true }),
 
-      // ✅ 여기 추가
       refreshUser: async () => {
         try {
           const res = await api.get<ApiResp<User>>('/api/member/me')
@@ -205,6 +249,9 @@ export const useAuthStore = create<State>()(
           set({ user: null, isLoggedIn: false })
         }
       },
+
+      // ✅ guideId 저장 액션
+      setGuideId: (id: number) => set({ guideId: id }),
     }),
     {
       name: 'auth-storage',
@@ -212,6 +259,7 @@ export const useAuthStore = create<State>()(
         user: s.user,
         isLoggedIn: s.isLoggedIn,
         tokens: s.tokens,
+        guideId: s.guideId, // ✅ guideId도 로컬스토리지에 저장
       }),
     },
   ),
