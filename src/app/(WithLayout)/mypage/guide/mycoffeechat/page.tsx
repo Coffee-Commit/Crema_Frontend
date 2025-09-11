@@ -379,7 +379,6 @@
 'use client'
 
 import { useState } from 'react'
-import api from '@/lib/http/api'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import SelectedChips from '@/components/ui/Chips/SelectedChips'
@@ -387,6 +386,7 @@ import ScheduleInput from '@/components/ui/CustomSelectes/Schedule/ScheduleInput
 import { Schedule } from '@/components/ui/CustomSelectes/Schedule/ScheduleSelector'
 import CategoryFilter from '@/components/ui/Filters/CategoryFilter'
 import JobFieldFilter from '@/components/ui/Filters/JobFieldFilter'
+import api from '@/lib/http/api'
 
 // 경험 항목 타입
 interface Experience {
@@ -475,16 +475,7 @@ export default function CoffeechatRegisterPage() {
         })
         console.log('✅ 직무 분야 등록 성공')
       }
-      // 5) 경험 상세 등록
-      if (whoInput && solutionInput && howInput) {
-        await api.post('/api/guides/me/experiences/details', {
-          who: whoInput,
-          solution: solutionInput,
-          how: howInput,
-        })
-        console.log('✅ 경험 상세 등록 성공')
-      }
-      // 4) 스케줄 등록
+      // 3) 스케줄 등록
       if (schedules.length > 0) {
         const schedulePayload = {
           schedules: schedules.map((s) => ({
@@ -498,8 +489,17 @@ export default function CoffeechatRegisterPage() {
         await api.post('/api/guides/me/schedules', schedulePayload)
         console.log('✅ 스케줄 등록 성공')
       }
+      // 4) 경험 상세 등록
+      if (whoInput && solutionInput && howInput) {
+        await api.post('/api/guides/me/experiences/details', {
+          who: whoInput,
+          solution: solutionInput,
+          how: howInput,
+        })
+        console.log('✅ 경험 상세 등록 성공')
+      }
 
-      // 4) 해시태그 등록
+      // 6) 해시태그 등록
       if (tags.some((t) => t.trim() !== '')) {
         // ✅ 빈 값 제거 + 중복 제거 + 최대 5개 제한
         const validTags = tags
@@ -532,15 +532,23 @@ export default function CoffeechatRegisterPage() {
         }
       }
 
-      // 6) 경험 목록 등록
+      // 5) 경험 목록 등록
       if (experiences.length > 0) {
+        // ✅ 경험마다 주제 선택 여부 확인
+        for (const exp of experiences) {
+          if (!exp.categories[0]) {
+            alert('경험마다 주제를 1개 이상 선택해야 합니다.')
+            return
+          }
+        }
         const expPayload = {
           groups: experiences.map((exp) => ({
-            guideChatTopicId: 1, // ⚠️ 실제 매핑 필요
+            guideChatTopicId: exp.categories[0], // ✅ ENUM 문자열 (한 개만)
             experienceTitle: exp.title,
             experienceContent: exp.content,
           })),
         }
+        console.log('📌 경험 등록 payload:', expPayload)
         await api.post('/api/guides/me/experiences', expPayload)
         console.log('✅ 경험 목록 등록 성공')
       }
