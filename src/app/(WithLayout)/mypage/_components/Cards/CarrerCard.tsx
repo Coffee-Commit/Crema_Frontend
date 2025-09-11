@@ -145,7 +145,13 @@ export default function CareerCard() {
                 회사명
               </h2>
               <div className="gap-spacing-4xs py-spacing-5xs flex flex-row items-center">
-                <CircleTag variant="primary">
+                <CircleTag
+                  variant={
+                    guideInfo?.isCompanyNamePublic
+                      ? 'primary'
+                      : 'light'
+                  }
+                >
                   {guideInfo?.isCompanyNamePublic ? '공개' : '비공개'}
                 </CircleTag>
                 <span className="font-caption2-medium text-label-default">
