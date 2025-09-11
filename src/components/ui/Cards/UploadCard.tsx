@@ -80,12 +80,15 @@ export default function UploadCard({
         <div className="mt-auto flex items-center justify-between">
           <div className="gap-spacing-5xs flex flex-row">
             {/* 별점 */}
-            <div className="gap-spacing-6xs font-label5-medium text-label-strong flex items-center">
-              <span className="text-label-primary">
-                ★ {rating.toFixed(1)}
-              </span>
-              <span>({reviewCount}개)</span>
-            </div>
+            {typeof rating === 'number' && (
+              <div className="gap-spacing-6xs font-label5-medium text-label-strong flex items-center">
+                <span className="text-label-primary">
+                  ★ {rating.toFixed(1)}
+                </span>
+                <span>({reviewCount}개)</span>
+              </div>
+            )}
+
             {/* 멘티 수 */}
             <div className="font-label5-medium text-label-strong flex items-center gap-1">
               <User

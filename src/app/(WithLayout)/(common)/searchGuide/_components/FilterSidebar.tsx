@@ -10,40 +10,40 @@ interface FilterSidebarProps {
 }
 
 const jobFieldOptions = [
-  { label: '디자인', value: 'DESIGN' },
-  { label: '기획/전략', value: 'PLANNING_STRATEGY' },
-  { label: '마케팅/홍보', value: 'MARKETING_PR' },
-  { label: '경영/지원', value: 'MANAGEMENT_SUPPORT' },
-  { label: 'IT 개발/데이터', value: 'IT_DEVELOPMENT_DATA' },
-  { label: '연구/R&D', value: 'RESEARCH_RND' },
+  { label: '디자인', value: '디자인' },
+  { label: '기획/전략', value: '기획/전략' },
+  { label: '마케팅/홍보', value: '마케팅/홍보' },
+  { label: '경영/지원', value: '경영/지원' },
+  { label: 'IT 개발/데이터', value: 'IT 개발/데이터' },
+  { label: '연구/R&D', value: '연구/R&D' },
 ]
 
 const topicGroups = [
   {
     title: '서류 및 면접',
     options: [
-      { label: '이력서', value: 'RESUME' },
-      { label: '자소서', value: 'COVER_LETTER' },
-      { label: '포트폴리오', value: 'PORTFOLIO' },
-      { label: '면접', value: 'INTERVIEW' },
+      { label: '이력서', value: '이력서' },
+      { label: '자소서', value: '자소서' },
+      { label: '포트폴리오', value: '포트폴리오' },
+      { label: '면접', value: '면접' },
     ],
   },
   {
     title: '회사 생활',
     options: [
-      { label: '실무', value: 'PRACTICAL_WORK' },
-      { label: '조직문화', value: 'ORGANIZATION_CULTURE' },
-      { label: '워라밸', value: 'WORK_LIFE_BALANCE' },
-      { label: '인간관계', value: 'RELATIONSHIP' },
+      { label: '실무', value: '실무' },
+      { label: '조직문화', value: '조직문화' },
+      { label: '워라밸', value: '워라밸' },
+      { label: '인간관계', value: '인간관계' },
     ],
   },
   {
     title: '커리어',
     options: [
-      { label: '합격 경험', value: 'PASS_EXPERIENCE' },
-      { label: '업계 트렌드', value: 'INDUSTRY_TREND' },
-      { label: '직무 전환', value: 'CAREER_CHANGE' },
-      { label: '이직', value: 'JOB_CHANGE' },
+      { label: '합격 경험', value: '합격 경험' },
+      { label: '업계 트렌드', value: '업계 트렌드' },
+      { label: '직무 전환', value: '직무 전환' },
+      { label: '이직', value: '이직' },
     ],
   },
 ]
@@ -58,10 +58,11 @@ export default function FilterSidebar({
     setFn: React.Dispatch<React.SetStateAction<string[]>>,
     value: string,
   ) => {
-    setFn((prev) =>
-      prev.includes(value)
-        ? prev.filter((v) => v !== value)
-        : [...prev, value],
+    setFn(
+      (prev) =>
+        prev.includes(value)
+          ? prev.filter((v) => v !== value) // 이미 있으면 제거
+          : [...prev, value], // 없으면 추가
     )
   }
 

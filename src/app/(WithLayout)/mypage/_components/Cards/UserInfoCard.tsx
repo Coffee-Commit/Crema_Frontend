@@ -69,7 +69,7 @@ export default function UserInfoCard() {
   }
 
   return (
-    <main className="gap-spacing-3xl p-spacing-xs ml-[65px] flex flex-col">
+    <main className="gap-spacing-3xl py-spacing-xs ml-[65px] flex flex-col">
       <section className="py-spacing-md px-spacing-xs gap-spacing-3xl border-border-subtler flex flex-col rounded-sm border">
         <div className="flex items-center justify-between">
           <h1 className="font-heading2 text-label-strong">내 정보</h1>

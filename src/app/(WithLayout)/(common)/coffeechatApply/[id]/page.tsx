@@ -1,7 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 import CreditButton from '@/components/ui/Buttons/CreditButton'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
@@ -10,16 +11,118 @@ import ScheduleInputView from '@/components/ui/CustomSelectes/Schedule/ScheduleI
 import { Schedule } from '@/components/ui/CustomSelectes/Schedule/ScheduleSelector'
 import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
 import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
+import api from '@/lib/http/api'
+import {
+  getReservationApply,
+  getGuideSchedules,
+} from '@/lib/http/reservations'
 
 import ApplyComplete from '../_components/ApplyComplete'
+
 export default function CoffeechatApplyPage() {
+  const { id } = useParams()
   const [duration, setDuration] = useState<number | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  const schedules: Schedule[] = [
-    { days: ['월', '수'], startTime: '15:00', endTime: '21:00' },
-    { days: ['화'], startTime: '15:00', endTime: '23:00' },
-  ]
+  // ✅ 폼 데이터 상태
+  const [message, setMessage] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedTime, setSelectedTime] = useState('')
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+
+  // ✅ 가이드/멘티 정보
+  const [guideTitle, setGuideTitle] = useState('')
+  const [guideNickname, setGuideNickname] = useState('')
+  const [guideProfile, setGuideProfile] = useState<string | null>(
+    null,
+  )
+
+  const [menteeNickname, setMenteeNickname] = useState('')
+  const [menteeJob, setMenteeJob] = useState('')
+  const [menteeTopics, setMenteeTopics] = useState<string[]>([])
+  const [menteeDesc, setMenteeDesc] = useState('')
+
+  const [schedules, setSchedules] = useState<Schedule[]>([])
+
+  /* ================== API 로드 ================== */
+  useEffect(() => {
+    if (!id) return
+    const fetchData = async () => {
+      try {
+        const data = await getReservationApply(Number(id))
+        setGuideTitle(data.guide?.title ?? '')
+        setGuideNickname(data.guide?.nickname ?? '')
+        setGuideProfile(data.guide?.profileImageUrl ?? null)
+
+        setMenteeNickname(data.member?.nickname ?? '') // ✅ mentee → member
+        setMenteeJob(data.member?.jobField?.jobName ?? '')
+        setMenteeTopics(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.member?.chatTopics?.map((t: any) => t.topicName) ?? [],
+        )
+        setMenteeDesc(data.member?.description ?? '')
+      } catch (err) {
+        console.error('❌ 예약 신청 데이터 불러오기 실패:', err)
+      }
+    }
+    fetchData()
+  }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    const fetchSchedules = async () => {
+      try {
+        const mapped = await getGuideSchedules(Number(id))
+        console.log('📦 변환된 schedules:', mapped)
+        setSchedules(mapped)
+      } catch (err) {
+        console.error('❌ 가이드 스케줄 불러오기 실패:', err)
+        setSchedules([]) // 에러 나도 최소한 빈 배열
+      }
+    }
+    fetchSchedules()
+  }, [id])
+
+  /* ================== 신청하기 ================== */
+  const handleSubmit = async () => {
+    if (!id || !duration || !selectedDate || !selectedTime) {
+      alert('모든 값을 입력해주세요!')
+      return
+    }
+
+    try {
+      const reservation = {
+        guideId: Number(id),
+        timeUnit: (duration === 30
+          ? 'THIRTY_MINUTES'
+          : 'SIXTY_MINUTES') as 'THIRTY_MINUTES' | 'SIXTY_MINUTES',
+        survey: {
+          messageToGuide: message,
+          preferredDate: `${selectedDate}T${selectedTime}:00`,
+        },
+      }
+
+      const formData = new FormData()
+      // ✅ JSON 문자열 그대로 append (Blob ❌)
+      formData.append('reservation', JSON.stringify(reservation))
+
+      // ✅ 파일 추가
+      uploadedFiles.forEach((file) => {
+        formData.append('files', file)
+      })
+
+      const res = await api.post('/api/reservations', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      console.log('✅ 예약 성공:', res.data)
+      setIsSubmitted(true)
+    } catch (err) {
+      console.error('❌ 예약 실패:', err)
+    }
+  }
 
   return (
     <>
@@ -39,7 +142,7 @@ export default function CoffeechatApplyPage() {
               </h1>
               <div className="gap-spacing-5xs px-spacing-3xs py-spacing-4xs bg-fill-input-gray rounded-2xs flex w-[514px] items-center">
                 <Image
-                  src="/images/profileMypage.png"
+                  src={guideProfile ?? '/images/profileMypage.png'}
                   alt="프로필 이미지"
                   width={40}
                   height={40}
@@ -47,10 +150,10 @@ export default function CoffeechatApplyPage() {
                 />
                 <div className="gap-spacing-5xs flex flex-col">
                   <h2 className="font-label4-bold text-label-deep">
-                    커피챗 제목
+                    {guideTitle}
                   </h2>
                   <p className="text-label-default font-label4-medium">
-                    선배 이름
+                    {guideNickname}
                   </p>
                 </div>
               </div>
@@ -81,16 +184,23 @@ export default function CoffeechatApplyPage() {
                   <h3 className="font-title4 text-label-strong">
                     사진 공유 자료 선택
                   </h3>
-                  <FileUploadCard />
+                  <FileUploadCard
+                    onChange={(files) => setUploadedFiles(files)}
+                  />
                 </div>
 
                 {/* 일정 선택 */}
-                <div className="gap-spacing-sm flex flex-col">
+                <div className="gap-spacing-sm flex w-fit flex-col">
                   <h3 className="font-title4 text-label-strong">
                     일정 선택
                   </h3>
                   <ScheduleInputView schedules={schedules} />
-                  <DateTimeSelector />
+                  <DateTimeSelector
+                    selectedDate={selectedDate}
+                    setSelectedDate={setSelectedDate}
+                    selectedTime={selectedTime}
+                    setSelectedTime={setSelectedTime}
+                  />
                 </div>
 
                 {/* 메시지 입력 */}
@@ -107,6 +217,8 @@ export default function CoffeechatApplyPage() {
                   <TextAreaCounter
                     maxLength={500}
                     placeholder="사전 전달 내용을 작성해주세요."
+                    value={message}
+                    onChange={(val) => setMessage(val)}
                   />
                 </div>
 
@@ -126,7 +238,7 @@ export default function CoffeechatApplyPage() {
                         이름(닉네임)
                       </span>
                       <span className="text-label-strong font-label4-medium">
-                        피크민
+                        {menteeNickname}
                       </span>
                     </li>
                     <li className="flex flex-row items-center justify-between">
@@ -134,7 +246,7 @@ export default function CoffeechatApplyPage() {
                         직무 분야
                       </span>
                       <span className="text-label-strong font-label4-medium">
-                        디자인
+                        {menteeJob}
                       </span>
                     </li>
                     <li className="flex flex-row items-center justify-between">
@@ -142,7 +254,7 @@ export default function CoffeechatApplyPage() {
                         커피챗 주제
                       </span>
                       <span className="text-label-strong font-label4-medium">
-                        포트폴리오
+                        {menteeTopics.join(', ')}
                       </span>
                     </li>
                     <li className="gap-spacing-3xs flex flex-col">
@@ -150,7 +262,7 @@ export default function CoffeechatApplyPage() {
                         자기소개
                       </span>
                       <span className="text-label-strong font-body3">
-                        노랑피크민입니달라
+                        {menteeDesc}
                       </span>
                     </li>
                   </ul>
@@ -182,7 +294,7 @@ export default function CoffeechatApplyPage() {
                   variant="primary"
                   size="lg"
                   className="w-full"
-                  onClick={() => setIsSubmitted(true)}
+                  onClick={handleSubmit}
                 >
                   신청하기
                 </SquareButton>

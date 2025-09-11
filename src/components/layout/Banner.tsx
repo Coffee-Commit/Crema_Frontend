@@ -20,7 +20,7 @@ export default function Banner({
 }: BannerProps) {
   return (
     <section className="px-container-padding-sm py-spacing-xl lg:pt-spacing-7xl lg:pb-spacing-xl bg-[var(--color-fill-banner-yellow)]">
-      <div className="gap-spacing-sm mx-auto flex max-w-[var(--container-width)] flex-col">
+      <main className="gap-spacing-sm mx-auto flex max-w-[var(--container-width)] flex-col">
         <div className="gap-spacing-5xs flex flex-col">
           {/* 카테고리 */}
           <div className="font-caption2-medium text-label-subtler flex flex-wrap gap-1">
@@ -51,7 +51,7 @@ export default function Banner({
             <KeywordTag key={i}>{kw}</KeywordTag>
           ))}
         </div>
-      </div>
+      </main>
     </section>
   )
 }
