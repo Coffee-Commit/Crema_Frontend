@@ -11,10 +11,10 @@ import ScheduleInputView from '@/components/ui/CustomSelectes/Schedule/ScheduleI
 import { Schedule } from '@/components/ui/CustomSelectes/Schedule/ScheduleSelector'
 import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
 import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
+import api from '@/lib/http/api'
 import {
   getReservationApply,
   getGuideSchedules,
-  postReservation,
 } from '@/lib/http/reservations'
 
 import ApplyComplete from '../_components/ApplyComplete'
@@ -72,16 +72,12 @@ export default function CoffeechatApplyPage() {
     if (!id) return
     const fetchSchedules = async () => {
       try {
-        const scheduleData = await getGuideSchedules(Number(id))
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped: Schedule[] = scheduleData.map((s: any) => ({
-          days: [s.day],
-          startTime: s.timeSlots[0]?.startTime ?? '00:00',
-          endTime: s.timeSlots[0]?.endTime ?? '00:00',
-        }))
+        const mapped = await getGuideSchedules(Number(id))
+        console.log('📦 변환된 schedules:', mapped)
         setSchedules(mapped)
       } catch (err) {
         console.error('❌ 가이드 스케줄 불러오기 실패:', err)
+        setSchedules([]) // 에러 나도 최소한 빈 배열
       }
     }
     fetchSchedules()
@@ -95,7 +91,7 @@ export default function CoffeechatApplyPage() {
     }
 
     try {
-      const body = {
+      const reservation = {
         guideId: Number(id),
         timeUnit: (duration === 30
           ? 'THIRTY_MINUTES'
@@ -103,14 +99,25 @@ export default function CoffeechatApplyPage() {
         survey: {
           messageToGuide: message,
           preferredDate: `${selectedDate}T${selectedTime}:00`,
-          files: uploadedFiles.map((f) => ({
-            fileUploadUrl: URL.createObjectURL(f),
-          })),
         },
       }
 
-      const res = await postReservation(body)
-      console.log('✅ 예약 성공:', res)
+      const formData = new FormData()
+      // ✅ JSON 문자열 그대로 append (Blob ❌)
+      formData.append('reservation', JSON.stringify(reservation))
+
+      // ✅ 파일 추가
+      uploadedFiles.forEach((file) => {
+        formData.append('files', file)
+      })
+
+      const res = await api.post('/api/reservations', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      console.log('✅ 예약 성공:', res.data)
       setIsSubmitted(true)
     } catch (err) {
       console.error('❌ 예약 실패:', err)
