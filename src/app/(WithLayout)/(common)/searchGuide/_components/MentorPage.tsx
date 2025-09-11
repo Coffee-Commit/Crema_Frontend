@@ -100,6 +100,7 @@ export default function MentorPage() {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
             },
+            credentials: 'include',
           },
         )
 

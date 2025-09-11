@@ -217,7 +217,7 @@ export type User = {
   id: string
   nickname: string
   role: 'ROOKIE' | 'GUIDE'
-  phoneNumber: string | null
+  email: string | null
   point: number
   profileImageUrl: string | null
   description: string | null
