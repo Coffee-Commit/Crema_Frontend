@@ -57,7 +57,7 @@ export default function CategoryFilter({
   }
 
   return (
-    <div className="border-border-subtler bg-fill-white p-spacing-md rounded-md border">
+    <div className="border-border-subtler bg-fill-white p-spacing-md rounded-2xs border">
       <div className="gap-spacing-lg grid grid-cols-1 md:grid-cols-3">
         {GROUPS.map((group) => (
           <div key={group.title}>
@@ -68,13 +68,13 @@ export default function CategoryFilter({
               {group.options.map((opt) => (
                 <label
                   key={opt.value}
-                  className="font-body3 flex cursor-pointer items-center gap-2"
+                  className="font-label4-medium flex cursor-pointer items-center gap-2"
                 >
                   <input
                     type="checkbox"
                     checked={selected.includes(opt.value)}
                     onChange={() => toggle(opt.value)}
-                    className="h-4 w-4 accent-[var(--color-fill-primary)]"
+                    className="h-4 w-4 cursor-pointer accent-[var(--color-fill-primary)]"
                   />
                   {opt.label}
                 </label>

@@ -1,27 +1,28 @@
 'use client'
 
-import { useState } from 'react'
-
 import ScheduleSelector, { Schedule } from './ScheduleSelector'
 
-export default function ScheduleInput() {
-  const [schedules, setSchedules] = useState<Schedule[]>([])
+interface ScheduleInputProps {
+  schedules: Schedule[]
+  onChange: (schedules: Schedule[]) => void
+}
 
+export default function ScheduleInput({
+  schedules,
+  onChange,
+}: ScheduleInputProps) {
   const handleAddSchedule = () => {
-    setSchedules([
-      ...schedules,
-      { days: [], startTime: '', endTime: '' },
-    ])
+    onChange([...schedules, { days: [], startTime: '', endTime: '' }])
   }
 
   const handleChange = (index: number, updated: Schedule) => {
     const newSchedules = [...schedules]
     newSchedules[index] = updated
-    setSchedules(newSchedules)
+    onChange(newSchedules)
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="gap-spacing-4xs flex w-full flex-col">
       {/* 입력용 스케줄 */}
       {schedules.map((schedule, index) => (
         <ScheduleSelector
@@ -33,25 +34,10 @@ export default function ScheduleInput() {
 
       <button
         onClick={handleAddSchedule}
-        className="bg-background-accent-subtle text-semantic-accent text-body4-bold w-full rounded-xl py-2 text-center"
+        className="bg-fill-selected-orange rounded-xs py-spacing-4xs font-label3-medium text-label-primary w-full cursor-pointer text-center"
       >
         + 일정 추가
       </button>
-
-      {/* 결과 뷰 */}
-      <div className="flex flex-col gap-4">
-        {schedules
-          .filter(
-            (s) => s.days.length > 0 && s.startTime && s.endTime,
-          )
-          .map((s, idx) => (
-            <ScheduleSelector
-              key={`${s.days.join('-')}-${idx}`}
-              schedule={s}
-              readOnly
-            />
-          ))}
-      </div>
     </div>
   )
 }

@@ -30,14 +30,11 @@ export default function ScheduleSelector({
 
   const toggleDay = (day: string) => {
     if (readOnly) return
-    const updatedDays = local.days.includes(day)
-      ? local.days.filter((d) => d !== day)
-      : [...local.days, day]
-    const updated = { ...local, days: updatedDays }
+    const updated = { ...local, days: [day] } // ✅ 하나만 선택
     setLocal(updated)
     onChange?.(updated)
   }
-
+  
   const handleTimeChange = (
     type: 'startTime' | 'endTime',
     value: string,
@@ -57,7 +54,7 @@ export default function ScheduleSelector({
             key={day}
             type="button"
             onClick={() => toggleDay(day)}
-            className={`rounded-2xs px-spacing-4xs font-label3-medium border py-[10px] transition-all ${
+            className={`rounded-2xs px-spacing-4xs font-label3-medium cursor-pointer border py-[10px] transition-all ${
               local.days.includes(day)
                 ? 'border-border-secondary text-label-primary bg-fill-selected-orange'
                 : 'border-border-subtler text-label-subtler bg-fill-input-gray'
@@ -87,9 +84,14 @@ export default function ScheduleSelector({
               onChange={(e) =>
                 handleTimeChange('startTime', e.target.value)
               }
-              className="border-border-subtle text-label-strong rounded-2xs px-spacing-4xs py-spacing-5xs font-label4-medium border"
+              className="border-border-subtle text-label-strong rounded-2xs px-spacing-4xs py-spacing-5xs font-label4-medium cursor-pointer border"
             >
-              <option value="">선택</option>
+              <option
+                className="cursor-pointer"
+                value=""
+              >
+                선택
+              </option>
               {TIMES.map((t) => (
                 <option
                   key={t}
@@ -105,9 +107,14 @@ export default function ScheduleSelector({
               onChange={(e) =>
                 handleTimeChange('endTime', e.target.value)
               }
-              className="border-border-subtle text-label-strong rounded-2xs px-spacing-4xs py-spacing-5xs font-label4-medium border"
+              className="border-border-subtle text-label-strong rounded-2xs px-spacing-4xs py-spacing-5xs font-label4-medium cursor-pointer border"
             >
-              <option value="">선택</option>
+              <option
+                className="cursor-pointer"
+                value=""
+              >
+                선택
+              </option>
               {TIMES.map((t) => (
                 <option
                   key={t}
