@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useRef, useEffect } from 'react'
-import { useVideoBinding } from '../hooks/useVideoBinding'
+
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+
+import { useVideoBinding } from '../hooks/useVideoBinding'
 
 const logger = createOpenViduLogger('LocalVideo')
 

@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useRef, useEffect } from 'react'
-import { useVideoBinding } from '../hooks/useVideoBinding'
+
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+
+import { useVideoBinding } from '../hooks/useVideoBinding'
 
 const logger = createOpenViduLogger('ScreenShareView')
 
@@ -20,7 +22,9 @@ export default function ScreenShareView({
   onScreenShareEnd,
 }: ScreenShareViewProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const onEndRef = useRef<typeof onScreenShareEnd | undefined>(onScreenShareEnd)
+  const onEndRef = useRef<typeof onScreenShareEnd | undefined>(
+    onScreenShareEnd,
+  )
 
   // 최신 콜백 보관 (deps 유발 방지)
   useEffect(() => {

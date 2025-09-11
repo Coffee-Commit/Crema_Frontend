@@ -2,13 +2,16 @@
 
 import { useEffect, useRef } from 'react'
 
+import type { ChatMessage } from '@/components/openvidu/types'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useOpenViduStore } from '@/store/useOpenViduStore'
 
 import MessageBubble from './MessageBubble'
 
-export default function MessageList() {
-  const { chatMessages } = useOpenViduStore()
+interface MessageListProps {
+  messages: ChatMessage[]
+}
+
+export default function MessageList({ messages }: MessageListProps) {
   const { user } = useAuthStore()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -18,9 +21,9 @@ export default function MessageList() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [chatMessages])
+  }, [messages])
 
-  if (chatMessages.length === 0) {
+  if (messages.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-[var(--spacing-spacing-md)]">
         <div className="text-center text-[var(--color-label-subtle)]">
@@ -41,7 +44,7 @@ export default function MessageList() {
 
   return (
     <div className="flex-1 overflow-y-auto p-[var(--spacing-spacing-6xs)]">
-      {chatMessages.map((message) => (
+      {messages.map((message) => (
         <MessageBubble
           key={message.id}
           message={message}
