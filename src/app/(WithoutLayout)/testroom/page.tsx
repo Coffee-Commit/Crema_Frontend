@@ -99,7 +99,7 @@ function VideoCallRoomContent() {
   const session = useVideoCallStore((s) => s.session)
   const _publisherBridge = usePublisherBridge(session)
 
-  // 새 파이프라인: 화면공유 토글 핸들러 (replace 우선, 실패 시 publish)
+  // 새 파이프라인: 화면공유 토글 핸들러 (replace 우선, 실패 시 ensure)
   const handleToggleShare = useMemo(() => {
     return async () => {
       if (!useNewComponents) {
@@ -114,7 +114,7 @@ function VideoCallRoomContent() {
             try {
               await _publisherBridge.replaceFrom(s)
             } catch {
-              await _publisherBridge.publishFrom(s)
+              await _publisherBridge.ensurePublisher(s)
             }
           }
           actions.updateSettings?.({ screenSharing: true })
@@ -125,7 +125,7 @@ function VideoCallRoomContent() {
             try {
               await _publisherBridge.replaceFrom(s)
             } catch {
-              await _publisherBridge.publishFrom(s)
+              await _publisherBridge.ensurePublisher(s)
             }
           }
           actions.updateSettings?.({ screenSharing: false })
@@ -135,6 +135,32 @@ function VideoCallRoomContent() {
       }
     }
   }, [useNewComponents, toggleScreenShare, screenSharing, localMediaController, _publisherBridge, actions])
+
+  // 새 파이프라인: 세션 연결 후 카메라 초기 게시 보장 (초기 진입 시 로컬 비디오 보이도록)
+  useEffect(() => {
+    if (!useNewComponents) return
+    if (sessionStatus !== 'connected') return
+    if (screenSharing) return
+
+    // 이미 로컬 스트림이 있으면 스킵
+    if (localMediaController.currentStreamRef.current) return
+
+    ;(async () => {
+      try {
+        await localMediaController.startCamera()
+        const s = localMediaController.currentStreamRef.current
+        if (s) {
+          try {
+            await _publisherBridge.replaceFrom(s)
+          } catch {
+            await _publisherBridge.ensurePublisher(s)
+          }
+        }
+      } catch (e) {
+        console.error('초기 카메라 시작/게시 실패', e)
+      }
+    })()
+  }, [useNewComponents, sessionStatus, screenSharing, localMediaController, _publisherBridge])
 
   const sessionNameParam = searchParams.get('sessionName')
   const usernameParam = searchParams.get('username')
@@ -481,6 +507,19 @@ function VideoCallRoomContent() {
     )
   }, [participants, myConnectionId])
 
+  // 원격 중 화면공유 중인 참가자(있다면 첫 번째)와 스트림
+  const remoteSharingParticipant = useMemo(() => {
+    return (
+      remoteParticipants.find(
+        (p) => p.isScreenSharing || !!p.streams.screen,
+      ) || null
+    )
+  }, [remoteParticipants])
+
+  const remoteScreenStream: MediaStream | null = useMemo(() => {
+    return remoteSharingParticipant?.streams.screen ?? null
+  }, [remoteSharingParticipant])
+
   // 디버그: 참가자 요약 로그
   useEffect(() => {
     const state = actions.getState?.()
@@ -712,15 +751,27 @@ function VideoCallRoomContent() {
         <div className="flex flex-1 flex-row gap-4 p-4">
           {useNewComponents ? (
             // 새로운 컴포넌트 기반 렌더링
-            <>
-              {screenSharing ? (
-                <ScreenShareView
-                  stream={localMediaController.currentStreamRef.current}
-                  label={`${myNickname} (화면공유)`}
-                  className="flex-1"
-                  onScreenShareEnd={handleToggleShare}
-                />
-              ) : (
+            (() => {
+              const anyScreenActive = !!remoteScreenStream || screenSharing
+              if (anyScreenActive) {
+                // 전체화면 모드: 원격이 공유 중이면 원격 화면 우선, 아니면 로컬 화면공유 표시
+                return remoteSharingParticipant ? (
+                  <RemoteVideo
+                    participant={remoteSharingParticipant}
+                    className="flex-1"
+                  />
+                ) : (
+                  <ScreenShareView
+                    stream={localMediaController.currentStreamRef.current}
+                    label={`${myNickname} (화면공유)`}
+                    className="flex-1"
+                    onScreenShareEnd={handleToggleShare}
+                  />
+                )
+              }
+
+              // 분할화면: 왼쪽 원격(없으면 자리만), 오른쪽 로컬 카메라
+              return (
                 <>
                   <RemoteVideo
                     participant={
@@ -738,8 +789,8 @@ function VideoCallRoomContent() {
                     className="flex-1"
                   />
                 </>
-              )}
-            </>
+              )
+            })()
           ) : (
             // 기존 레거시 렌더링
             <>

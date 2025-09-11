@@ -34,6 +34,7 @@ export const usePublisherBridge = (
 ): PublisherBridge => {
   const publisherRef = useRef<Publisher | null>(null)
   const isPublishingRef = useRef(false)
+  const pendingRef = useRef<Promise<Publisher> | null>(null)
 
   // Publisher 생성 및 게시
   const ensurePublisher = useCallback(
@@ -45,9 +46,18 @@ export const usePublisherBridge = (
         throw new Error('세션이 연결되지 않음')
       }
 
-      // 이미 게시 중인 경우 기존 Publisher 반환
+      // 이미 생성/게시 대기 중이면 기존 작업 반환
+      if (pendingRef.current) {
+        logger.debug('Publisher 생성 대기 중 - 기존 Promise 반환')
+        return pendingRef.current
+      }
+
+      // 이미 게시 중이면 트랙 교체 경로로 처리
       if (isPublishingRef.current && publisherRef.current) {
-        logger.debug('이미 게시 중인 Publisher 반환')
+        logger.debug('이미 게시 중 - 트랙 교체 처리')
+        await publisherRef.current.replaceTrack?.(
+          stream.getVideoTracks()[0],
+        )
         return publisherRef.current
       }
 
@@ -79,17 +89,21 @@ export const usePublisherBridge = (
 
         logger.debug('Publisher 옵션', publisherOptions)
 
-        // Publisher 생성
-        const publisher = OV.initPublisher(
-          undefined,
-          publisherOptions,
-        )
-
-        // 세션에 게시
-        await session.publish(publisher)
+        // 동시성 가드 설정
+        isPublishingRef.current = true
+        const createAndPublish = (async () => {
+          const publisher = OV.initPublisher(
+            undefined,
+            publisherOptions,
+          )
+          await session.publish(publisher)
+          return publisher
+        })()
+        pendingRef.current = createAndPublish
+        const publisher = await createAndPublish
 
         publisherRef.current = publisher
-        isPublishingRef.current = true
+        pendingRef.current = null
 
         logger.info('Publisher 생성 및 게시 완료', {
           streamId: publisher.stream?.streamId,
@@ -102,6 +116,7 @@ export const usePublisherBridge = (
         logger.error('Publisher 생성 실패', { error })
         publisherRef.current = null
         isPublishingRef.current = false
+        pendingRef.current = null
         throw error
       }
     },
@@ -116,12 +131,20 @@ export const usePublisherBridge = (
     ): Promise<Publisher> => {
       logger.debug('스트림으로부터 게시 시작')
 
-      // 기존 Publisher가 있으면 먼저 언게시
+      // 기존 Publisher가 있으면 교체를 우선 시도
       if (isPublishingRef.current && publisherRef.current) {
-        await unpublish()
+        try {
+          await publisherRef.current.replaceTrack?.(
+            stream.getVideoTracks()[0],
+          )
+          logger.info('교체 완료 후 게시 유지')
+          return publisherRef.current
+        } catch (e) {
+          logger.debug('교체 실패, ensurePublisher로 폴백', { e })
+        }
       }
 
-      // 새 Publisher 생성 및 게시
+      // 새 Publisher 생성 및 게시(or 교체 폴백)
       return await ensurePublisher(stream, options)
     },
     [ensurePublisher],
@@ -133,7 +156,9 @@ export const usePublisherBridge = (
       const publisher = publisherRef.current
 
       if (!publisher || !isPublishingRef.current) {
-        throw new Error('게시 중인 Publisher가 없음')
+        logger.debug('게시 중 Publisher 없음 - ensurePublisher 시도')
+        await ensurePublisher(stream)
+        return
       }
 
       const videoTracks = stream.getVideoTracks()
@@ -148,21 +173,15 @@ export const usePublisherBridge = (
           return
         }
 
-        // replaceTrack이 없거나 실패하면 재게시
-        logger.debug('replaceTrack 미지원 또는 실패, 재게시로 폴백')
-        await publishFrom(stream)
+        // replaceTrack이 없거나 실패하면 ensurePublisher로 폴백
+        logger.debug('replaceTrack 미지원 또는 실패, ensurePublisher 폴백')
+        await ensurePublisher(stream)
       } catch (error) {
-        logger.warn('트랙 교체 실패, 재게시로 폴백', { error })
-
-        try {
-          await publishFrom(stream)
-        } catch (republishError) {
-          logger.error('재게시도 실패', { republishError })
-          throw republishError
-        }
+        logger.warn('트랙 교체 실패', { error })
+        throw error
       }
     },
-    [publishFrom],
+    [ensurePublisher],
   )
 
   // 언게시
