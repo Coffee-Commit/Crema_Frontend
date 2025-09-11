@@ -66,7 +66,7 @@ export default function FilesPanel({ files, onPreview, onDownload, onUpload, onD
                 className="flex flex-1 items-center gap-2 text-left"
                 title="미리보기"
               >
-                <Image src="/icons/file-pdf.svg" alt="pdf" width={20} height={20} />
+                <span className="text-red-500">📄</span>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-900">{file.name}</span>
                   <span className="text-xs text-gray-500">{prettySize(file.sizeBytes)}</span>
