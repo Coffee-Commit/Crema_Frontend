@@ -110,18 +110,20 @@ export default function DashboardReview() {
           </div>
         ) : (
           <>
-            {currentReviews.map((review, idx) => (
-              <ReviewEditableCard
-                key={idx}
-                avatarUrl={review.avatarUrl}
-                nickname={review.nickname}
-                date={review.date}
-                time={review.time}
-                duration={review.duration}
-                rating={review.rating}
-                review={review.review}
-              />
-            ))}
+            <div className="gap-spacing-xs flex flex-col">
+              {currentReviews.map((review, idx) => (
+                <ReviewEditableCard
+                  key={idx}
+                  avatarUrl={review.avatarUrl}
+                  nickname={review.nickname}
+                  date={review.date}
+                  time={review.time}
+                  duration={review.duration}
+                  rating={review.rating}
+                  review={review.review}
+                />
+              ))}
+            </div>
 
             {totalPages > 1 && (
               <div className="mt-spacing-md flex w-full justify-center">

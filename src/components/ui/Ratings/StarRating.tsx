@@ -153,7 +153,7 @@ export default function StarRating({
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
-              className="text-label-subtler"
+              className="text-label-primary"
               width={size}
               height={size}
             >

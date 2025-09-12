@@ -37,9 +37,9 @@ export default function ReviewEditableCard({
   }
 
   return (
-    <div className="bg-fill-white border-border-subtler rounded-md border">
+    <div className="bg-fill-white border-border-subtler rounded-sm border">
       {/* 상단 영역 */}
-      <div className="p-spacing-md border-border-subtler flex items-center justify-between border-b">
+      <div className="p-spacing-3xs border-border-subtler flex items-center justify-between border-b">
         <div className="gap-spacing-sm flex items-center">
           {/* 프로필 */}
           {avatarUrl ? (
@@ -54,11 +54,11 @@ export default function ReviewEditableCard({
             <div className="bg-fill-disabled h-12 w-12 rounded-full" />
           )}
           {/* 닉네임 + 날짜/시간 */}
-          <div className="flex flex-col">
-            <span className="font-label3-semibold text-label-strong">
+          <div className="gap-spacing-xl flex flex-row items-center">
+            <span className="font-label4-semibold text-label-subtle min-w-[100px]">
               {nickname}
             </span>
-            <div className="gap-spacing-sm font-caption2 text-label-subtle flex items-center">
+            <div className="gap-spacing-7xl font-caption text-label-default flex min-w-[430px] items-center">
               <div className="flex items-center gap-1">
                 <CalendarDays className="h-3 w-3" />
                 {date}
@@ -71,47 +71,33 @@ export default function ReviewEditableCard({
           </div>
         </div>
         <SquareButton
-          variant={isEditing ? 'primary' : 'tertiary'}
+          variant={isEditing ? 'tertiary' : 'primary'}
           size="sm"
           onClick={() =>
             isEditing ? handleSave() : setIsEditing(true)
           }
         >
-          {isEditing ? '저장' : '작성'}
+          {isEditing ? '편집' : '작성'}
         </SquareButton>
       </div>
 
       {/* 본문 영역 */}
-      <div className="p-spacing-md">
-        {isEditing ? (
-          <div className="gap-spacing-sm flex flex-col">
-            <StarRating
-              rating={newRating}
-              readOnly={false}
-              onChange={(val) => setNewRating(val)}
-            />
-            <TextAreaCounter
-              maxLength={100}
-              value={newReview}
-              onChange={(val) => setNewReview(val)}
-              placeholder="리뷰를 작성해주세요. (최대 100자)"
-            />
-          </div>
-        ) : (
-          <div className="gap-spacing-xs flex flex-col">
-            <div className="flex items-center gap-2">
-              <StarRating
-                rating={rating}
-                readOnly
-              />
-              <span className="font-label3-semibold">
-                {rating.toFixed(1)}
-              </span>
-            </div>
-            <p className="font-body2 text-label-deep">{review}</p>
-          </div>
-        )}
-      </div>
+      {isEditing && (
+        <div className="p-spacing-sm gap-spacing-sm bg-fill-footer-gray flex flex-col">
+          <StarRating
+            rating={newRating}
+            readOnly={false}
+            onChange={(val) => setNewRating(val)}
+          />
+          <TextAreaCounter
+            maxLength={100}
+            value={newReview}
+            onChange={(val) => setNewReview(val)}
+            placeholder="리뷰를 작성해주세요. (최대 100자)"
+            className="bg-transparent"
+          />
+        </div>
+      )}
     </div>
   )
 }
