@@ -29,27 +29,18 @@ type Reservation = {
   status: ReservationStatus
 }
 
-function parseStartEnd(
-  preferredDate: string,
-  preferredTime: string,
-): { start: Date | null; end: Date | null } {
+function parseStartEnd(date: string, timeRange: string) {
   try {
-    const datePart = preferredDate.replace(/\s*\(.+\)\s*$/, '').trim()
-    const [yy, mm, dd] = datePart.split('.').map((s) => s.trim())
-    const year = 2000 + Number(yy)
-    const month = Number(mm) - 1
-    const day = Number(dd)
+    const [sh, sm] = timeRange.split('~')[0].split(':').map(Number)
+    const [eh, em] = timeRange.split('~')[1].split(':').map(Number)
+    const [y, m, d] = date.split('-').map(Number) // ✅ YYYY-MM-DD 대응
 
-    const [rawStart, rawEnd] = preferredTime
-      .split('~')
-      .map((s) => s.trim())
-    const [sh, sm] = rawStart.split(':').map(Number)
-    const [eh, em] = rawEnd.split(':').map(Number)
+    const start = new Date(y, m - 1, d, sh, sm, 0, 0)
+    const end = new Date(y, m - 1, d, eh, em, 0, 0)
 
-    const start = new Date(year, month, day, sh, sm, 0, 0)
-    const end = new Date(year, month, day, eh, em, 0, 0)
-    if (isNaN(start.getTime()) || isNaN(end.getTime()))
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return { start: null, end: null }
+    }
     return { start, end }
   } catch {
     return { start: null, end: null }
@@ -60,14 +51,18 @@ export default function DashboardPage() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const nowRef = useRef(new Date())
 
+  /** ✅ API 호출 */
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await api.get<{
           message: string
-          data: Reservation[]
-        }>(`/api/guides/me/reservations/pending`)
-        setReservations(res.data.data)
+          data: { content: Reservation[] }
+        }>(
+          '/api/guides/me/reservations/all?page=0&size=20&sortBy=createdAt&direction=DESC',
+        )
+        setReservations(res.data.data.content)
+        console.log('📌 가이드 예약 데이터:', res.data.data.content)
       } catch (err) {
         console.error('❌ 예약 데이터 불러오기 실패:', err)
       }
@@ -79,7 +74,6 @@ export default function DashboardPage() {
   /** 그룹 분류 */
   const group = useMemo(() => {
     const now = nowRef.current
-
     const pending = reservations.filter((r) => r.status === 'PENDING')
     const confirmed = reservations.filter(
       (r) => r.status === 'CONFIRMED',
@@ -116,7 +110,7 @@ export default function DashboardPage() {
     { key: 'done', label: '완료된 커피챗', count: group.done.length },
   ] as const
 
-  /** 일정 섹션: select = 전체/예정/완료 */
+  /** 일정 필터 */
   const [scheduleFilter, setScheduleFilter] = useState<
     'all' | 'scheduled' | 'done'
   >('all')
@@ -128,17 +122,19 @@ export default function DashboardPage() {
 
   const scheduleData = useMemo(() => {
     const now = nowRef.current
-    const confirmed = reservations.filter(
-      (r) => r.status === 'CONFIRMED',
-    )
 
-    const withEnd = confirmed.map((r) => ({
-      r,
-      parsed: parseStartEnd(
-        r.preferredDateOnly,
-        r.preferredTimeRange,
-      ),
-    }))
+    // 🔥 PENDING + CONFIRMED 둘 다 표시
+    const withEnd = reservations
+      .filter(
+        (r) => r.status === 'PENDING' || r.status === 'CONFIRMED',
+      )
+      .map((r) => ({
+        r,
+        parsed: parseStartEnd(
+          r.preferredDateOnly,
+          r.preferredTimeRange,
+        ),
+      }))
 
     const future = withEnd
       .filter(({ parsed }) => parsed.end && parsed.end > now)
@@ -163,7 +159,9 @@ export default function DashboardPage() {
         ? new Date(start.getTime() - 5 * 60 * 1000)
         : null
       const canJoin =
-        start && end ? now >= openAt! && now <= end : false
+        r.status === 'CONFIRMED' && start && end
+          ? now >= openAt! && now <= end
+          : false
 
       return {
         id: String(r.reservationId),
@@ -214,7 +212,9 @@ export default function DashboardPage() {
           ? 'pending'
           : r.status === 'CONFIRMED'
             ? 'accepted'
-            : 'rejected', // ✅ 반드시 세 값 중 하나로 매핑
+            : r.status === 'CANCELLED'
+              ? 'rejected'
+              : 'done',
     }))
   }, [modalKey, group])
 
@@ -354,7 +354,6 @@ export default function DashboardPage() {
         <ScheduleTable
           items={scheduleData}
           onEnter={(id) => {
-            // 옵션 A: 페이지가 입장 후 Quick-Join 수행
             window.location.href = `/coffeechat/${id}`
           }}
         />
