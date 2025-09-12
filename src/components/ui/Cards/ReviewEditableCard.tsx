@@ -107,7 +107,7 @@
 import { CalendarDays, Clock } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
-import api from '@/lib/http/api'
+
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
 import StarRating from '@/components/ui/Ratings/StarRating'
@@ -121,7 +121,6 @@ interface ReviewEditableCardProps {
   duration: string
   rating: number
   review: string
-  isInitiallyEditing?: boolean
 }
 
 export default function ReviewEditableCard({
@@ -133,26 +132,18 @@ export default function ReviewEditableCard({
   duration,
   rating,
   review,
-  isInitiallyEditing = false,
 }: ReviewEditableCardProps) {
-  const [isEditing, setIsEditing] = useState(isInitiallyEditing)
+  const [isEditing, setIsEditing] = useState(false)
   const [newRating, setNewRating] = useState(rating)
   const [newReview, setNewReview] = useState(review)
 
-  const handleSave = async () => {
-    try {
-      await api.post('/api/reviews', {
-        reservationId,
-        starReview: newRating,
-        comment: newReview,
-        experienceEvaluations: [], // TODO: 경험 평가 추가 가능
-      })
-      alert('리뷰가 저장되었습니다.')
-      setIsEditing(false)
-    } catch (err) {
-      console.error('❌ 리뷰 저장 실패:', err)
-      alert('리뷰 저장 중 오류가 발생했습니다.')
-    }
+  const handleSave = () => {
+    console.log('리뷰 저장 요청:', {
+      reservationId,
+      starReview: newRating,
+      comment: newReview,
+    })
+    setIsEditing(false)
   }
 
   return (
@@ -160,6 +151,7 @@ export default function ReviewEditableCard({
       {/* 상단 영역 */}
       <div className="p-spacing-3xs border-border-subtler flex items-center justify-between border-b">
         <div className="gap-spacing-sm flex items-center">
+          {/* 프로필 */}
           {avatarUrl ? (
             <Image
               src={avatarUrl}
@@ -171,6 +163,7 @@ export default function ReviewEditableCard({
           ) : (
             <div className="bg-fill-disabled h-12 w-12 rounded-full" />
           )}
+          {/* 닉네임 + 날짜/시간 */}
           <div className="gap-spacing-xl flex flex-row items-center">
             <span className="font-label4-semibold text-label-subtle min-w-[100px]">
               {nickname}
@@ -199,7 +192,7 @@ export default function ReviewEditableCard({
       </div>
 
       {/* 본문 영역 */}
-      {isEditing ? (
+      {isEditing && (
         <div className="p-spacing-sm gap-spacing-sm bg-fill-footer-gray flex flex-col">
           <StarRating
             rating={newRating}
@@ -207,25 +200,13 @@ export default function ReviewEditableCard({
             onChange={(val) => setNewRating(val)}
           />
           <TextAreaCounter
-            maxLength={100}
+            maxLength={500}
             value={newReview}
             onChange={(val) => setNewReview(val)}
-            placeholder="리뷰를 작성해주세요. (최대 100자)"
+            placeholder="리뷰를 작성해주세요. (최소 10자 이상, 최대 500자)"
             className="bg-transparent"
           />
         </div>
-      ) : (
-        review && (
-          <div className="p-spacing-sm gap-spacing-sm flex flex-col">
-            <StarRating
-              rating={newRating}
-              readOnly
-            />
-            <p className="font-body2 text-label-default">
-              {newReview}
-            </p>
-          </div>
-        )
       )}
     </div>
   )

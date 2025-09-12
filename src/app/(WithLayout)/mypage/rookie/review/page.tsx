@@ -132,6 +132,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+
 import EmptyState from '@/components/common/EmptyState'
 import Loading from '@/components/common/LoadingState'
 import ReviewEditableCard from '@/components/ui/Cards/ReviewEditableCard'
@@ -162,6 +163,7 @@ export default function DashboardReview() {
     },
   ]
 
+  // ✅ API 호출
   const loadReviews = async () => {
     setLoading(true)
     try {
@@ -173,14 +175,14 @@ export default function DashboardReview() {
 
       const res = await fetchMyReviews({
         filter: filterMap[filter],
-        page: page - 1,
+        page: page - 1, // 서버는 0부터 시작
         size: 5,
       })
 
       setReviews(res.data.content)
       setTotalPages(res.data.totalPages)
     } catch (err) {
-      console.error('❌ 리뷰 불러오기 실패:', err)
+      console.error('리뷰 불러오기 실패:', err)
       setReviews([])
     } finally {
       setLoading(false)
@@ -201,11 +203,12 @@ export default function DashboardReview() {
           selected={filter}
           onSelect={(key) => {
             setFilter(key as typeof filter)
-            setPage(1)
+            setPage(1) // 필터 바꾸면 페이지 초기화
           }}
         />
       </section>
 
+      {/* 리뷰 섹션 */}
       <section className="gap-spacing-4xs flex flex-col">
         {loading ? (
           <Loading />
@@ -216,31 +219,31 @@ export default function DashboardReview() {
         ) : (
           <>
             <div className="gap-spacing-xs flex flex-col">
-              {reviews.map((review) => (
-                <ReviewEditableCard
-                  key={review.reservationId}
-                  reservationId={review.reservationId}
-                  avatarUrl={review.guide.profileImageUrl}
-                  nickname={review.guide.nickname}
-                  date={new Date(
-                    review.reservation.matchingDateTime,
-                  ).toLocaleDateString()}
-                  time={new Date(
-                    review.reservation.matchingDateTime,
-                  ).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                  duration={
-                    review.reservation.timeUnit === 'MINUTE_30'
-                      ? '30분'
-                      : '60분'
-                  }
-                  rating={review.review?.star ?? 0}
-                  review={review.review?.comment ?? ''}
-                  isInitiallyEditing={!review.review} // 리뷰 없으면 작성 모드
-                />
-              ))}
+              {reviews.map((review) => {
+                const dateObj = new Date(
+                  review.reservation.matchingDateTime,
+                )
+                return (
+                  <ReviewEditableCard
+                    key={review.reservationId}
+                    reservationId={review.reservationId} // ✅ 추가
+                    avatarUrl={review.guide.profileImageUrl}
+                    nickname={review.guide.nickname}
+                    date={dateObj.toLocaleDateString()}
+                    time={dateObj.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                    duration={
+                      review.reservation.timeUnit === 'MINUTE_30'
+                        ? '30분'
+                        : '60분'
+                    }
+                    rating={review.review?.star ?? 0} // ✅ 별점 반영
+                    review={review.review?.comment ?? ''} // ✅ 리뷰 코멘트 반영
+                  />
+                )
+              })}
             </div>
 
             {totalPages > 1 && (
