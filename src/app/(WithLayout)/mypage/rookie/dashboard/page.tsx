@@ -95,10 +95,13 @@ export default function DashboardPage() {
   const scheduleData = useMemo(() => {
     const now = nowRef.current
 
-    // 🔥 PENDING + CONFIRMED 둘 다 표시
+    // ✅ 모든 상태(PENDING, CONFIRMED, COMPLETED)를 포함
     const withEnd = chats
       .filter(
-        (c) => c.status === 'PENDING' || c.status === 'CONFIRMED',
+        (c) =>
+          c.status === 'PENDING' ||
+          c.status === 'CONFIRMED' ||
+          c.status === 'COMPLETED',
       )
       .map((c) => ({
         c,
@@ -177,14 +180,7 @@ export default function DashboardPage() {
       preferredDate: c.preferredDateOnly,
       preferredTime: c.preferredTimeRange,
       profileImageUrl: c.guide.profileImageUrl ?? '',
-      status:
-        c.status === 'PENDING'
-          ? '대기중'
-          : c.status === 'CONFIRMED'
-            ? '확정됨'
-            : c.status === 'COMPLETED'
-              ? '완료됨'
-              : '취소됨',
+      status: c.status, // ✅ 그대로 전달 (PENDING, CONFIRMED, COMPLETED, CANCELLED)
     }))
   }, [modalKey, group])
 

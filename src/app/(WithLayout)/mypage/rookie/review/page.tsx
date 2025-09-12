@@ -1,16 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import EmptyState from '@/components/common/EmptyState'
+import Loading from '@/components/common/LoadingState'
 import ReviewEditableCard from '@/components/ui/Cards/ReviewEditableCard'
 import FilterDropdown from '@/components/ui/CustomSelectes/DropDown/FilterDropdown'
 import Pagination from '@/components/ui/Paginations/Pagination'
+import {
+  fetchMyReviews,
+  ReviewFilter,
+  MyReview,
+} from '@/lib/http/review'
 
 export default function DashboardReview() {
   const [filter, setFilter] = useState<
     'all' | 'written' | 'unwritten'
   >('all')
+  const [reviews, setReviews] = useState<MyReview[]>([])
+  const [totalPages, setTotalPages] = useState(0)
+  const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(false)
 
   const options = [
     { key: 'all', label: '전체', colorClass: 'bg-fill-light' },
@@ -21,79 +31,36 @@ export default function DashboardReview() {
       colorClass: 'bg-fill-disabled',
     },
   ]
-  const mockReviews = [
-    {
-      avatarUrl: null,
-      nickname: '홍길동',
-      date: '2025-09-12',
-      time: '15:00',
-      duration: '30분',
-      rating: 0,
-      review: '',
-    },
-    {
-      avatarUrl: null,
-      nickname: '김영희',
-      date: '2025-09-10',
-      time: '13:00',
-      duration: '60분',
-      rating: 5,
-      review: '멘토님이 친절하게 설명해주셔서 많은 도움이 됐습니다.',
-    },
-    {
-      avatarUrl: null,
-      nickname: '이철수',
-      date: '2025-09-09',
-      time: '18:00',
-      duration: '30분',
-      rating: 4,
-      review: '알찬 시간이었습니다.',
-    },
-    {
-      avatarUrl: null,
-      nickname: '박민지',
-      date: '2025-09-08',
-      time: '14:00',
-      duration: '60분',
-      rating: 5,
-      review: '구체적인 피드백을 많이 얻었습니다.',
-    },
-    {
-      avatarUrl: null,
-      nickname: '정우성',
-      date: '2025-09-07',
-      time: '16:00',
-      duration: '30분',
-      rating: 3.5,
-      review: '유익했지만 시간이 조금 짧았어요.',
-    },
-    {
-      avatarUrl: null,
-      nickname: '김가영',
-      date: '2025-09-06',
-      time: '19:00',
-      duration: '60분',
-      rating: 4.2,
-      review: '좋은 경험이었습니다.',
-    },
-  ]
 
-  // ✅ 필터링 로직
-  const filteredReviews = mockReviews.filter((r) => {
-    if (filter === 'written') return r.review.trim() !== ''
-    if (filter === 'unwritten') return r.review.trim() === ''
-    return true
-  })
+  // ✅ API 호출
+  const loadReviews = async () => {
+    setLoading(true)
+    try {
+      const filterMap: Record<typeof filter, ReviewFilter> = {
+        all: 'ALL',
+        written: 'WRITTEN',
+        unwritten: 'NOT_WRITTEN',
+      }
 
-  // ✅ 페이지네이션 상태
-  const [page, setPage] = useState(1)
-  const perPage = 5
-  const totalPages = Math.ceil(filteredReviews.length / perPage)
+      const res = await fetchMyReviews({
+        filter: filterMap[filter],
+        page: page - 1, // 서버는 0부터 시작
+        size: 5,
+      })
 
-  const currentReviews = filteredReviews.slice(
-    (page - 1) * perPage,
-    page * perPage,
-  )
+      setReviews(res.data.content)
+      setTotalPages(res.data.totalPages)
+    } catch (err) {
+      console.error('리뷰 불러오기 실패:', err)
+      setReviews([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadReviews()
+  }, [filter, page])
 
   return (
     <main className="gap-spacing-3xl flex flex-col">
@@ -103,31 +70,44 @@ export default function DashboardReview() {
           options={options}
           selected={filter}
           onSelect={(key) => {
-            setFilter(key as 'all' | 'written' | 'unwritten')
-            setPage(1)
+            setFilter(key as typeof filter)
+            setPage(1) // 필터 바꾸면 페이지 초기화
           }}
         />
       </section>
 
       {/* 리뷰 섹션 */}
       <section className="gap-spacing-4xs flex flex-col">
-        {mockReviews.length === 0 ? (
+        {loading ? (
+          <Loading />
+        ) : reviews.length === 0 ? (
           <div className="border-border-subtler pb-spacing-7xl rounded-sm border">
             <EmptyState />
           </div>
         ) : (
           <>
             <div className="gap-spacing-xs flex flex-col">
-              {currentReviews.map((review, idx) => (
+              {reviews.map((review) => (
                 <ReviewEditableCard
-                  key={idx}
-                  avatarUrl={review.avatarUrl}
-                  nickname={review.nickname}
-                  date={review.date}
-                  time={review.time}
-                  duration={review.duration}
-                  rating={review.rating}
-                  review={review.review}
+                  key={review.reservationId}
+                  avatarUrl={review.guide.profileImageUrl}
+                  nickname={review.guide.nickname}
+                  date={new Date(
+                    review.reservation.matchingDateTime,
+                  ).toLocaleDateString()}
+                  time={new Date(
+                    review.reservation.matchingDateTime,
+                  ).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                  duration={
+                    review.reservation.timeUnit === 'MINUTE_30'
+                      ? '30분'
+                      : '60분'
+                  }
+                  rating={review.review?.star ?? 0}
+                  review={review.review?.comment ?? ''}
                 />
               ))}
             </div>
