@@ -7,9 +7,9 @@ import ModalStandbyStatus, {
 } from '@/components/common/ModalStandbyStatus'
 import api from '@/lib/http/api'
 
+import GuideVisibilityToggle from './_components/CoffeeChatVisibleToggle'
 import ScheduleTable from '../../_components/Cards/ScheduleTable'
 import StatusCard from '../../_components/Cards/StatusCard'
-import GuideVisibilityToggle from './_components/CoffeeChatVisibleToggle'
 
 type ReservationStatus =
   | 'PENDING'
