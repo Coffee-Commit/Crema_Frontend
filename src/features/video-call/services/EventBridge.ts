@@ -91,6 +91,17 @@ export class EventBridge {
 
     // 스트림 생성 (참가자의 미디어 스트림 생성)
     this.session.on('streamCreated', (event) => {
+      // 자기 스트림인 경우 구독/추가하지 않음 (중복 표시 방지)
+      if (
+        event.stream.connection.connectionId ===
+        this.session?.connection?.connectionId
+      ) {
+        logger.debug('자기 스트림 감지됨: 구독/참가자 추가 스킵', {
+          connectionId: event.stream.connection.connectionId,
+        })
+        return
+      }
+
       logger.info('스트림 생성 이벤트', {
         streamId: event.stream.streamId,
         connectionId: event.stream.connection.connectionId,
@@ -99,12 +110,21 @@ export class EventBridge {
         typeOfVideo: event.stream.typeOfVideo,
       })
 
+      const myConnectionId = this.session?.connection?.connectionId
+      const streamConnId = event.stream.connection.connectionId
+      const isLocalCalculated = myConnectionId === streamConnId
+      logger.debug('streamCreated 판별', {
+        myConnectionId,
+        streamConnId,
+        isLocalCalculated,
+      })
+
       // 참가자 객체 생성
       const participant: Participant = {
         id: event.stream.connection.connectionId,
         connectionId: event.stream.connection.connectionId,
         nickname: event.stream.connection.data || 'Unknown User',
-        isLocal: false,
+        isLocal: isLocalCalculated,
         streams: {
           camera: event.stream.getMediaStream(),
         },
@@ -118,6 +138,10 @@ export class EventBridge {
 
       // Store에 참가자 추가
       useVideoCallStore.getState().addParticipant(participant)
+      try {
+        const size = useVideoCallStore.getState().participants.size
+        logger.debug('참가자 추가 후 현재 수', { size })
+      } catch {}
 
       // 자동 구독
       try {
@@ -150,6 +174,10 @@ export class EventBridge {
       useVideoCallStore
         .getState()
         .removeParticipant(event.stream.connection.connectionId)
+      try {
+        const size = useVideoCallStore.getState().participants.size
+        logger.debug('참가자 제거 후 현재 수', { size })
+      } catch {}
     })
 
     // 스트림 속성 변경 (음소거/비디오 끄기 등)
@@ -342,6 +370,22 @@ export class EventBridge {
           this.handleNotification(data, from)
           break
 
+        case 'signal:file-share':
+          // 파일 공유 신호는 페이지 단에서 처리하는 경우가 있어 노이즈 로그 방지
+          try {
+            const parsed = JSON.parse(data)
+            logger.debug('파일 공유 신호 수신', {
+              id: parsed?.id,
+              name: parsed?.name,
+              sizeBytes: parsed?.sizeBytes,
+            })
+          } catch {
+            logger.debug('파일 공유 신호(파싱 실패)', {
+              length: data?.length,
+            })
+          }
+          break
+
         default:
           logger.debug('알 수 없는 신호 타입', { type })
       }
@@ -360,6 +404,23 @@ export class EventBridge {
   ): void {
     try {
       const messageData = JSON.parse(data)
+
+      // 자기 자신이 보낸 신호는 로컬 낙관적 추가가 이미 있으므로 무시하여 에코 방지
+      try {
+        const myConn =
+          useVideoCallStore.getState().session?.connection
+            ?.connectionId
+        if (
+          from?.connectionId &&
+          myConn &&
+          from.connectionId === myConn
+        ) {
+          logger.debug('자기 신호(chat) 에코 무시', {
+            messageId: messageData?.id,
+          })
+          return
+        }
+      } catch {}
 
       const chatMessage: ChatMessage = {
         id:

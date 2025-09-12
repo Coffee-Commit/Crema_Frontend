@@ -20,6 +20,35 @@ import {
 import api from '@/lib/http/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
+// 추가 타입 정의 (임시)
+interface ParticipantInfoResponse {
+  participantId: string
+  nickname: string
+  role: string
+  joinedAt: string
+}
+
+interface SharedFileListResponse {
+  files: Array<{
+    fileId: string
+    fileName: string
+    fileSize?: number
+    fileType?: string
+    fileUrl: string
+    uploadTime: string
+    uploader: string
+  }>
+}
+
+interface SharedFileResponse {
+  fileId: string
+  fileName: string
+  fileSize: number
+  fileType: string
+  fileUrl: string
+  uploadTime: string
+}
+
 // ============================================================================
 // API 응답 정규화 함수
 // ============================================================================
@@ -213,6 +242,39 @@ class OpenViduApiService {
   }
 
   /**
+   * 1-1. 테스트 세션 참가 (정식 API)
+   * POST /api/video-call/test-quick-join?sessionName={sessionName}
+   */
+  async testQuickJoin(
+    sessionName: string,
+  ): Promise<QuickJoinResponse> {
+    logger.debug('테스트 세션 참가 시도 (정식 API)', { sessionName })
+
+    try {
+      const result = await this.request<QuickJoinResponse>(
+        `/test-quick-join?sessionName=${encodeURIComponent(sessionName)}`,
+        { method: 'POST' },
+      )
+
+      logger.info('테스트 세션 참가 성공', {
+        sid: result.sessionId.substring(0, 8) + '...',
+        sessionName: result.sessionName,
+        username: result.username,
+        isNew: result.isNewSession,
+      })
+
+      return result
+    } catch (error) {
+      logger.error('테스트 세션 참가 실패', {
+        sessionName,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
    * 2. 프론트엔드 설정 정보 조회
    * GET /api/video-call/config
    */
@@ -288,18 +350,6 @@ class OpenViduApiService {
       method: 'POST',
       data: chatData,
     })
-  }
-
-  /**
-   * 7. 채팅 히스토리 조회
-   * GET /api/video-call/chat/{sessionId}/history
-   */
-  async getChatHistory(
-    sessionId: string,
-  ): Promise<ChatHistoryResponse> {
-    return this.request<ChatHistoryResponse>(
-      `/chat/${sessionId}/history`,
-    )
   }
 
   /**
@@ -419,6 +469,204 @@ class OpenViduApiService {
       `/sessions/${sessionId}/participants/${participantId}/stats`,
     )
   }
+
+  // ============================================================================
+  // 추가 API 메서드들
+  // ============================================================================
+
+  /**
+   * 화상통화 세션 종료
+   * POST /api/video-call/sessions/{sessionId}/end
+   */
+  async endSession(
+    sessionId: string,
+    chatData?: ChatHistorySaveRequest,
+  ): Promise<void> {
+    logger.debug('세션 종료 시도', { sessionId })
+
+    try {
+      await this.request<void>(`/sessions/${sessionId}/end`, {
+        method: 'POST',
+        data: chatData,
+      })
+      logger.info('세션 종료 완료', { sessionId })
+    } catch (error) {
+      logger.error('세션 종료 실패', {
+        sessionId,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 참가자 정보 조회
+   * GET /api/video-call/sessions/{sessionId}/participant
+   */
+  async getParticipantInfo(
+    sessionId: string,
+  ): Promise<ParticipantInfoResponse> {
+    logger.debug('참가자 정보 조회 시도', { sessionId })
+
+    try {
+      const result = await this.request<ParticipantInfoResponse>(
+        `/sessions/${sessionId}/participant`,
+      )
+      logger.info('참가자 정보 조회 완료', { sessionId })
+      return result
+    } catch (error) {
+      logger.error('참가자 정보 조회 실패', {
+        sessionId,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 공유 자료 목록 조회
+   * GET /api/video-call/sessions/{sessionId}/materials
+   */
+  async getMaterials(
+    sessionId: string,
+  ): Promise<SharedFileListResponse> {
+    logger.debug('공유 자료 목록 조회 시도', { sessionId })
+
+    try {
+      const result = await this.request<SharedFileListResponse>(
+        `/sessions/${sessionId}/materials`,
+      )
+      logger.info('공유 자료 목록 조회 완료', {
+        sessionId,
+        fileCount: result.files?.length || 0,
+      })
+      return result
+    } catch (error) {
+      logger.error('공유 자료 목록 조회 실패', {
+        sessionId,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 공유 자료 등록 (파일 직접 업로드)
+   * POST /api/video-call/sessions/{sessionId}/materials
+   */
+  async uploadMaterial(
+    sessionId: string,
+    file: File,
+  ): Promise<SharedFileResponse> {
+    logger.debug('공유 자료 업로드 시도', {
+      sessionId,
+      fileName: file.name,
+      fileSize: file.size,
+    })
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await api({
+        url: `${this.baseUrl}/sessions/${sessionId}/materials`,
+        method: 'POST',
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      const apiResponse = normalizeApiResponse<SharedFileResponse>(
+        response.data,
+      )
+
+      if (isSuccessResponse(apiResponse)) {
+        logger.info('공유 자료 업로드 완료', {
+          sessionId,
+          fileName: file.name,
+          fileId: apiResponse.result.fileId,
+        })
+        return apiResponse.result
+      } else {
+        logger.error('공유 자료 업로드 실패', {
+          sessionId,
+          fileName: file.name,
+          code: apiResponse.code,
+          msg: apiResponse.message,
+        })
+        throw new Error(
+          `API Error [${apiResponse.code}]: ${apiResponse.message}`,
+        )
+      }
+    } catch (error) {
+      logger.error('공유 자료 업로드 실패', {
+        sessionId,
+        fileName: file.name,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 공유 자료 삭제
+   * DELETE /api/video-call/sessions/{sessionId}/materials?imageKey={imageKey}
+   */
+  async deleteMaterial(
+    sessionId: string,
+    imageKey: string,
+  ): Promise<void> {
+    logger.debug('공유 자료 삭제 시도', { sessionId, imageKey })
+
+    try {
+      await this.request<void>(
+        `/sessions/${sessionId}/materials?imageKey=${encodeURIComponent(imageKey)}`,
+        { method: 'DELETE' },
+      )
+      logger.info('공유 자료 삭제 완료', { sessionId, imageKey })
+    } catch (error) {
+      logger.error('공유 자료 삭제 실패', {
+        sessionId,
+        imageKey,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 채팅 기록 조회
+   * GET /api/video-call/chat/{reservationId}/history
+   */
+  async getChatHistory(
+    reservationId: string,
+  ): Promise<ChatHistoryResponse> {
+    logger.debug('채팅 기록 조회 시도', { reservationId })
+
+    try {
+      const result = await this.request<ChatHistoryResponse>(
+        `/chat/${reservationId}/history`,
+      )
+      logger.info('채팅 기록 조회 완료', {
+        reservationId,
+        messageCount: result.messages?.length || 0,
+      })
+      return result
+    } catch (error) {
+      logger.error('채팅 기록 조회 실패', {
+        reservationId,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
 }
 
 // ============================================================================
@@ -428,6 +676,7 @@ class OpenViduApiService {
 class OpenViduTestApiService {
   private readonly baseUrl = '/api/test/video-call'
   private abortControllers = new Map<string, AbortController>()
+  private pendingRequests = new Map<string, Promise<unknown>>()
 
   /**
    * 진행 중인 요청 취소
@@ -438,6 +687,7 @@ class OpenViduTestApiService {
       logger.debug('요청 취소', { key })
       controller.abort()
       this.abortControllers.delete(key)
+      this.pendingRequests.delete(key)
     }
   }
 
@@ -452,6 +702,7 @@ class OpenViduTestApiService {
       controller.abort()
     })
     this.abortControllers.clear()
+    this.pendingRequests.clear()
   }
 
   /**
@@ -472,9 +723,20 @@ class OpenViduTestApiService {
       timestamp: new Date().toISOString(),
     }
 
-    // AbortController 설정
+    // AbortController 및 중복 요청 관리
     let abortController: AbortController | undefined
     if (options.abortKey) {
+      // 이미 진행 중인 동일한 요청이 있으면 재사용
+      const existingRequest = this.pendingRequests.get(
+        options.abortKey,
+      )
+      if (existingRequest) {
+        logger.debug('기존 요청 재사용', {
+          abortKey: options.abortKey,
+        })
+        return existingRequest as Promise<T>
+      }
+
       // 기존 요청이 있으면 취소
       this.cancelRequest(options.abortKey)
 
@@ -492,106 +754,119 @@ class OpenViduTestApiService {
 
     const startTime = performance.now()
 
-    try {
-      const response = await api({
-        url: requestInfo.url,
-        method: requestInfo.method,
-        data: requestInfo.data,
-        signal: abortController?.signal,
-      })
-
-      const endTime = performance.now()
-      const duration = Math.round(endTime - startTime)
-
-      logger.debug('Test API 응답', {
-        status: response.status,
-        durMs: duration,
-      })
-
-      const raw = response.data
-
-      // QuickJoin 응답의 구조 디버깅 (보안상 키만 로깅)
-      if (endpoint.includes('/quick-join')) {
-        logger.debug('QuickJoin API 원시 응답 구조', {
-          endpoint,
-          topLevelKeys: Object.keys(raw || {}),
-          hasResult: 'result' in (raw || {}),
-          hasData: 'data' in (raw || {}),
-          hasToken: 'token' in (raw || {}),
-          hasSessionId: 'sessionId' in (raw || {}),
-          resultKeys: raw?.result ? Object.keys(raw.result) : null,
-          dataKeys: raw?.data ? Object.keys(raw.data) : null,
+    // 요청 Promise 생성 및 캐싱
+    const executeRequest = async (): Promise<T> => {
+      try {
+        const response = await api({
+          url: requestInfo.url,
+          method: requestInfo.method,
+          data: requestInfo.data,
+          signal: abortController?.signal,
         })
-      }
 
-      const apiResponse = normalizeApiResponse<T>(raw)
+        const endTime = performance.now()
+        const duration = Math.round(endTime - startTime)
 
-      if (isSuccessResponse(apiResponse)) {
-        logger.info('Test API 완료', {
-          endpoint,
-          code: apiResponse.code,
+        logger.debug('Test API 응답', {
+          status: response.status,
           durMs: duration,
         })
-        return apiResponse.result
-      } else {
-        logger.error('Test API 에러', {
+
+        const raw = response.data
+
+        // QuickJoin 응답의 구조 디버깅 (보안상 키만 로깅)
+        if (endpoint.includes('/quick-join')) {
+          logger.debug('QuickJoin API 원시 응답 구조', {
+            endpoint,
+            topLevelKeys: Object.keys(raw || {}),
+            hasResult: 'result' in (raw || {}),
+            hasData: 'data' in (raw || {}),
+            hasToken: 'token' in (raw || {}),
+            hasSessionId: 'sessionId' in (raw || {}),
+            resultKeys: raw?.result ? Object.keys(raw.result) : null,
+            dataKeys: raw?.data ? Object.keys(raw.data) : null,
+          })
+        }
+
+        const apiResponse = normalizeApiResponse<T>(raw)
+
+        if (isSuccessResponse(apiResponse)) {
+          logger.info('Test API 완료', {
+            endpoint,
+            code: apiResponse.code,
+            durMs: duration,
+          })
+          return apiResponse.result
+        } else {
+          logger.error('Test API 에러', {
+            endpoint,
+            code: apiResponse.code,
+            msg: apiResponse.message,
+          })
+          throw new Error(
+            `Test API Error [${apiResponse.code}]: ${apiResponse.message}`,
+          )
+        }
+      } catch (error: unknown) {
+        const endTime = performance.now()
+        const duration = Math.round(endTime - startTime)
+
+        // AbortController 정리
+        if (options.abortKey) {
+          this.abortControllers.delete(options.abortKey)
+          this.pendingRequests.delete(options.abortKey)
+        }
+
+        const errorInfo = isErrorLike(error)
+          ? {
+              name: error.name || '',
+              code: (error as { code?: string }).code || '',
+              msg: error.message || 'Unknown error',
+              status: (error as { response?: { status?: number } })
+                .response?.status,
+            }
+          : {
+              name: '',
+              code: '',
+              msg: String(error),
+              status: undefined,
+            }
+
+        // 요청 취소 에러 체크
+        if (
+          errorInfo.name === 'CanceledError' ||
+          errorInfo.code === 'ERR_CANCELED'
+        ) {
+          logger.warn('Test API 요청 취소', {
+            endpoint,
+            abortKey: options.abortKey,
+            durMs: duration,
+          })
+          throw new Error('요청이 취소되었습니다.')
+        }
+
+        logger.error('Test API 요청 실패', {
           endpoint,
-          code: apiResponse.code,
-          msg: apiResponse.message,
-        })
-        throw new Error(
-          `Test API Error [${apiResponse.code}]: ${apiResponse.message}`,
-        )
-      }
-    } catch (error: unknown) {
-      const endTime = performance.now()
-      const duration = Math.round(endTime - startTime)
-
-      // AbortController 정리
-      if (options.abortKey) {
-        this.abortControllers.delete(options.abortKey)
-      }
-
-      const errorInfo = isErrorLike(error)
-        ? {
-            name: error.name || '',
-            code: (error as { code?: string }).code || '',
-            msg: error.message || 'Unknown error',
-            status: (error as { response?: { status?: number } })
-              .response?.status,
-          }
-        : {
-            name: '',
-            code: '',
-            msg: String(error),
-            status: undefined,
-          }
-
-      // 요청 취소 에러 체크
-      if (
-        errorInfo.name === 'CanceledError' ||
-        errorInfo.code === 'ERR_CANCELED'
-      ) {
-        logger.warn('Test API 요청 취소', {
-          endpoint,
-          abortKey: options.abortKey,
+          msg: errorInfo.msg,
           durMs: duration,
+          status: errorInfo.status,
         })
-        throw new Error('요청이 취소되었습니다.')
+        throw error
+      } finally {
+        // 성공 시에도 AbortController 정리
+        if (options.abortKey) {
+          this.abortControllers.delete(options.abortKey)
+          this.pendingRequests.delete(options.abortKey)
+        }
       }
+    }
 
-      logger.error('Test API 요청 실패', {
-        endpoint,
-        msg: errorInfo.msg,
-        durMs: duration,
-        status: errorInfo.status,
-      })
-      throw error
-    } finally {
-      // 성공 시에도 AbortController 정리
-      if (options.abortKey) {
-        this.abortControllers.delete(options.abortKey)
-      }
+    // Promise 캐싱 및 실행
+    if (options.abortKey) {
+      this.pendingRequests.set(options.abortKey, executeRequest())
+      return this.pendingRequests.get(options.abortKey) as Promise<T>
+    } else {
+      return executeRequest()
     }
   }
 
@@ -807,6 +1082,35 @@ class OpenViduTestApiService {
       data: { profile },
     })
   }
+
+  /**
+   * 테스트 참가자 정보 조회
+   * GET /api/test/video-call/sessions/{sessionId}/participant
+   */
+  async getParticipantInfo(
+    sessionId: string,
+  ): Promise<ParticipantInfoResponse> {
+    logger.debug('테스트 참가자 정보 조회 시도', { sessionId })
+
+    try {
+      const result = await this.request<ParticipantInfoResponse>(
+        `/sessions/${sessionId}/participant`,
+      )
+      logger.info('테스트 참가자 정보 조회 완료', { sessionId })
+      return result
+    } catch (error) {
+      logger.error('테스트 참가자 정보 조회 실패', {
+        sessionId,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  // ============================================================================
+  // 추가 테스트 API 메서드들
+  // ============================================================================
 }
 
 // ============================================================================

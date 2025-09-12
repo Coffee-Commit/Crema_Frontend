@@ -45,8 +45,15 @@ next-env.d.ts
 CLAUDE.md
 doc/
 
+# temp-login feature (personal use only)
+/src/features/temp-auth/
+/src/app/api/temp/
+/src/app/api/member/me/
+/src/app/(WithLayout)/(auth)/temp-login/
+
 # playwright testing
 /tests/playwright/
 .playwright-mcp/
 test-results/
 playwright-report/
+.codex/mcp.json

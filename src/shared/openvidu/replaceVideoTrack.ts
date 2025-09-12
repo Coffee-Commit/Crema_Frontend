@@ -57,8 +57,28 @@ export async function swapToCamera(
       // 기존 트랙이 살아있다면 복원
       await publisher.replaceTrack(ctx.cameraTrack)
     } else {
-      // 기존 트랙이 없거나 종료됨 - 비디오 비활성화
-      await publisher.publishVideo(false)
+      // 기존 트랙이 없거나 종료됨 - 새로운 카메라 스트림 획득 시도
+      try {
+        const newCameraStream =
+          await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          })
+        const newVideoTrack = newCameraStream.getVideoTracks()[0]
+
+        if (newVideoTrack) {
+          await publisher.replaceTrack(newVideoTrack)
+          // 화면공유 시작 당시 카메라가 꺼져있었다면 다시 끔
+          if (!ctx.prevVideoEnabled) {
+            await publisher.publishVideo(false)
+          }
+        } else {
+          throw new Error('새로운 카메라 트랙을 획득할 수 없습니다.')
+        }
+      } catch (err: unknown) {
+        console.warn('카메라 재획득 실패, 비디오 비활성화:', err)
+        await publisher.publishVideo(false)
+      }
     }
   } finally {
     // 리스너 정리
@@ -69,10 +89,5 @@ export async function swapToCamera(
     // 화면공유 트랙 및 스트림 정리
     ctx.screenTrack?.stop()
     ctx.displayStream?.getTracks().forEach((t) => t.stop())
-
-    // 화면공유 시작 당시 카메라가 꺼져있었다면 복원 후 다시 끔
-    if (!ctx.prevVideoEnabled && ctx.cameraTrack) {
-      await publisher.publishVideo(false)
-    }
   }
 }

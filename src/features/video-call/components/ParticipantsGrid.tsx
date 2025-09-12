@@ -3,6 +3,7 @@
 import React from 'react'
 
 import { useParticipants, useLocalParticipant } from '../store'
+import type { Participant } from '../types'
 import ParticipantVideo from './ParticipantVideo'
 
 export default function ParticipantsGrid() {
@@ -10,7 +11,10 @@ export default function ParticipantsGrid() {
   const _localParticipant = useLocalParticipant()
 
   // 로컬 참가자를 제외한 원격 참가자들만 표시
-  const remoteParticipants = participants.filter((p) => !p.isLocal)
+  const participantMap = participants as Map<string, Participant>
+  const remoteParticipants = Array.from(
+    participantMap.values(),
+  ).filter((p) => !p.isLocal)
 
   if (remoteParticipants.length === 0) {
     return null

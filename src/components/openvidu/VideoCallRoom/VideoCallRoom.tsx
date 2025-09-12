@@ -5,8 +5,10 @@ import { useEffect, useState, useRef } from 'react'
 
 import ChatContainer from '@/components/openvidu/Chat/ChatContainer'
 import ParticipantVideo from '@/components/openvidu/ParticipantsList/ParticipantVideo'
+import type { ChatMessage } from '@/components/openvidu/types'
 import VideoControls from '@/components/openvidu/VideoControls'
 import { openViduTestApi } from '@/lib/openvidu/api'
+import { ChatManager } from '@/lib/openvidu/chatManager'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 import { useOpenViduStore } from '@/store/useOpenViduStore'
 
@@ -24,6 +26,7 @@ function VideoCallRoomInner({
   reservationId,
 }: VideoCallRoomProps) {
   const {
+    session,
     publisher,
     participants,
     isConnected,
@@ -42,6 +45,11 @@ function VideoCallRoomInner({
   const [activeTab, setActiveTab] = useState<'chat' | 'materials'>(
     'chat',
   )
+
+  // 채팅 관련 상태
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const chatManagerRef = useRef<ChatManager | null>(null)
+
   const connectionAttempted = useRef(false)
   const currentSessionRef = useRef<{
     username: string
@@ -49,6 +57,32 @@ function VideoCallRoomInner({
   } | null>(null)
   const joinSeqRef = useRef(0)
   const joinAbortKeyRef = useRef<string | null>(null)
+
+  // 채팅 메시지 수신 콜백
+  const handleMessageReceived = (message: ChatMessage) => {
+    logger.debug('채팅 메시지 수신', {
+      messageId: message.id,
+      from: message.nickname,
+      length: message.message.length,
+    })
+
+    setMessages((prev) => [...prev, message])
+  }
+
+  // 채팅 메시지 전송 함수
+  const handleSendMessage = async (
+    content: string,
+  ): Promise<void> => {
+    if (!chatManagerRef.current) {
+      logger.warn('ChatManager가 초기화되지 않음')
+      throw new Error('채팅을 사용할 수 없습니다.')
+    }
+
+    const success = await chatManagerRef.current.sendMessage(content)
+    if (!success) {
+      throw new Error('메시지 전송에 실패했습니다.')
+    }
+  }
 
   // 환경 정보 로깅 함수 (마운트 시 1회만 실행)
   const logEnvironmentInfo = async () => {
@@ -97,6 +131,13 @@ function VideoCallRoomInner({
       if (joinAbortKeyRef.current) {
         openViduTestApi.cancelRequest(joinAbortKeyRef.current)
         joinAbortKeyRef.current = null
+      }
+
+      // ChatManager 정리
+      if (chatManagerRef.current) {
+        logger.debug('ChatManager 정리 중')
+        chatManagerRef.current.cleanup()
+        chatManagerRef.current = null
       }
 
       // 세션 종료 (비동기, 오류 무시)
@@ -252,6 +293,44 @@ function VideoCallRoomInner({
     joinTestSession,
     joinSessionByReservation,
   ])
+
+  // ChatManager 초기화 관리
+  useEffect(() => {
+    // 세션이 연결되고 사용자명이 있을 때 ChatManager 초기화
+    if (session && isConnected && (connectedUsername || username)) {
+      // 기존 ChatManager가 있으면 정리
+      if (chatManagerRef.current) {
+        logger.debug('기존 ChatManager 정리')
+        chatManagerRef.current.cleanup()
+        chatManagerRef.current = null
+      }
+
+      const currentUsername = connectedUsername || username || '익명'
+
+      logger.info('ChatManager 초기화', {
+        sessionId: session.sessionId,
+        username: currentUsername,
+      })
+
+      // 새로운 ChatManager 생성
+      chatManagerRef.current = new ChatManager(
+        session,
+        currentUsername,
+        handleMessageReceived,
+      )
+
+      // 메시지 목록 초기화
+      setMessages([])
+
+      logger.debug('ChatManager 초기화 완료')
+    } else if (!isConnected && chatManagerRef.current) {
+      // 세션 연결 해제시 ChatManager 정리
+      logger.debug('세션 연결 해제로 인한 ChatManager 정리')
+      chatManagerRef.current.cleanup()
+      chatManagerRef.current = null
+      setMessages([])
+    }
+  }, [session, isConnected, connectedUsername, username])
 
   const participantsList = Array.from(participants.values())
 
@@ -415,7 +494,10 @@ function VideoCallRoomInner({
           {/* 탭 컨텐츠 */}
           <div className="flex-1 overflow-hidden">
             {activeTab === 'chat' ? (
-              <ChatContainer />
+              <ChatContainer
+                messages={messages}
+                onSendMessage={handleSendMessage}
+              />
             ) : (
               <div className="flex h-full items-center justify-center p-[var(--spacing-spacing-md)]">
                 <div className="text-center text-[var(--color-label-subtle)]">
