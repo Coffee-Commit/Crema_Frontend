@@ -3,17 +3,20 @@
 import React, { useRef, useEffect, useMemo } from 'react'
 
 import { useParticipants, useSessionReady } from '../store'
+import type { Participant } from '../types'
 
 export default function RemoteVideoPanel() {
-  const participantsMap = useParticipants()
+  const participants = useParticipants()
   const sessionReady = useSessionReady()
   const videoRef = useRef<HTMLDivElement>(null)
 
   // 원격 참가자 필터링 (isLocal이 false인 참가자들)
   const remoteParticipants = useMemo(() => {
-    const participants = Array.from(participantsMap.values())
-    return participants.filter((p) => !p.isLocal)
-  }, [participantsMap])
+    const participantMap = participants as Map<string, Participant>
+    return Array.from(participantMap.values()).filter(
+      (p) => !p.isLocal,
+    )
+  }, [participants])
 
   // 첫 번째 원격 참가자를 표시 (추후 우선순위나 선택 로직 추가 가능)
   const displayParticipant = remoteParticipants[0] || null

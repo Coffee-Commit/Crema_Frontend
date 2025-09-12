@@ -4,16 +4,35 @@ import { useState, KeyboardEvent } from 'react'
 
 import { useOpenViduStore } from '@/store/useOpenViduStore'
 
-export default function MessageInput() {
-  const [message, setMessage] = useState('')
-  const { sendChatMessage, isConnected } = useOpenViduStore()
+interface MessageInputProps {
+  onSendMessage: (content: string) => Promise<void>
+}
 
-  const handleSubmit = (e?: React.FormEvent) => {
+export default function MessageInput({
+  onSendMessage,
+}: MessageInputProps) {
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const { isConnected } = useOpenViduStore()
+
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
 
-    if (message.trim() && isConnected) {
-      sendChatMessage(message.trim())
-      setMessage('')
+    if (message.trim() && isConnected && !sending) {
+      setSending(true)
+      try {
+        await onSendMessage(message.trim())
+        setMessage('')
+      } catch (error) {
+        console.error('메시지 전송 실패:', error)
+        alert(
+          error instanceof Error
+            ? error.message
+            : '메시지 전송에 실패했습니다.',
+        )
+      } finally {
+        setSending(false)
+      }
     }
   }
 
@@ -36,9 +55,13 @@ export default function MessageInput() {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              isConnected ? '메시지를 입력하세요...' : '연결 중...'
+              isConnected
+                ? sending
+                  ? '전송 중...'
+                  : '메시지를 입력하세요...'
+                : '연결 중...'
             }
-            disabled={!isConnected}
+            disabled={!isConnected || sending}
             rows={1}
             className="font-body2 w-full resize-none rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] px-[var(--spacing-spacing-6xs)] py-[var(--spacing-spacing-7xs)] text-[var(--color-label-default)] transition-colors focus:border-[var(--color-border-primary)] focus:outline-none disabled:bg-[var(--color-fill-disabled)] disabled:text-[var(--color-label-subtle)]"
             style={{
@@ -56,7 +79,7 @@ export default function MessageInput() {
 
         <button
           type="submit"
-          disabled={!message.trim() || !isConnected}
+          disabled={!message.trim() || !isConnected || sending}
           className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-fill-primary)] text-[var(--color-fill-white)] transition-all hover:brightness-110 disabled:bg-[var(--color-fill-disabled)] disabled:text-[var(--color-label-subtle)]"
           aria-label="메시지 전송"
         >

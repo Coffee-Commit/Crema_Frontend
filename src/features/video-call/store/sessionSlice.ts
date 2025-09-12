@@ -61,15 +61,23 @@ export const createSessionSlice: StateCreator<
     })
 
     try {
-      // 실제 OpenVidu 연결 로직은 OpenViduClient 서비스에서 처리
-      // 여기서는 상태 관리만 담당
+      // 실제 OpenVidu 연결 수행 (동적 import로 클라이언트 전용 보장)
+      const { openViduClient } = await import(
+        '../services/OpenViduClient'
+      )
+      const { eventBridge } = await import('../services/EventBridge')
 
-      // TODO: OpenViduClient.connect() 호출
-      // const session = await openViduClient.connect(sessionInfo, username)
+      const session = await openViduClient.connect(
+        sessionInfo,
+        username,
+      )
+
+      // 이벤트 브릿지 활성화 (Store와 OpenVidu 이벤트 동기화)
+      eventBridge.activate(session)
 
       set({
         status: 'connected',
-        // session: session // 실제 연결 후 설정
+        session,
       })
 
       logger.info('세션 연결 완료', {
@@ -115,8 +123,14 @@ export const createSessionSlice: StateCreator<
     set({ status: 'disconnected' })
 
     try {
-      // 실제 연결 해제 로직은 OpenViduClient에서 처리
-      // TODO: OpenViduClient.disconnect() 호출
+      // 실제 연결 해제 로직 수행 (동적 import)
+      const { openViduClient } = await import(
+        '../services/OpenViduClient'
+      )
+      const { eventBridge } = await import('../services/EventBridge')
+
+      eventBridge.deactivate()
+      await openViduClient.disconnect()
 
       set({
         status: 'idle',
@@ -132,7 +146,7 @@ export const createSessionSlice: StateCreator<
           error instanceof Error ? error.message : '알 수 없는 오류',
       })
 
-      // 연결 해제는 실패해도 상태는 초기화
+      // 실패해도 상태 초기화
       set({
         status: 'idle',
         session: null,

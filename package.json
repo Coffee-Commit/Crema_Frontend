@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "mcp:playwright": "node mcp/playwright/server.js",
+    "playwright:repro": "node scripts/playwright-repro.js"
   },
   "dependencies": {
     "@playwright/test": "^1.55.0",
