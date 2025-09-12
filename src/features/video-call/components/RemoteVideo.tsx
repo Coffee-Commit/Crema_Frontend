@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
@@ -21,10 +21,12 @@ export default function RemoteVideo({
   showControls = true,
 }: RemoteVideoProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [needsGesture, setNeedsGesture] = useState(false)
 
   // 원격 비디오는 muted 안함 (소리 들어야 함)
   const { bind, unbind } = useVideoBinding(videoRef, {
-    muted: false,
+    // 원격 자동재생 보장: 초기엔 muted로 재생, 사용자 제스처로 해제
+    muted: true,
     playsInline: true,
     autoPlay: true,
   })
@@ -45,12 +47,26 @@ export default function RemoteVideo({
           videoEnabled: participant.videoEnabled,
         })
 
-        bind(stream).catch((error) => {
+        bind(stream)
+          .then(async () => {
+            // 바인딩 직후 소리까지 활성화 시도 (정책 허용 시 즉시 재생)
+            try {
+              const el = videoRef.current
+              if (el) {
+                el.muted = false
+                await el.play()
+                setNeedsGesture(false)
+              }
+            } catch {
+              setNeedsGesture(true)
+            }
+          })
+          .catch((error) => {
           logger.error('원격 스트림 바인딩 실패', {
             error,
             participantId: participant.id,
           })
-        })
+          })
       } else {
         logger.debug('원격 스트림 없음, 언바인딩', {
           participantId: participant.id,
@@ -197,6 +213,29 @@ export default function RemoteVideo({
 
       {/* 참가자 정보 */}
       {showControls && renderParticipantInfo()}
+
+      {/* 자동재생 정책으로 소리 차단된 경우 표시 */}
+      {needsGesture && (
+        <div className="pointer-events-none absolute inset-0 flex items-end justify-end p-3">
+          <div className="pointer-events-auto">
+            <button
+              onClick={async () => {
+                try {
+                  const el = videoRef.current
+                  if (el) {
+                    el.muted = false
+                    await el.play()
+                    setNeedsGesture(false)
+                  }
+                } catch {}
+              }}
+              className="rounded-md bg-[#EB5F27] px-2 py-1 text-xs font-semibold text-white shadow hover:brightness-95"
+            >
+              소리 켜기
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 발화 상태 표시 (테두리) */}
       {participant.speaking && (
