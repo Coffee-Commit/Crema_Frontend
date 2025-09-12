@@ -86,8 +86,16 @@ export default function CoffeechatApplyPage() {
 
   /* ================== 신청하기 ================== */
   const handleSubmit = async () => {
-    if (!duration || !selectedDate || !selectedTime) {
-      console.error('❌ 필수 값 누락')
+    if (!duration) {
+      alert('커피챗 시간을 선택해주세요.')
+      return
+    }
+    if (!selectedDate || !selectedTime) {
+      alert('희망 날짜와 시간을 선택해주세요.')
+      return
+    }
+    if (!message.trim()) {
+      alert('선배에게 보낼 메시지를 작성해주세요.')
       return
     }
 
