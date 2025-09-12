@@ -264,6 +264,7 @@ function VideoCallRoomContent() {
   const [participantInfoError, setParticipantInfoError] = useState<
     string | null
   >(null)
+  const [needsAudioUnlock, setNeedsAudioUnlock] = useState(false)
 
   // Store의 메시지를 로컬 형식으로 변환
   const chatList = useMemo(() => {
@@ -664,7 +665,20 @@ function VideoCallRoomContent() {
           conn: remoteParticipants[0].connectionId,
         })
         el.srcObject = remoteParticipants[0].streams.camera
+        // 1) 우선 무음 자동재생으로 시작
+        el.muted = true
         el.play().catch(() => {})
+        // 2) 바로 소리 활성화 시도 (허용되면 즉시 소리 재생)
+        ;(async () => {
+          try {
+            el.muted = false
+            await el.play()
+            setNeedsAudioUnlock(false)
+          } catch {
+            // 정책에 의해 차단된 경우 사용자 제스처 요구
+            setNeedsAudioUnlock(true)
+          }
+        })()
       } else {
         // 원격 참가자가 없을 때 비디오 초기화(재생 중지 포함)
         try {
@@ -676,9 +690,21 @@ function VideoCallRoomContent() {
           el.load?.()
         } catch {}
         logger.info('원격 비디오 소스 해제')
+        setNeedsAudioUnlock(false)
       }
     }
   }, [remoteParticipants, useNewComponents])
+
+  const enableRemoteAudio = async () => {
+    try {
+      const el = remoteCamVideoRef.current
+      if (el && el.srcObject) {
+        el.muted = false
+        await el.play()
+        setNeedsAudioUnlock(false)
+      }
+    } catch {}
+  }
 
   // 전역 디버그 헬퍼 노출
   useEffect(() => {
@@ -734,6 +760,18 @@ function VideoCallRoomContent() {
           </p>
         </div>
       </div>
+
+      {needsAudioUnlock && !useNewComponents && (
+        <div className="pointer-events-auto fixed bottom-4 right-4 z-50">
+          <button
+            onClick={enableRemoteAudio}
+            className="rounded-md bg-[#EB5F27] px-3 py-2 text-xs font-semibold text-white shadow hover:brightness-95"
+            title="원격 오디오 켜기"
+          >
+            원격 소리 켜기
+          </button>
+        </div>
+      )}
     )
   }
 
