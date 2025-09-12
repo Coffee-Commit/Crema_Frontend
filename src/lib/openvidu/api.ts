@@ -1050,6 +1050,31 @@ class OpenViduTestApiService {
     })
   }
 
+  /**
+   * 테스트 참가자 정보 조회
+   * GET /api/test/video-call/sessions/{sessionId}/participant
+   */
+  async getParticipantInfo(
+    sessionId: string,
+  ): Promise<ParticipantInfoResponse> {
+    logger.debug('테스트 참가자 정보 조회 시도', { sessionId })
+
+    try {
+      const result = await this.request<ParticipantInfoResponse>(
+        `/sessions/${sessionId}/participant`,
+      )
+      logger.info('테스트 참가자 정보 조회 완료', { sessionId })
+      return result
+    } catch (error) {
+      logger.error('테스트 참가자 정보 조회 실패', {
+        sessionId,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
   // ============================================================================
   // 추가 테스트 API 메서드들
   // ============================================================================

@@ -417,7 +417,7 @@ function VideoCallRoomContent() {
     environmentInfo?.hasVideoDevice,
   ]) // actions 제거
 
-  // 참가자 정보 가져오기 (테스트 환경에서는 Mock)
+  // 참가자 정보 가져오기
   useEffect(() => {
     if (sessionStatus !== 'connected') return
 
@@ -425,21 +425,18 @@ function VideoCallRoomContent() {
       try {
         const currentSessionId = actions.getState().sessionInfo?.id
         if (currentSessionId) {
-          // 테스트 환경에서는 실제 API 호출하지 않음
-          // 실제 운영 환경에서는 openViduTestApi.getParticipantInfo 등을 호출할 예정
-          logger.info(
-            '참가자 정보 조회 시도 (테스트 환경에서는 생략)',
-            {
-              sessionId: currentSessionId || 'unknown',
-            },
-          )
+          logger.info('참가자 정보 조회 시도', {
+            sessionId: currentSessionId,
+          })
 
-          // 에러 처리 테스트를 위한 조건부 에러 시뮬레이션
-          // 실제로는 API 호출 실패 시 에러가 발생함
-          if (Math.random() < 0.1) {
-            // 10% 확률로 에러 시뮬레이션
-            throw new Error('참가자 정보 조회 실패 (시뮬레이션)')
-          }
+          // 실제 API 호출
+          const participantInfo = await openViduApi.getParticipantInfo(currentSessionId)
+          
+          logger.info('참가자 정보 조회 성공', {
+            sessionId: currentSessionId,
+            participantId: participantInfo.participantId,
+            nickname: participantInfo.nickname,
+          })
         }
       } catch (error) {
         const errorMessage =
