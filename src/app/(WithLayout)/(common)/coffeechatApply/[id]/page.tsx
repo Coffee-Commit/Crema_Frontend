@@ -11,10 +11,10 @@ import ScheduleInputView from '@/components/ui/CustomSelectes/Schedule/ScheduleI
 import { Schedule } from '@/components/ui/CustomSelectes/Schedule/ScheduleSelector'
 import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
 import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
-import api from '@/lib/http/api'
 import {
   getReservationApply,
   getGuideSchedules,
+  postReservation,
 } from '@/lib/http/reservations'
 
 import ApplyComplete from '../_components/ApplyComplete'
@@ -85,39 +85,25 @@ export default function CoffeechatApplyPage() {
 
   /* ================== 신청하기 ================== */
   const handleSubmit = async () => {
-    if (!id || !duration || !selectedDate || !selectedTime) {
-      alert('모든 값을 입력해주세요!')
-      return
+    const reservation: {
+      guideId: number
+      timeUnit: 'THIRTY_MINUTES' | 'SIXTY_MINUTES'
+      survey: {
+        messageToGuide: string
+        preferredDate: string
+      }
+    } = {
+      guideId: Number(id),
+      timeUnit: duration === 30 ? 'THIRTY_MINUTES' : 'SIXTY_MINUTES',
+      survey: {
+        messageToGuide: message,
+        preferredDate: `${selectedDate}T${selectedTime}:00`,
+      },
     }
 
     try {
-      const reservation = {
-        guideId: Number(id),
-        timeUnit: (duration === 30
-          ? 'THIRTY_MINUTES'
-          : 'SIXTY_MINUTES') as 'THIRTY_MINUTES' | 'SIXTY_MINUTES',
-        survey: {
-          messageToGuide: message,
-          preferredDate: `${selectedDate}T${selectedTime}:00`,
-        },
-      }
-
-      const formData = new FormData()
-      // ✅ JSON 문자열 그대로 append (Blob ❌)
-      formData.append('reservation', JSON.stringify(reservation))
-
-      // ✅ 파일 추가
-      uploadedFiles.forEach((file) => {
-        formData.append('files', file)
-      })
-
-      const res = await api.post('/api/reservations', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-
-      console.log('✅ 예약 성공:', res.data)
+      const res = await postReservation(reservation, uploadedFiles)
+      console.log('✅ 예약 성공:', res)
       setIsSubmitted(true)
     } catch (err) {
       console.error('❌ 예약 실패:', err)

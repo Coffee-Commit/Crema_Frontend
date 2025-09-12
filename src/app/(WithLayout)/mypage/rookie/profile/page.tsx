@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
@@ -234,7 +235,17 @@ export default function ProfilePage() {
         <div className="gap-spacing-xl flex flex-col md:flex-row">
           {/* 프로필 이미지 */}
           <div className="flex items-center justify-center">
-            <div className="bg-fill-disabled h-[120px] w-[120px] overflow-hidden rounded-full" />
+            <div className="bg-fill-disabled h-[120px] w-[120px] overflow-hidden rounded-full">
+              <Image
+                src={
+                  user?.profileImageUrl ?? '/icons/profileDefault.svg'
+                }
+                alt="프로필 이미지"
+                width={120}
+                height={120}
+                className="rounded-full object-cover"
+              />
+            </div>
           </div>
 
           <div className="gap-spacing-md flex flex-1 flex-col">

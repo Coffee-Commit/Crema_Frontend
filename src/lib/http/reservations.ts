@@ -35,9 +35,30 @@ export const getGuideSchedules = async (guideId: number) => {
 }
 
 /* ============= POST: 예약 신청 (FormData) ============= */
-export const postReservation = async (formData: FormData) => {
-  const res = await api.post('/api/reservations', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+export const postReservation = async (
+  reservation: {
+    guideId: number
+    timeUnit: 'THIRTY_MINUTES' | 'SIXTY_MINUTES'
+    survey: {
+      messageToGuide: string
+      preferredDate: string
+    }
+  },
+  files: File[],
+) => {
+  const formData = new FormData()
+
+  formData.append(
+    'reservation',
+    new Blob([JSON.stringify(reservation)], {
+      type: 'application/json',
+    }),
+  )
+
+  files.forEach((file) => {
+    formData.append('files', file)
   })
+
+  const res = await api.post('/api/reservations', formData)
   return res.data
 }

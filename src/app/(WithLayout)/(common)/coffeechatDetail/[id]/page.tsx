@@ -489,6 +489,8 @@ import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
+import EmptyState from '@/components/common/EmptyState'
+import Loading from '@/components/common/LoadingState'
 import Banner from '@/components/layout/Banner'
 import ExperienceCard from '@/components/ui/Cards/ExperienceCard'
 import OverallRatingCard from '@/components/ui/Cards/OverallRatingCard'
@@ -668,10 +670,14 @@ export default function CoffeeChatDetailPage() {
     if (id) fetchReviews()
   }, [id])
 
-  if (loading)
-    return <div className="py-20 text-center">로딩 중...</div>
-  if (!data)
-    return <div className="py-20 text-center">데이터 없음</div>
+  if (loading) return <Loading />
+  if (!data) {
+    return (
+      <div className="bg-fill-white fixed inset-0 flex items-center justify-center">
+        <EmptyState />
+      </div>
+    )
+  }
 
   // ✅ 배너 데이터
   const bannerData = {
@@ -738,17 +744,16 @@ export default function CoffeeChatDetailPage() {
             className="px-spacing-sm pt-spacing-xs pb-spacing-5xl gap-spacing-md bg-fill-footer-gray flex flex-col rounded-sm"
           >
             <div className="flex flex-row items-center justify-center">
-              {data.guide.profileImageUrl ? (
-                <Image
-                  src={data.guide.profileImageUrl}
-                  alt={`${data.guide.nickname} 프로필`}
-                  width={64}
-                  height={64}
-                  className="border-border-medium rounded-full border object-cover"
-                />
-              ) : (
-                <div className="bg-fill-disabled border-border-medium h-[64px] w-[64px] rounded-full border" />
-              )}
+              <Image
+                src={
+                  data.guide.profileImageUrl ??
+                  '/icons/profileDefault.svg'
+                }
+                alt={`${data.guide.nickname} 프로필`}
+                width={64}
+                height={64}
+                className="rounded-full object-cover"
+              />
               <div className="border-border-medium h-[1px] w-full border-b" />
             </div>
             <div className="font-body1 text-label-deep px-spacing-xs flex whitespace-pre-wrap">

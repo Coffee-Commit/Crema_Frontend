@@ -40,7 +40,7 @@ export default function UploadCard({
       {/* 헤더 + 프로필 */}
       <div className="px-spacing-3xs relative flex items-center">
         {/* 프로필: border-top 선과 절반 겹치게 */}
-        <div className="border-strong bg-fill-white absolute left-0 top-1/2 h-[64px] w-[64px] -translate-y-1/2 overflow-hidden rounded-full border">
+        <div className="bg-fill-white absolute left-0 top-1/2 h-[64px] w-[64px] -translate-y-1/2 overflow-hidden rounded-full">
           <Image
             src={imgSrc}
             alt={mentorName}
