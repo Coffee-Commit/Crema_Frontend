@@ -182,7 +182,7 @@ export interface Applicant {
   preferredDate: string
   preferredTime: string
   profileImageUrl?: string | null
-  status: 'pending' | 'accepted' | 'rejected'
+  status: 'pending' | 'accepted' | 'rejected' | 'done'
 }
 
 interface ModalStandbyStatusProps {
@@ -190,6 +190,17 @@ interface ModalStandbyStatusProps {
   onClose: () => void
   applicants: Applicant[]
   title: string
+}
+
+const formatDateTime = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const yy = String(date.getFullYear()).slice(2)
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${yy}.${mm}.${dd} ${hh}:${min}`
 }
 
 export default function ModalStandbyStatus({
@@ -212,14 +223,16 @@ export default function ModalStandbyStatus({
     action: 'CONFIRMED' | 'CANCELLED',
   ) => {
     try {
-      const res = await api.patch(`/api/reservations/${id}`, {
-        status: action,
-        reason:
-          action === 'CANCELLED'
-            ? '일정이 맞지 않아 수락이 어렵습니다.'
-            : undefined,
-      })
+      const payload = {
+        status: action, // ✅ 여기서 그냥 "CONFIRMED" | "CANCELLED"
+        ...(action === 'CANCELLED'
+          ? { reason: '일정이 맞지 않아 수락이 어렵습니다.' }
+          : {}),
+      }
+
+      const res = await api.patch(`/api/reservations/${id}`, payload)
       console.log(`✅ 예약 ${action} 성공:`, res.data)
+
       alert(
         `예약이 ${action === 'CONFIRMED' ? '수락' : '거절'}되었습니다.`,
       )
@@ -314,7 +327,7 @@ export default function ModalStandbyStatus({
                     </td>
                     <td className="px-spacing-5xs">
                       <span className="font-label4-semibold text-label-subtle">
-                        {a.appliedAt}
+                        {formatDateTime(a.appliedAt)}
                       </span>
                     </td>
                     <td className="px-spacing-5xs">
@@ -350,7 +363,15 @@ export default function ModalStandbyStatus({
                           </SquareButton>
                         </div>
                       ) : (
-                        <span className="font-caption2-medium text-label-subtle">
+                        <span
+                          className={`font-caption2-medium ${
+                            a.status === 'accepted'
+                              ? 'text-label-primary'
+                              : a.status === 'rejected'
+                                ? 'text-label-error'
+                                : 'text-label-subtle'
+                          }`}
+                        >
                           {a.status === 'accepted'
                             ? '예약됨'
                             : a.status === 'rejected'

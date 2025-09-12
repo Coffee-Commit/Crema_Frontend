@@ -1,11 +1,48 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
+import Loading from '@/components/common/LoadingState'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
+import { getReservationCompletion } from '@/lib/http/reservations'
 
-export default function ApplyComplete() {
+interface CompletionData {
+  reservationId: number
+  title: string
+  preferredDateOnly: string
+  preferredDayOfWeek: string
+  preferredTimeRange: string
+  price: number
+  status: string
+}
+
+interface ApplyCompleteProps {
+  reservationId: number
+}
+
+export default function ApplyComplete({
+  reservationId,
+}: ApplyCompleteProps) {
   const router = useRouter()
+  const [data, setData] = useState<CompletionData | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await getReservationCompletion(reservationId)
+        setData(res)
+      } catch (err) {
+        console.error('❌ 완료 데이터 불러오기 실패:', err)
+        setError('❌ 데이터를 불러오는 중 오류가 발생했습니다.')
+      }
+    }
+    fetchData()
+  }, [reservationId])
+
+  if (error) return <p>{error}</p>
+  if (!data) return <Loading />
 
   return (
     <div className="gap-spacing-5xl container flex h-screen w-[840px] flex-col">
@@ -30,13 +67,15 @@ export default function ApplyComplete() {
           <tbody>
             <tr className="border-fill-light border-b border-t">
               <td className="font-label4-semibold p-4 py-6">
-                실내디자인이나 프로덕트 디자인이나 같은 디자인
-                아닌가요?
+                {data.title}
               </td>
-              <td className="p-4 py-6">25.08.26 (화)</td>
-              <td className="p-4 py-6">19:00 ~ 19:30</td>
+              <td className="p-4 py-6">
+                {' '}
+                {data.preferredDateOnly} ({data.preferredDayOfWeek})
+              </td>
+              <td className="p-4 py-6">{data.preferredTimeRange}</td>
               <td className="font-label4-medium text-label-primary p-4">
-                8,000원
+                {data.price.toLocaleString()}원
               </td>
             </tr>
           </tbody>

@@ -20,18 +20,20 @@ type Guide = {
   nickname: string
   profileImageUrl: string | null
   title: string
-  workingPeriodYears: string
+  workingPeriod: string | null
   jobField: {
-    id: number
+    guideId: number
     jobName: string
+    jobNameDescription: string
   }
-  hashTags: { id: number; hashTagName: string }[]
-  totalCoffeeChats: number
-  averageStar: number
-  totalReviews: number
-  thumbsUpCount: number
+  hashTags: { id: number; guideId: number; hashTagName: string }[]
+  stats: {
+    averageStar: number
+    thumbsUpCount: number
+    totalCoffeeChats: number
+    totalReviews: number
+  }
 }
-
 type CardData = {
   id: number
   title: string
@@ -85,9 +87,9 @@ export default function HomePage() {
                   JOB_NAME_MAP[g.jobField.jobName] ??
                   g.jobField.jobName,
                 tags: g.hashTags.map((tag) => tag.hashTagName),
-                rating: g.averageStar,
-                reviewCount: g.totalReviews,
-                menteeCount: g.totalCoffeeChats,
+                rating: g.stats?.averageStar ?? 0, // ✅ stats 안에서 꺼내오기
+                reviewCount: g.stats?.totalReviews ?? 0,
+                menteeCount: g.stats?.totalCoffeeChats ?? 0,
                 mentorName: g.nickname,
                 profileImage: g.profileImageUrl,
               }))
