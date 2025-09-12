@@ -2,8 +2,11 @@
 
 import { X } from 'lucide-react'
 
+import { JOB_NAME_MAP } from '@/constants/map'
+import { TOPIC_MAP } from '@/constants/map'
+
 interface SelectedChipsProps {
-  selected: string[]
+  selected: string[] // enum 값 배열
   onRemove: (value: string) => void
 }
 
@@ -14,21 +17,24 @@ export default function SelectedChips({
   if (selected.length === 0) return null
 
   return (
-    <div className="mb-spacing-xs flex min-h-[36px] flex-wrap gap-2">
-      {selected.map((chip, idx) => (
-        <div
-          key={`${chip}-${idx}`}
-          className="border-border-subtle text-label-default flex items-center gap-1 rounded-full border px-3 py-1 text-sm"
-        >
-          {chip}
-          <button onClick={() => onRemove(chip)}>
-            <X
-              size={14}
-              className="text-gray-400"
-            />
-          </button>
-        </div>
-      ))}
+    <div className="gap-spacing-4xs flex min-h-[36px] flex-wrap">
+      {selected.map((chip, idx) => {
+        const label = JOB_NAME_MAP[chip] ?? TOPIC_MAP[chip] ?? chip // 한글 라벨로 변환
+        return (
+          <div
+            key={`${chip}-${idx}`}
+            className="text-label-primary bg-fill-selected-orange gap-spacing-6xs px-spacing-4xs font-label4-medium flex items-center rounded-full py-1"
+          >
+            {label}
+            <button onClick={() => onRemove(chip)}>
+              <X
+                size={14}
+                className="text-label-primary cursor-pointer"
+              />
+            </button>
+          </div>
+        )
+      })}
     </div>
   )
 }

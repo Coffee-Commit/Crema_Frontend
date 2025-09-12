@@ -54,6 +54,17 @@ export default function HomePage() {
       router.push(`/searchGuide?query=${encoded}`)
     }
   }
+  // ✅ JobNameType → 한글 매핑
+  const JOB_NAME_MAP: Record<string, string> = {
+    UNDEFINED: '미정',
+    DESIGN: '디자인',
+    PLANNING_STRATEGY: '기획/전략',
+    MARKETING_PR: '마케팅/홍보',
+    MANAGEMENT_SUPPORT: '경영/지원',
+    IT_DEVELOPMENT_DATA: 'IT 개발/데이터',
+    RESEARCH_RND: '연구/R&D',
+  }
+
   useEffect(() => {
     const fetchGuides = async () => {
       try {
@@ -70,7 +81,9 @@ export default function HomePage() {
             ? guides.map((g) => ({
                 id: g.guideId,
                 title: g.title,
-                subtitle: `${g.workingPeriodYears} ${g.jobField.jobName}`,
+                subtitle:
+                  JOB_NAME_MAP[g.jobField.jobName] ??
+                  g.jobField.jobName,
                 tags: g.hashTags.map((tag) => tag.hashTagName),
                 rating: g.averageStar,
                 reviewCount: g.totalReviews,
@@ -113,6 +126,7 @@ export default function HomePage() {
     }
 
     fetchGuides()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

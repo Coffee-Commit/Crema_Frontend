@@ -30,14 +30,10 @@ export default function ScheduleSelector({
 
   const toggleDay = (day: string) => {
     if (readOnly) return
-    const updatedDays = local.days.includes(day)
-      ? local.days.filter((d) => d !== day)
-      : [...local.days, day]
-    const updated = { ...local, days: updatedDays }
+    const updated = { ...local, days: [day] } // ✅ 하나만 선택
     setLocal(updated)
     onChange?.(updated)
   }
-
   const handleTimeChange = (
     type: 'startTime' | 'endTime',
     value: string,
@@ -57,11 +53,11 @@ export default function ScheduleSelector({
             key={day}
             type="button"
             onClick={() => toggleDay(day)}
-            className={`rounded-md border px-3 py-1 text-sm transition-all ${
+            className={`rounded-2xs px-spacing-4xs font-label3-medium cursor-pointer border py-[10px] transition-all ${
               local.days.includes(day)
-                ? 'border-semantic-accent text-semantic-accent bg-semantic-accent-subtle'
-                : 'border-border-subtle text-label-secondary bg-fill-white'
-            } ${readOnly ? 'cursor-default' : 'hover:border-semantic-accent'}`}
+                ? 'border-border-secondary text-label-primary bg-fill-selected-orange'
+                : 'border-border-subtler text-label-subtler bg-fill-input-gray'
+            } ${readOnly ? 'cursor-default' : 'hover:border-border-secondary'}`}
           >
             {day}
           </button>
@@ -69,44 +65,66 @@ export default function ScheduleSelector({
       </div>
 
       {/* 시간 */}
-      <div className="flex items-center gap-2">
-        <select
-          disabled={readOnly}
-          value={local.startTime}
-          onChange={(e) =>
-            handleTimeChange('startTime', e.target.value)
-          }
-          className="border-border-subtle text-label-default rounded-md border px-2 py-1 text-sm"
-        >
-          <option value="">선택</option>
-          {TIMES.map((t) => (
-            <option
-              key={t}
-              value={t}
+      <div className="flex items-center gap-[9px]">
+        {readOnly ? (
+          <div className="px-spacing-4xs py-spacing-5xs border-border-subtler rounded-2xs bg-fill-input-gray flex items-center border">
+            <span className="font-label4-medium text-label-subtle">
+              {local.startTime || '--:--'}
+            </span>
+            <span>~</span>
+            <span className="font-label4-medium text-label-subtle">
+              {local.endTime || '--:--'}
+            </span>
+          </div>
+        ) : (
+          <>
+            <select
+              value={local.startTime}
+              onChange={(e) =>
+                handleTimeChange('startTime', e.target.value)
+              }
+              className="border-border-subtle text-label-strong rounded-2xs px-spacing-4xs py-spacing-5xs font-label4-medium cursor-pointer border"
             >
-              {t}
-            </option>
-          ))}
-        </select>
-        <span>~</span>
-        <select
-          disabled={readOnly}
-          value={local.endTime}
-          onChange={(e) =>
-            handleTimeChange('endTime', e.target.value)
-          }
-          className="border-border-subtle text-label-default rounded-md border px-2 py-1 text-sm"
-        >
-          <option value="">선택</option>
-          {TIMES.map((t) => (
-            <option
-              key={t}
-              value={t}
+              <option
+                className="cursor-pointer"
+                value=""
+              >
+                선택
+              </option>
+              {TIMES.map((t) => (
+                <option
+                  key={t}
+                  value={t}
+                >
+                  {t}
+                </option>
+              ))}
+            </select>
+            <span>~</span>
+            <select
+              value={local.endTime}
+              onChange={(e) =>
+                handleTimeChange('endTime', e.target.value)
+              }
+              className="border-border-subtle text-label-strong rounded-2xs px-spacing-4xs py-spacing-5xs font-label4-medium cursor-pointer border"
             >
-              {t}
-            </option>
-          ))}
-        </select>
+              <option
+                className="cursor-pointer"
+                value=""
+              >
+                선택
+              </option>
+              {TIMES.map((t) => (
+                <option
+                  key={t}
+                  value={t}
+                >
+                  {t}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
     </div>
   )

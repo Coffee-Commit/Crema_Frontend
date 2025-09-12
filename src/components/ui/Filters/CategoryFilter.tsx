@@ -2,7 +2,7 @@
 
 interface Option {
   label: string
-  value: string
+  value: string // API ENUM 값
 }
 
 interface Group {
@@ -14,34 +14,34 @@ const GROUPS: Group[] = [
   {
     title: '서류 및 면접',
     options: [
-      { label: '이력서', value: '이력서' },
-      { label: '자소서', value: '자소서' },
-      { label: '포트폴리오', value: '포트폴리오' },
-      { label: '면접', value: '면접' },
+      { label: '이력서', value: 'RESUME' },
+      { label: '자소서', value: 'COVER_LETTER' },
+      { label: '포트폴리오', value: 'PORTFOLIO' },
+      { label: '면접', value: 'INTERVIEW' },
     ],
   },
   {
     title: '회사 생활',
     options: [
-      { label: '실무', value: '실무' },
-      { label: '조직문화', value: '조직문화' },
-      { label: '인간관계', value: '인간관계' },
-      { label: '워라밸', value: '워라밸' },
+      { label: '실무', value: 'PRACTICAL_WORK' },
+      { label: '조직문화', value: 'ORGANIZATION_CULTURE' },
+      { label: '인간관계', value: 'HUMAN_RELATIONSHIP' },
+      { label: '워라밸', value: 'WORK_LIFE_BALANCE' },
     ],
   },
   {
     title: '커리어',
     options: [
-      { label: '합격 경험', value: '합격 경험' },
-      { label: '업계 트렌드', value: '업계 트렌드' },
-      { label: '직무 전환', value: '직무 전환' },
-      { label: '이직', value: '이직' },
+      { label: '합격 경험', value: 'PASS_EXPERIENCE' },
+      { label: '업계 트렌드', value: 'INDUSTRY_TRENDS' },
+      { label: '직무 전환', value: 'CAREER_SWITCH' },
+      { label: '이직', value: 'JOB_CHANGE' },
     ],
   },
 ]
 
 interface CategoryFilterProps {
-  selected: string[]
+  selected: string[] // ENUM 값 배열
   onChange: (values: string[]) => void
 }
 
@@ -57,7 +57,7 @@ export default function CategoryFilter({
   }
 
   return (
-    <div className="border-border-subtler bg-fill-white p-spacing-md rounded-md border">
+    <div className="border-border-subtler bg-fill-white p-spacing-md rounded-2xs border">
       <div className="gap-spacing-lg grid grid-cols-1 md:grid-cols-3">
         {GROUPS.map((group) => (
           <div key={group.title}>
@@ -68,13 +68,13 @@ export default function CategoryFilter({
               {group.options.map((opt) => (
                 <label
                   key={opt.value}
-                  className="font-body3 flex cursor-pointer items-center gap-2"
+                  className="font-label4-medium flex cursor-pointer items-center gap-2"
                 >
                   <input
                     type="checkbox"
                     checked={selected.includes(opt.value)}
                     onChange={() => toggle(opt.value)}
-                    className="h-4 w-4 accent-[var(--color-fill-primary)]"
+                    className="h-4 w-4 cursor-pointer accent-[var(--color-fill-primary)]"
                   />
                   {opt.label}
                 </label>
