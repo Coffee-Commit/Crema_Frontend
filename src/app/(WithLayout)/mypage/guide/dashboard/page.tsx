@@ -9,6 +9,7 @@ import api from '@/lib/http/api'
 
 import ScheduleTable from '../../_components/Cards/ScheduleTable'
 import StatusCard from '../../_components/Cards/StatusCard'
+import GuideVisibilityToggle from './_components/CoffeeChatVisibleToggle'
 
 type ReservationStatus =
   | 'PENDING'
@@ -221,9 +222,12 @@ export default function DashboardPage() {
     <div className="flex w-full flex-col gap-[100px]">
       {/* 현황 */}
       <section>
-        <h2 className="font-heading2 mb-spacing-3xl text-label-strong">
-          커피챗 현황
-        </h2>
+        <div className="flex w-full flex-row items-center justify-between">
+          <h2 className="font-heading2 mb-spacing-3xl text-label-strong">
+            커피챗 현황
+          </h2>
+          <GuideVisibilityToggle />
+        </div>
         <div className="gap-spacing-xs flex">
           {statusData.map((s) => (
             <StatusCard
