@@ -94,12 +94,12 @@ export default function DetailedExperienceCard({
   title,
   items,
   className,
-  emptyMessage = '등록된 데이터가 없습니다.',
+  emptyMessage = '첫 커피챗을 기다리고 있어요',
 }: DetailedExperienceCardProps) {
   return (
     <div
       className={clsx(
-        'p-spacing-xs gap-spacing-xs shadow-card bg-fill-white flex w-full flex-col rounded-sm',
+        'p-spacing-xs gap-spacing-xs shadow-emphasize bg-fill-white flex w-full flex-col rounded-sm',
         className,
       )}
     >
@@ -108,10 +108,10 @@ export default function DetailedExperienceCard({
       </h3>
 
       {/* 리스트 박스 */}
-      <div className="bg-fill-input-gray p-spacing-2xs gap-spacing-2xs grid grid-cols-1 rounded-md md:grid-cols-2">
+      <div className="bg-fill-input-gray p-spacing-4xs gap-spacing-2xs rounded-xs grid grid-cols-1 md:grid-cols-2">
         {items.length === 0 ? (
           <div className="py-spacing-md col-span-2 flex items-center justify-center">
-            <span className="font-body3 text-label-subtle">
+            <span className="font-caption2-medium text-label-default">
               {emptyMessage}
             </span>
           </div>
@@ -124,7 +124,7 @@ export default function DetailedExperienceCard({
               {/* 아이콘 + 라벨 */}
               <div className="flex-1">
                 <div className="mb-spacing-5xs flex items-center gap-2">
-                  <span className="font-body3 text-label-strong">
+                  <span className="font-caption3 text-label-default">
                     {item.label}
                   </span>
                 </div>

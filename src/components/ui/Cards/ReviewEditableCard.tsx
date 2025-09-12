@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import Image from 'next/image'
 import { CalendarDays, Clock } from 'lucide-react'
+import Image from 'next/image'
+import { useState } from 'react'
 
-import StarRating from '@/components/ui/Ratings/StarRating'
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
+import StarRating from '@/components/ui/Ratings/StarRating'
 
 interface ReviewEditableCardProps {
   avatarUrl?: string | null

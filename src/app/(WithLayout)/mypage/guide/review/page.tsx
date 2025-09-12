@@ -1,8 +1,13 @@
 'use client'
 
-import DashboardHelpfulCard from '@/components/ui/Cards/DashboardHelpfulCard'
+import { useState } from 'react'
+
+import EmptyState from '@/components/common/EmptyState'
 import DashboardRatingCard from '@/components/ui/Cards/DashbaordRatingCard'
+import DashboardHelpfulCard from '@/components/ui/Cards/DashboardHelpfulCard'
 import DetailedExperienceCard from '@/components/ui/Cards/DetailedExperienceCard'
+import ReviewCard from '@/components/ui/Cards/ReviewCard'
+import Pagination from '@/components/ui/Paginations/Pagination'
 
 export default function DashboardReview() {
   const helpfulCount = 42
@@ -16,9 +21,59 @@ export default function DashboardReview() {
     { label: '전공자 사이에서 살아남기: 회사편', progress: 75 },
   ]
 
+  const mockReviews = [
+    {
+      rating: 4.5,
+      text: '정말 유익한 커피챗이었어요!',
+      nickname: '홍길동',
+      date: '2025-09-12',
+    },
+    {
+      rating: 5,
+      text: '멘토님이 친절하게 설명해주셔서 많은 도움이 됐습니다.',
+      nickname: '김영희',
+      date: '2025-09-10',
+    },
+    {
+      rating: 4,
+      text: '알찬 시간이었습니다.',
+      nickname: '이철수',
+      date: '2025-09-09',
+    },
+    {
+      rating: 5,
+      text: '구체적인 피드백을 많이 얻었습니다.',
+      nickname: '박민지',
+      date: '2025-09-08',
+    },
+    {
+      rating: 3.5,
+      text: '유익했지만 시간이 조금 짧았어요.',
+      nickname: '정우성',
+      date: '2025-09-07',
+    },
+    {
+      rating: 4.2,
+      text: '좋은 경험이었습니다.',
+      nickname: '김가영',
+      date: '2025-09-06',
+    },
+  ]
+
+  // ✅ 페이지네이션 상태
+  const [page, setPage] = useState(1)
+  const perPage = 5
+  const totalPages = Math.ceil(mockReviews.length / perPage)
+
+  // ✅ 현재 페이지에 맞는 리뷰만 slice
+  const currentReviews = mockReviews.slice(
+    (page - 1) * perPage,
+    page * perPage,
+  )
+
   return (
     <main className="gap-spacing-3xl flex flex-col">
-      <h1>후기</h1>
+      <h1 className="font-heading2 text-label-strong">후기</h1>
       <section className="gap-spacing-xs flex flex-row">
         <div className="flex min-w-[300px] flex-col">
           <DashboardHelpfulCard
@@ -35,6 +90,38 @@ export default function DashboardReview() {
           title="경험별 도움된 비율"
           items={skills}
         />
+      </section>
+
+      {/* 리뷰 섹션 */}
+      <section className="gap-spacing-4xs flex flex-col">
+        {mockReviews.length === 0 ? (
+          <div className="border-border-subtler pb-spacing-7xl rounded-sm border">
+            <EmptyState />
+          </div>
+        ) : (
+          <>
+            {currentReviews.map((review, idx) => (
+              <ReviewCard
+                key={idx}
+                rating={review.rating}
+                text={review.text}
+                nickname={review.nickname}
+                date={review.date}
+                className="shadow-card rounded-md"
+              />
+            ))}
+
+            {totalPages > 1 && (
+              <div className="mt-spacing-md flex w-full justify-center">
+                <Pagination
+                  total={totalPages}
+                  initialPage={page}
+                  onChange={setPage}
+                />
+              </div>
+            )}
+          </>
+        )}
       </section>
     </main>
   )
