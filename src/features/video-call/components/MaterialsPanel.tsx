@@ -46,9 +46,6 @@ export default function MaterialsPanel() {
         // setJobSeekerInfo(response.data)
 
         // 임시로 에러 상태로 설정 (API가 구현되지 않았으므로)
-        throw new Error('API not implemented')
-      } catch (error) {
-        console.error('구직자 정보 조회 실패:', error)
         setJobSeekerError(true)
       } finally {
         setJobSeekerLoading(false)

@@ -120,6 +120,19 @@ export class OpenViduClient implements OpenViduClientInterface {
 
       // Publisher 정리
       if (this.publisher) {
+        try {
+          // 게시 해제 전에 로컬 트랙을 먼저 중지하여 디바이스 점유 해제 보장
+          const ms = this.publisher.stream?.getMediaStream?.()
+          if (ms) {
+            try {
+              ms.getTracks().forEach((t) => {
+                try {
+                  t.stop()
+                } catch {}
+              })
+            } catch {}
+          }
+        } catch {}
         await this.unpublish(this.publisher)
       }
 
@@ -211,6 +224,18 @@ export class OpenViduClient implements OpenViduClientInterface {
 
       await this.session.unpublish(publisher)
 
+      // 브라우저 자원 해제 보장: 트랙 중지
+      try {
+        const ms = publisher.stream?.getMediaStream?.()
+        if (ms) {
+          ms.getTracks().forEach((t) => {
+            try {
+              t.stop()
+            } catch {}
+          })
+        }
+      } catch {}
+
       if (publisher === this.publisher) {
         this.publisher = null
       }
@@ -262,6 +287,18 @@ export class OpenViduClient implements OpenViduClientInterface {
         hasAudio: event.stream.hasAudio,
         hasVideo: event.stream.hasVideo,
       })
+
+      // 로컬 퍼블리셔의 스트림은 구독/참가자 처리에서 제외
+      const myConnectionId = this.session?.connection?.connectionId
+      if (
+        myConnectionId &&
+        event.stream.connection.connectionId === myConnectionId
+      ) {
+        logger.debug('로컬 스트림 감지됨: 구독/참가자 처리 스킵', {
+          connectionId: event.stream.connection.connectionId,
+        })
+        return
+      }
 
       // 자동 구독
       const subscriber = this.session!.subscribe(
