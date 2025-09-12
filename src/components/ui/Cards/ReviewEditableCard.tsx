@@ -37,9 +37,9 @@ export default function ReviewEditableCard({
   }
 
   return (
-    <div className="bg-fill-white border-border-subtler p-spacing-md gap-spacing-sm flex flex-col rounded-sm border">
+    <div className="bg-fill-white border-border-subtler rounded-md border">
       {/* 상단 영역 */}
-      <div className="flex items-center justify-between">
+      <div className="p-spacing-md border-border-subtler flex items-center justify-between border-b">
         <div className="gap-spacing-sm flex items-center">
           {/* 프로필 */}
           {avatarUrl ? (
@@ -77,39 +77,41 @@ export default function ReviewEditableCard({
             isEditing ? handleSave() : setIsEditing(true)
           }
         >
-          {isEditing ? '저장' : '편집'}
+          {isEditing ? '저장' : '작성'}
         </SquareButton>
       </div>
 
-      {/* 리뷰 영역 */}
-      {isEditing ? (
-        <div className="gap-spacing-sm flex flex-col">
-          <StarRating
-            rating={newRating}
-            readOnly={false}
-            onChange={(val) => setNewRating(val)}
-          />
-          <TextAreaCounter
-            maxLength={100}
-            value={newReview}
-            onChange={(val) => setNewReview(val)}
-            placeholder="리뷰를 작성해주세요. (최대 100자)"
-          />
-        </div>
-      ) : (
-        <div className="gap-spacing-xs flex flex-col">
-          <div className="flex items-center gap-2">
+      {/* 본문 영역 */}
+      <div className="p-spacing-md">
+        {isEditing ? (
+          <div className="gap-spacing-sm flex flex-col">
             <StarRating
-              rating={rating}
-              readOnly
+              rating={newRating}
+              readOnly={false}
+              onChange={(val) => setNewRating(val)}
             />
-            <span className="font-label3-semibold">
-              {rating.toFixed(1)}
-            </span>
+            <TextAreaCounter
+              maxLength={100}
+              value={newReview}
+              onChange={(val) => setNewReview(val)}
+              placeholder="리뷰를 작성해주세요. (최대 100자)"
+            />
           </div>
-          <p className="font-body2 text-label-deep">{review}</p>
-        </div>
-      )}
+        ) : (
+          <div className="gap-spacing-xs flex flex-col">
+            <div className="flex items-center gap-2">
+              <StarRating
+                rating={rating}
+                readOnly
+              />
+              <span className="font-label3-semibold">
+                {rating.toFixed(1)}
+              </span>
+            </div>
+            <p className="font-body2 text-label-deep">{review}</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
