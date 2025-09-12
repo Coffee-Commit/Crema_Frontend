@@ -60,9 +60,10 @@ export const useLocalMediaController = (): LocalMediaController => {
       try {
         const vtrack = stream.getVideoTracks()[0]
         if (vtrack) {
-          // @ts-expect-error - 실험적 속성
-          if (!vtrack.contentHint || vtrack.contentHint !== 'motion') {
-            // @ts-expect-error - 실험적 속성
+          if (
+            !vtrack.contentHint ||
+            vtrack.contentHint !== 'motion'
+          ) {
             vtrack.contentHint = 'motion'
           }
         }
@@ -123,12 +124,10 @@ export const useLocalMediaController = (): LocalMediaController => {
         try {
           // 화면공유는 텍스트/디테일 우선
           // 일부 브라우저는 contentHint 설정을 지원
-          // @ts-expect-error - 실험적 속성
           if (
             !videoTrack.contentHint ||
             videoTrack.contentHint !== 'detail'
           ) {
-            // @ts-expect-error - 실험적 속성
             videoTrack.contentHint = 'detail'
           }
         } catch {}

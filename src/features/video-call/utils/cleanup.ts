@@ -1,4 +1,7 @@
-import { resetVideoCallStore, useVideoCallStore } from '@/features/video-call/store'
+import {
+  resetVideoCallStore,
+  useVideoCallStore,
+} from '@/features/video-call/store'
 
 type MaybeRef<T> = { current: T | null } | T | null | undefined
 
@@ -8,7 +11,6 @@ function nullifyVideo(el: HTMLVideoElement | null | undefined) {
     if (!el.paused) el.pause()
   } catch {}
   try {
-    // @ts-ignore - srcObject is widely supported
     el.srcObject = null
   } catch {}
 }
@@ -57,9 +59,10 @@ export function createCleanupCall({
     try {
       // 1) 비디오 요소 srcObject 해제
       for (const v of videoElements) {
-        const el = (v && typeof v === 'object' && 'current' in v
-          ? (v as { current: HTMLVideoElement | null }).current
-          : (v as HTMLVideoElement | null))
+        const el =
+          v && typeof v === 'object' && 'current' in v
+            ? (v as { current: HTMLVideoElement | null }).current
+            : (v as HTMLVideoElement | null)
         nullifyVideo(el || null)
       }
 
@@ -98,9 +101,10 @@ export function createCleanupCall({
 export function stopAllTracksFromPublisherLike(publisher: unknown) {
   // 방어적: OpenVidu Publisher 또는 유사 객체에서 MediaStream 추출 후 트랙 정지
   try {
-    const pub = publisher as { stream?: { getMediaStream?: () => MediaStream | null } }
+    const pub = publisher as {
+      stream?: { getMediaStream?: () => MediaStream | null }
+    }
     const ms = pub?.stream?.getMediaStream?.()
     stopStream(ms || null)
   } catch {}
 }
-

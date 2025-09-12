@@ -380,7 +380,9 @@ export class EventBridge {
               sizeBytes: parsed?.sizeBytes,
             })
           } catch {
-            logger.debug('파일 공유 신호(파싱 실패)', { length: data?.length })
+            logger.debug('파일 공유 신호(파싱 실패)', {
+              length: data?.length,
+            })
           }
           break
 
@@ -405,9 +407,17 @@ export class EventBridge {
 
       // 자기 자신이 보낸 신호는 로컬 낙관적 추가가 이미 있으므로 무시하여 에코 방지
       try {
-        const myConn = useVideoCallStore.getState().session?.connection?.connectionId
-        if (from?.connectionId && myConn && from.connectionId === myConn) {
-          logger.debug('자기 신호(chat) 에코 무시', { messageId: messageData?.id })
+        const myConn =
+          useVideoCallStore.getState().session?.connection
+            ?.connectionId
+        if (
+          from?.connectionId &&
+          myConn &&
+          from.connectionId === myConn
+        ) {
+          logger.debug('자기 신호(chat) 에코 무시', {
+            messageId: messageData?.id,
+          })
           return
         }
       } catch {}

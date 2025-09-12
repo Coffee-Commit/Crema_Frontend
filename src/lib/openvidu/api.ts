@@ -319,7 +319,6 @@ class OpenViduApiService {
     })
   }
 
-
   /**
    * 8. 화면 공유 상태 알림
    * POST /api/video-call/sessions/{sessionId}/screen-share
@@ -461,7 +460,8 @@ class OpenViduApiService {
     } catch (error) {
       logger.error('세션 종료 실패', {
         sessionId,
-        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
@@ -485,7 +485,8 @@ class OpenViduApiService {
     } catch (error) {
       logger.error('참가자 정보 조회 실패', {
         sessionId,
-        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
@@ -495,7 +496,9 @@ class OpenViduApiService {
    * 공유 자료 목록 조회
    * GET /api/video-call/sessions/{sessionId}/materials
    */
-  async getMaterials(sessionId: string): Promise<SharedFileListResponse> {
+  async getMaterials(
+    sessionId: string,
+  ): Promise<SharedFileListResponse> {
     logger.debug('공유 자료 목록 조회 시도', { sessionId })
 
     try {
@@ -510,7 +513,8 @@ class OpenViduApiService {
     } catch (error) {
       logger.error('공유 자료 목록 조회 실패', {
         sessionId,
-        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
@@ -569,7 +573,8 @@ class OpenViduApiService {
       logger.error('공유 자료 업로드 실패', {
         sessionId,
         fileName: file.name,
-        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
@@ -595,7 +600,8 @@ class OpenViduApiService {
       logger.error('공유 자료 삭제 실패', {
         sessionId,
         imageKey,
-        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
@@ -605,7 +611,9 @@ class OpenViduApiService {
    * 채팅 기록 조회
    * GET /api/video-call/chat/{reservationId}/history
    */
-  async getChatHistory(reservationId: string): Promise<ChatHistoryResponse> {
+  async getChatHistory(
+    reservationId: string,
+  ): Promise<ChatHistoryResponse> {
     logger.debug('채팅 기록 조회 시도', { reservationId })
 
     try {
@@ -620,7 +628,8 @@ class OpenViduApiService {
     } catch (error) {
       logger.error('채팅 기록 조회 실패', {
         reservationId,
-        msg: error instanceof Error ? error.message : '알 수 없는 오류',
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
       })
       throw error
     }
@@ -1044,8 +1053,6 @@ class OpenViduTestApiService {
   // ============================================================================
   // 추가 테스트 API 메서드들
   // ============================================================================
-
-
 }
 
 // ============================================================================

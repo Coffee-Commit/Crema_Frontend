@@ -16,4 +16,3 @@ export type LocalChatMessage = {
   time: string
   text: string
 }
-

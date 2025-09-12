@@ -61,7 +61,7 @@ function VideoCallRoomContent() {
   const { execute: toggleScreenShare } = useScreenShare()
   const { execute: leaveSession } = useLeaveSession()
   // 뒤로가기 등 네비게이션 시에는 확인창 없이 즉시 종료
-  const { execute: leaveWithoutConfirm } = useLeaveSession({
+  const { execute: _leaveWithoutConfirm } = useLeaveSession({
     confirmBeforeLeave: false,
   })
 
@@ -160,7 +160,11 @@ function VideoCallRoomContent() {
         actions,
         localMediaController,
         publisherBridge: _publisherBridge,
-        videoElements: [myCamVideoRef, remoteCamVideoRef, shareVideoRef],
+        videoElements: [
+          myCamVideoRef,
+          remoteCamVideoRef,
+          shareVideoRef,
+        ],
       }),
     [actions, localMediaController, _publisherBridge],
   )
@@ -220,7 +224,9 @@ function VideoCallRoomContent() {
   // useState, useRef 등 모든 hooks를 조건부 반환 전에 호출
   const [now, setNow] = useState<Date>(() => new Date())
   const [tab, setTab] = useState<TabType>('chat')
-  const [participantInfoError, setParticipantInfoError] = useState<string | null>(null)
+  const [participantInfoError, setParticipantInfoError] = useState<
+    string | null
+  >(null)
 
   // Store의 메시지를 로컬 형식으로 변환
   const chatList = useMemo(() => {
@@ -421,19 +427,26 @@ function VideoCallRoomContent() {
         if (currentSessionId) {
           // 테스트 환경에서는 실제 API 호출하지 않음
           // 실제 운영 환경에서는 openViduTestApi.getParticipantInfo 등을 호출할 예정
-          logger.info('참가자 정보 조회 시도 (테스트 환경에서는 생략)', {
-            sessionId: currentSessionId || 'unknown'
-          })
-          
+          logger.info(
+            '참가자 정보 조회 시도 (테스트 환경에서는 생략)',
+            {
+              sessionId: currentSessionId || 'unknown',
+            },
+          )
+
           // 에러 처리 테스트를 위한 조건부 에러 시뮬레이션
           // 실제로는 API 호출 실패 시 에러가 발생함
-          if (Math.random() < 0.1) { // 10% 확률로 에러 시뮬레이션
+          if (Math.random() < 0.1) {
+            // 10% 확률로 에러 시뮬레이션
             throw new Error('참가자 정보 조회 실패 (시뮬레이션)')
           }
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류'
-        logger.warn('참가자 정보 조회 실패:', { message: errorMessage })
+        const errorMessage =
+          error instanceof Error ? error.message : '알 수 없는 오류'
+        logger.warn('참가자 정보 조회 실패:', {
+          message: errorMessage,
+        })
         setParticipantInfoError(errorMessage)
       }
     }
@@ -731,54 +744,90 @@ function VideoCallRoomContent() {
     if (!currentSessionId) return
 
     try {
-      const materialsResponse = await openViduApi.getMaterials(currentSessionId)
-      const materials = materialsResponse.files.map((file: { fileId: string; fileName: string; fileSize?: number; fileType?: string; fileUrl: string }) => ({
-        id: file.fileId,
-        name: file.fileName,
-        sizeBytes: file.fileSize || 0,
-        content: '', // API 방식에서는 content가 아닌 URL 사용
-        mime: file.fileType || 'application/octet-stream',
-        url: file.fileUrl // 파일 다운로드 URL
-      }))
+      const materialsResponse =
+        await openViduApi.getMaterials(currentSessionId)
+      const materials = materialsResponse.files.map(
+        (file: {
+          fileId: string
+          fileName: string
+          fileSize?: number
+          fileType?: string
+          fileUrl: string
+        }) => ({
+          id: file.fileId,
+          name: file.fileName,
+          sizeBytes: file.fileSize || 0,
+          content: '', // API 방식에서는 content가 아닌 URL 사용
+          mime: file.fileType || 'application/octet-stream',
+          url: file.fileUrl, // 파일 다운로드 URL
+        }),
+      )
       setSharedFiles(materials)
-      logger.info('공유 자료 목록 갱신 완료', { 
+      logger.info('공유 자료 목록 갱신 완료', {
         fileCount: materials.length,
-        sessionId: currentSessionId 
+        sessionId: currentSessionId,
       })
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
       // JWT 인증 에러인지 확인
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        logger.warn('공유 자료 목록 조회 인증 실패 - JWT 토큰 필요:', { sessionId: currentSessionId })
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized')
+      ) {
+        logger.warn(
+          '공유 자료 목록 조회 인증 실패 - JWT 토큰 필요:',
+          { sessionId: currentSessionId },
+        )
         // 인증 실패 시 빈 배열로 설정하여 UI가 깨지지 않도록 함
         setSharedFiles([])
       } else {
-        logger.error('공유 자료 목록 조회 실패:', { error: errorMessage, sessionId: currentSessionId })
+        logger.error('공유 자료 목록 조회 실패:', {
+          error: errorMessage,
+          sessionId: currentSessionId,
+        })
       }
     }
   }
 
   // 파일 삭제 처리
-  const handleFileDelete = async (fileId: string, imageKey: string) => {
+  const handleFileDelete = async (
+    fileId: string,
+    imageKey: string,
+  ) => {
     const currentSessionId = actions.getState().sessionInfo?.id
     if (!currentSessionId) return
 
     try {
       await openViduApi.deleteMaterial(currentSessionId, imageKey)
-      logger.info('파일 삭제 완료', { fileId, sessionId: currentSessionId })
-      
+      logger.info('파일 삭제 완료', {
+        fileId,
+        sessionId: currentSessionId,
+      })
+
       // 목록 갱신
       await refreshMaterialsList()
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
       // JWT 인증 에러인지 확인
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        logger.warn('파일 삭제 인증 실패 - JWT 토큰 필요:', { fileId, sessionId: currentSessionId })
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized')
+      ) {
+        logger.warn('파일 삭제 인증 실패 - JWT 토큰 필요:', {
+          fileId,
+          sessionId: currentSessionId,
+        })
         // 사용자에게 알림 (선택사항 - 현재는 로그만)
       } else {
-        logger.error('파일 삭제 실패:', { error: errorMessage, fileId, sessionId: currentSessionId })
+        logger.error('파일 삭제 실패:', {
+          error: errorMessage,
+          fileId,
+          sessionId: currentSessionId,
+        })
       }
     }
   }
@@ -811,9 +860,15 @@ function VideoCallRoomContent() {
 
   const handleFileUpload = async (file: File) => {
     const currentSessionId = actions.getState().sessionInfo?.id
-    
-    if (!session || sessionStatus !== 'connected' || !currentSessionId) {
-      logger.warn('세션이 연결되지 않아 파일 업로드를 할 수 없습니다.')
+
+    if (
+      !session ||
+      sessionStatus !== 'connected' ||
+      !currentSessionId
+    ) {
+      logger.warn(
+        '세션이 연결되지 않아 파일 업로드를 할 수 없습니다.',
+      )
       return
     }
 
@@ -821,35 +876,42 @@ function VideoCallRoomContent() {
       logger.info('파일 업로드 시작', {
         fileName: file.name,
         fileSize: file.size,
-        sessionId: currentSessionId
+        sessionId: currentSessionId,
       })
 
       // API를 통한 파일 업로드
-      const uploadedFile = await openViduApi.uploadMaterial(currentSessionId, file)
-      
+      const uploadedFile = await openViduApi.uploadMaterial(
+        currentSessionId,
+        file,
+      )
+
       logger.info('파일 업로드 완료', {
         fileName: file.name,
         fileId: uploadedFile.fileId,
-        sessionId: currentSessionId
+        sessionId: currentSessionId,
       })
 
       // 공유 자료 목록 갱신
       await refreshMaterialsList()
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
       // JWT 인증 에러인지 확인
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        logger.warn('파일 업로드 인증 실패 - JWT 토큰 필요:', { 
-          fileName: file.name, 
-          sessionId: currentSessionId 
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized')
+      ) {
+        logger.warn('파일 업로드 인증 실패 - JWT 토큰 필요:', {
+          fileName: file.name,
+          sessionId: currentSessionId,
         })
         // 사용자에게 알림 (선택사항 - 현재는 로그만)
       } else {
-        logger.error('파일 업로드 실패:', { 
-          error: errorMessage, 
-          fileName: file.name, 
-          sessionId: currentSessionId 
+        logger.error('파일 업로드 실패:', {
+          error: errorMessage,
+          fileName: file.name,
+          sessionId: currentSessionId,
         })
       }
     }
@@ -857,44 +919,58 @@ function VideoCallRoomContent() {
 
   const handleLeaveCall = async () => {
     const currentSessionId = actions.getState().sessionInfo?.id
-    
+
     try {
       // 채팅 메시지를 DTO 형식으로 변환
-      const chatHistory = messages.length > 0 ? {
-        messages: messages.map(msg => {
-          // Codex 권장: timestamp 유효성 검증
-          const msgDate = new Date(msg.timestamp)
-          const isValidDate = Number.isFinite(msgDate.getTime())
-          
-          return {
-            username: msg.senderName,
-            message: msg.content,
-            timestamp: isValidDate ? msgDate.toISOString() : new Date().toISOString()
-          }
-        }),
-        sessionStartTime: startAt.toISOString(),
-        sessionEndTime: new Date().toISOString()
-      } : undefined
-      
+      const chatHistory =
+        messages.length > 0
+          ? {
+              messages: messages.map((msg) => {
+                // Codex 권장: timestamp 유효성 검증
+                const msgDate = new Date(msg.timestamp)
+                const isValidDate = Number.isFinite(msgDate.getTime())
+
+                return {
+                  username: msg.senderName,
+                  message: msg.content,
+                  timestamp: isValidDate
+                    ? msgDate.toISOString()
+                    : new Date().toISOString(),
+                }
+              }),
+              sessionStartTime: startAt.toISOString(),
+              sessionEndTime: new Date().toISOString(),
+            }
+          : undefined
+
       // 세션 종료 API 호출 (채팅 저장 + 세션 종료 통합)
       if (currentSessionId) {
         logger.info('세션 종료 시작', {
           messageCount: messages.length,
-          sessionId: currentSessionId
+          sessionId: currentSessionId,
         })
-        
+
         await openViduApi.endSession(currentSessionId, chatHistory)
         logger.info('세션 종료 완료')
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
       // JWT 인증 에러인지 확인
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        logger.warn('세션 종료 인증 실패 - JWT 토큰 필요:', { sessionId: currentSessionId })
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized')
+      ) {
+        logger.warn('세션 종료 인증 실패 - JWT 토큰 필요:', {
+          sessionId: currentSessionId,
+        })
         // 인증 실패해도 로컬 세션 종료는 계속 진행
       } else {
-        logger.error('세션 종료 실패:', { error: errorMessage, sessionId: currentSessionId })
+        logger.error('세션 종료 실패:', {
+          error: errorMessage,
+          sessionId: currentSessionId,
+        })
       }
       // 실패해도 계속 진행 (클라이언트 리소스 정리는 수행)
     } finally {
@@ -1088,7 +1164,11 @@ function VideoCallRoomContent() {
 
           <div className="flex min-h-0 flex-1 flex-col p-4">
             {tab === 'chat' ? (
-              <ChatPanel messages={chatList} onSend={handleSend} isActive={tab === 'chat'} />
+              <ChatPanel
+                messages={chatList}
+                onSend={handleSend}
+                isActive={tab === 'chat'}
+              />
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto py-1">
                 <section className="mb-4 rounded-md border bg-white p-4 shadow-sm">
@@ -1096,23 +1176,37 @@ function VideoCallRoomContent() {
                     후배 정보
                   </h3>
                   {participantInfoError ? (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-gray-500 mb-2">정보를 불러올 수 없습니다</p>
-                      <p className="text-xs text-gray-400">{participantInfoError}</p>
+                    <div className="py-4 text-center">
+                      <p className="mb-2 text-sm text-gray-500">
+                        정보를 불러올 수 없습니다
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {participantInfoError}
+                      </p>
                     </div>
                   ) : (
                     <dl className="grid grid-cols-2 gap-y-2 text-sm">
                       <dt className="text-gray-500">이름(닉네임)</dt>
-                      <dd className="text-gray-900">{peerNickname}</dd>
+                      <dd className="text-gray-900">
+                        {peerNickname}
+                      </dd>
                       <dt className="text-gray-500">화상통화 분야</dt>
                       <dd className="text-gray-900">테스트</dd>
                       <dt className="text-gray-500">화상통화 주제</dt>
-                      <dd className="text-gray-900">OpenVidu 테스트</dd>
+                      <dd className="text-gray-900">
+                        OpenVidu 테스트
+                      </dd>
                     </dl>
                   )}
                 </section>
 
-                <FilesPanel files={sharedFiles} onPreview={openPreview} onDownload={handleDownload} onUpload={handleFileUpload} onDelete={handleFileDelete} />
+                <FilesPanel
+                  files={sharedFiles}
+                  onPreview={openPreview}
+                  onDownload={handleDownload}
+                  onUpload={handleFileUpload}
+                  onDelete={handleFileDelete}
+                />
               </div>
             )}
           </div>
