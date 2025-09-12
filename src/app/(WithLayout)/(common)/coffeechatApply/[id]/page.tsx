@@ -36,13 +36,14 @@ export default function CoffeechatApplyPage() {
   const [guideProfile, setGuideProfile] = useState<string | null>(
     null,
   )
-
   const [menteeNickname, setMenteeNickname] = useState('')
   const [menteeJob, setMenteeJob] = useState('')
   const [menteeTopics, setMenteeTopics] = useState<string[]>([])
   const [menteeDesc, setMenteeDesc] = useState('')
-
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [reservationId, setReservationId] = useState<number | null>(
+    null,
+  )
 
   /* ================== API 로드 ================== */
   useEffect(() => {
@@ -85,16 +86,21 @@ export default function CoffeechatApplyPage() {
 
   /* ================== 신청하기 ================== */
   const handleSubmit = async () => {
+    if (!duration || !selectedDate || !selectedTime) {
+      console.error('❌ 필수 값 누락')
+      return
+    }
+
     const reservation: {
       guideId: number
-      timeUnit: 'THIRTY_MINUTES' | 'SIXTY_MINUTES'
+      timeUnit: 'MINUTE_30' | 'MINUTE_60'
       survey: {
         messageToGuide: string
         preferredDate: string
       }
     } = {
       guideId: Number(id),
-      timeUnit: duration === 30 ? 'THIRTY_MINUTES' : 'SIXTY_MINUTES',
+      timeUnit: duration === 30 ? 'MINUTE_30' : 'MINUTE_60',
       survey: {
         messageToGuide: message,
         preferredDate: `${selectedDate}T${selectedTime}:00`,
@@ -104,6 +110,7 @@ export default function CoffeechatApplyPage() {
     try {
       const res = await postReservation(reservation, uploadedFiles)
       console.log('✅ 예약 성공:', res)
+      setReservationId(res.data.reservationId)
       setIsSubmitted(true)
     } catch (err) {
       console.error('❌ 예약 실패:', err)
@@ -114,10 +121,9 @@ export default function CoffeechatApplyPage() {
     <>
       <div className="bg-fill-banner-yellow h-[180px] w-full" />
       <div className="container grid grid-cols-12 gap-[132px] p-[60px]">
-        {isSubmitted ? (
-          // ✅ 신청 완료 페이지가 전체 넓이를 차지
+        {isSubmitted && reservationId !== null ? (
           <div className="col-span-12">
-            <ApplyComplete />
+            <ApplyComplete reservationId={reservationId} />
           </div>
         ) : (
           <>

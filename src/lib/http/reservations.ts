@@ -3,7 +3,6 @@ import api from './api'
 /* ============= GET: 예약 신청 페이지 데이터 ============= */
 export const getReservationApply = async (guideId: number) => {
   const res = await api.get(`/api/reservations/apply/${guideId}`)
-  console.log(res.data.FileData)
   return res.data.data
 }
 
@@ -21,13 +20,14 @@ export const getGuideSchedules = async (guideId: number) => {
     SATURDAY: '토',
     SUNDAY: '일',
   }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return schedules.map((s: any) => {
     const [start, end] = s.timeSlots[0]?.preferredTimeRange?.split(
       ' ~ ',
     ) ?? ['00:00', '00:00']
     return {
-      days: [DAY_MAP[s.dayOfWeek] ?? s.dayOfWeek], // ✅ 여기서 한글로 변환
+      days: [DAY_MAP[s.dayOfWeek] ?? s.dayOfWeek],
       startTime: start,
       endTime: end,
     }
@@ -38,7 +38,7 @@ export const getGuideSchedules = async (guideId: number) => {
 export const postReservation = async (
   reservation: {
     guideId: number
-    timeUnit: 'THIRTY_MINUTES' | 'SIXTY_MINUTES'
+    timeUnit: 'MINUTE_30' | 'MINUTE_60'
     survey: {
       messageToGuide: string
       preferredDate: string
@@ -48,17 +48,30 @@ export const postReservation = async (
 ) => {
   const formData = new FormData()
 
-  formData.append(
-    'reservation',
-    new Blob([JSON.stringify(reservation)], {
-      type: 'application/json',
-    }),
-  )
+  // reservation → JSON Blob + 파일명 지정
+  const reservationBlob = new Blob([JSON.stringify(reservation)], {
+    type: 'application/json',
+  })
+  formData.append('reservation', reservationBlob, 'reservation.json')
 
+  // files → 여러 개 추가
   files.forEach((file) => {
     formData.append('files', file)
   })
 
-  const res = await api.post('/api/reservations', formData)
+  const res = await api.post('/api/reservations', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return res.data
+}
+
+/* ============= GET: 신청 완료 조회 ============= */
+export const getReservationCompletion = async (
+  reservationId: number,
+) => {
+  const res = await api.get(
+    `/api/reservations/${reservationId}/completion`,
+  )
+  console.log('📦 completion API 응답:', res.data)
+  return res.data.data
 }

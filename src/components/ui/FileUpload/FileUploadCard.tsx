@@ -76,7 +76,7 @@ export default function FileUploadCard({
               <input
                 type="file"
                 accept="application/pdf"
-                className="hidden" // ✅ multiple 제거
+                className="hidden"
                 onChange={handleFileChange}
               />
             </label>
