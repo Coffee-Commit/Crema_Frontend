@@ -389,9 +389,19 @@ function VideoCallRoomContent() {
     return () => {
       if (sessionKeyRef.current) {
         const sessionKey = sessionKeyRef.current
+        const scheduledSeq = actions.getState().joinSequence
         globalSessionManager.scheduleCleanup(
           sessionKey,
           async () => {
+            const currentSeq = actions.getState().joinSequence
+            if (currentSeq !== scheduledSeq) {
+              logger.info('cleanup 스킵: 새 연결 시퀀스 감지', {
+                sessionKey,
+                scheduledSeq,
+                currentSeq,
+              })
+              return
+            }
             logger.info('지연된 세션 cleanup 실행', { sessionKey })
             if (actions.getState().status === 'connected') {
               try {
@@ -407,8 +417,6 @@ function VideoCallRoomContent() {
       }
 
       initializingRef.current = false
-      // 즉시 정리도 한 번 더 시도 (멱등)
-      cleanupCall('unmount-immediate').catch(() => {})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

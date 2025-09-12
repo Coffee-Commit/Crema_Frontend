@@ -169,7 +169,7 @@ function VideoCallRoomContent() {
     [actions, localMediaController, _publisherBridge],
   )
 
-  // 브라우저 뒤로가기(popstate) 및 페이지 숨김(pagehide) 시 즉시 정리
+  // 브라우저 뒤로가기(popstate) 및 페이지 숨김(pagehide) 시 지연 정리(레이스 방지)
   useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -177,12 +177,28 @@ function VideoCallRoomContent() {
       try {
         const status = actions.getState?.().status
         logger.info('브라우저 뒤로가기 감지', { status })
-        if (status && status !== 'idle') {
-          // 네비게이션을 막지 않도록 마이크/카메라 즉시 정리
-          setTimeout(() => {
-            cleanupCall('popstate')
-            // 서버 세션 종료 확인창 없이 로컬 단절만 보장
-          }, 0)
+        if (status && status !== 'idle' && sessionKeyRef.current) {
+          // 즉시 정리 대신 지연 정리 + 시퀀스 가드로 레이스 방지
+          const sessionKey = sessionKeyRef.current
+          const scheduledSeq = actions.getState().joinSequence
+          globalSessionManager.scheduleCleanup(
+            sessionKey,
+            async () => {
+              const currentSeq = actions.getState().joinSequence
+              if (currentSeq !== scheduledSeq) {
+                logger.info('cleanup 스킵: 새 연결 시퀀스 감지', {
+                  sessionKey,
+                  scheduledSeq,
+                  currentSeq,
+                })
+                return
+              }
+              try {
+                await cleanupCall('popstate-scheduled')
+              } catch {}
+            },
+            500,
+          )
         }
       } catch (e) {
         console.error('뒤로가기 처리 중 오류', e)
@@ -191,7 +207,28 @@ function VideoCallRoomContent() {
 
     const onPageHide = () => {
       try {
-        setTimeout(() => cleanupCall('pagehide'), 0)
+        if (sessionKeyRef.current) {
+          const sessionKey = sessionKeyRef.current
+          const scheduledSeq = actions.getState().joinSequence
+          globalSessionManager.scheduleCleanup(
+            sessionKey,
+            async () => {
+              const currentSeq = actions.getState().joinSequence
+              if (currentSeq !== scheduledSeq) {
+                logger.info('cleanup 스킵: 새 연결 시퀀스 감지', {
+                  sessionKey,
+                  scheduledSeq,
+                  currentSeq,
+                })
+                return
+              }
+              try {
+                await cleanupCall('pagehide-scheduled')
+              } catch {}
+            },
+            500,
+          )
+        }
       } catch {}
     }
 
@@ -387,9 +424,19 @@ function VideoCallRoomContent() {
     return () => {
       if (sessionKeyRef.current) {
         const sessionKey = sessionKeyRef.current
+        const scheduledSeq = actions.getState().joinSequence
         globalSessionManager.scheduleCleanup(
           sessionKey,
           async () => {
+            const currentSeq = actions.getState().joinSequence
+            if (currentSeq !== scheduledSeq) {
+              logger.info('cleanup 스킵: 새 연결 시퀀스 감지', {
+                sessionKey,
+                scheduledSeq,
+                currentSeq,
+              })
+              return
+            }
             logger.info('지연된 세션 cleanup 실행', { sessionKey })
             if (actions.getState().status === 'connected') {
               try {
@@ -405,8 +452,6 @@ function VideoCallRoomContent() {
       }
 
       initializingRef.current = false
-      // 즉시 정리도 한 번 더 시도 (멱등)
-      cleanupCall('unmount-immediate').catch(() => {})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
