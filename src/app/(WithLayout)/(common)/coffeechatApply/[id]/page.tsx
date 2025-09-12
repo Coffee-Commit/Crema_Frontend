@@ -11,10 +11,10 @@ import ScheduleInputView from '@/components/ui/CustomSelectes/Schedule/ScheduleI
 import { Schedule } from '@/components/ui/CustomSelectes/Schedule/ScheduleSelector'
 import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
 import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
-import api from '@/lib/http/api'
 import {
   getReservationApply,
   getGuideSchedules,
+  postReservation,
 } from '@/lib/http/reservations'
 
 import ApplyComplete from '../_components/ApplyComplete'
@@ -36,13 +36,14 @@ export default function CoffeechatApplyPage() {
   const [guideProfile, setGuideProfile] = useState<string | null>(
     null,
   )
-
   const [menteeNickname, setMenteeNickname] = useState('')
   const [menteeJob, setMenteeJob] = useState('')
   const [menteeTopics, setMenteeTopics] = useState<string[]>([])
   const [menteeDesc, setMenteeDesc] = useState('')
-
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [reservationId, setReservationId] = useState<number | null>(
+    null,
+  )
 
   /* ================== API 로드 ================== */
   useEffect(() => {
@@ -85,39 +86,39 @@ export default function CoffeechatApplyPage() {
 
   /* ================== 신청하기 ================== */
   const handleSubmit = async () => {
-    if (!id || !duration || !selectedDate || !selectedTime) {
-      alert('모든 값을 입력해주세요!')
+    if (!duration) {
+      alert('커피챗 시간을 선택해주세요.')
+      return
+    }
+    if (!selectedDate || !selectedTime) {
+      alert('희망 날짜와 시간을 선택해주세요.')
+      return
+    }
+    if (!message.trim()) {
+      alert('선배에게 보낼 메시지를 작성해주세요.')
       return
     }
 
-    try {
-      const reservation = {
-        guideId: Number(id),
-        timeUnit: (duration === 30
-          ? 'THIRTY_MINUTES'
-          : 'SIXTY_MINUTES') as 'THIRTY_MINUTES' | 'SIXTY_MINUTES',
-        survey: {
-          messageToGuide: message,
-          preferredDate: `${selectedDate}T${selectedTime}:00`,
-        },
+    const reservation: {
+      guideId: number
+      timeUnit: 'MINUTE_30' | 'MINUTE_60'
+      survey: {
+        messageToGuide: string
+        preferredDate: string
       }
+    } = {
+      guideId: Number(id),
+      timeUnit: duration === 30 ? 'MINUTE_30' : 'MINUTE_60',
+      survey: {
+        messageToGuide: message,
+        preferredDate: `${selectedDate}T${selectedTime}:00`,
+      },
+    }
 
-      const formData = new FormData()
-      // ✅ JSON 문자열 그대로 append (Blob ❌)
-      formData.append('reservation', JSON.stringify(reservation))
-
-      // ✅ 파일 추가
-      uploadedFiles.forEach((file) => {
-        formData.append('files', file)
-      })
-
-      const res = await api.post('/api/reservations', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-
-      console.log('✅ 예약 성공:', res.data)
+    try {
+      const res = await postReservation(reservation, uploadedFiles)
+      console.log('✅ 예약 성공:', res)
+      setReservationId(res.data.reservationId)
       setIsSubmitted(true)
     } catch (err) {
       console.error('❌ 예약 실패:', err)
@@ -128,10 +129,9 @@ export default function CoffeechatApplyPage() {
     <>
       <div className="bg-fill-banner-yellow h-[180px] w-full" />
       <div className="container grid grid-cols-12 gap-[132px] p-[60px]">
-        {isSubmitted ? (
-          // ✅ 신청 완료 페이지가 전체 넓이를 차지
+        {isSubmitted && reservationId !== null ? (
           <div className="col-span-12">
-            <ApplyComplete />
+            <ApplyComplete reservationId={reservationId} />
           </div>
         ) : (
           <>

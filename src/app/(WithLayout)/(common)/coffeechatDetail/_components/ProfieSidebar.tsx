@@ -133,17 +133,15 @@ export default function ProfileSidebar({
       <div className="gap-spacing-xs flex w-[300px] flex-col">
         <div className="gap-spacing-xs bg-fill-white border-border-subtle p-spacing-2xs shadow-card flex w-full flex-col items-center rounded-lg border">
           <div className="gap-spacing-3xs flex w-full flex-row items-center">
-            {profile.profileImageUrl ? (
-              <Image
-                src={profile.profileImageUrl}
-                alt={`${profile.nickname} 프로필`}
-                width={64}
-                height={64}
-                className="rounded-full object-cover"
-              />
-            ) : (
-              <div className="bg-fill-input-gray h-[64px] w-[64px] rounded-full" />
-            )}
+            <Image
+              src={
+                profile.profileImageUrl ?? '/images/profileMypage.png'
+              }
+              alt={`${profile.nickname} 프로필`}
+              width={64}
+              height={64}
+              className="rounded-full object-cover"
+            />
             <span className="font-title3 text-label-deep">
               {profile.nickname}
             </span>
