@@ -8,20 +8,19 @@ import FilterDropdown from '@/components/ui/CustomSelectes/DropDown/FilterDropdo
 import Pagination from '@/components/ui/Paginations/Pagination'
 
 export default function DashboardReview() {
-  const [scheduleFilter, setScheduleFilter] = useState<
-    'all' | 'scheduled' | 'done'
+  const [filter, setFilter] = useState<
+    'all' | 'written' | 'unwritten'
   >('all')
 
   const options = [
     { key: 'all', label: '전체', colorClass: 'bg-fill-light' },
+    { key: 'written', label: '작성', colorClass: 'bg-fill-primary' },
     {
-      key: 'scheduled',
-      label: '예정',
-      colorClass: 'bg-fill-primary',
+      key: 'unwritten',
+      label: '미작성',
+      colorClass: 'bg-fill-disabled',
     },
-    { key: 'done', label: '완료', colorClass: 'bg-fill-light' },
   ]
-
   const mockReviews = [
     {
       avatarUrl: null,
@@ -29,8 +28,8 @@ export default function DashboardReview() {
       date: '2025-09-12',
       time: '15:00',
       duration: '30분',
-      rating: 4.5,
-      review: '정말 유익한 커피챗이었어요!',
+      rating: 0,
+      review: '',
     },
     {
       avatarUrl: null,
@@ -79,12 +78,19 @@ export default function DashboardReview() {
     },
   ]
 
+  // ✅ 필터링 로직
+  const filteredReviews = mockReviews.filter((r) => {
+    if (filter === 'written') return r.review.trim() !== ''
+    if (filter === 'unwritten') return r.review.trim() === ''
+    return true
+  })
+
   // ✅ 페이지네이션 상태
   const [page, setPage] = useState(1)
   const perPage = 5
-  const totalPages = Math.ceil(mockReviews.length / perPage)
+  const totalPages = Math.ceil(filteredReviews.length / perPage)
 
-  const currentReviews = mockReviews.slice(
+  const currentReviews = filteredReviews.slice(
     (page - 1) * perPage,
     page * perPage,
   )
@@ -95,10 +101,11 @@ export default function DashboardReview() {
         <h1 className="font-heading2 text-label-strong">후기</h1>
         <FilterDropdown
           options={options}
-          selected={scheduleFilter}
-          onSelect={(key) =>
-            setScheduleFilter(key as 'all' | 'scheduled' | 'done')
-          }
+          selected={filter}
+          onSelect={(key) => {
+            setFilter(key as 'all' | 'written' | 'unwritten')
+            setPage(1)
+          }}
         />
       </section>
 
