@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import '@/styles/globals.css'
+import CoffeechatReviewModalProvider from '@/components/common/CoffeechatReviewModalProvider'
 import { pretendard } from '@/components/fonts'
 
 export const metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({
     >
       <body>
         <main>{children}</main>
+        <CoffeechatReviewModalProvider />
       </body>
     </html>
   )

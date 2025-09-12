@@ -4,50 +4,56 @@ import { X, ThumbsUp } from 'lucide-react'
 import { useState } from 'react'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
+import api from '@/lib/http/api'
 
 interface CoffeechatReviewModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: {
-    rating: number
-    experiences: string[]
-    review: string
-  }) => void
+  reservationId: number
+  experiences: {
+    experienceGroupId: number
+    experienceTitle: string
+  }[]
 }
 
 export default function CoffeechatReviewModal({
   isOpen,
   onClose,
-  onSubmit,
+  reservationId,
+  experiences,
 }: CoffeechatReviewModalProps) {
   const [rating, setRating] = useState(0)
-  const [selectedExperiences, setSelectedExperiences] = useState<
-    string[]
-  >([])
+  const [selected, setSelected] = useState<Record<number, boolean>>(
+    {},
+  )
   const [review, setReview] = useState('')
 
   if (!isOpen) return null
 
-  const experiences = [
-    '경험1 타이틀 문장입니다',
-    '경험2 타이틀 문장입니다',
-    '경험3 타이틀 문장입니다',
-    '경험4 타이틀 문장입니다',
-    '경험5 타이틀 문장입니다',
-    '경험6 타이틀 문장입니다',
-  ]
-
-  const toggleExperience = (exp: string) => {
-    setSelectedExperiences((prev) =>
-      prev.includes(exp)
-        ? prev.filter((e) => e !== exp)
-        : [...prev, exp],
-    )
+  const toggleExperience = (id: number) => {
+    setSelected((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const handleSubmit = () => {
-    onSubmit({ rating, experiences: selectedExperiences, review })
-    onClose()
+  const handleSubmit = async () => {
+    try {
+      const payload = {
+        reservationId,
+        starReview: rating,
+        comment: review,
+        experienceEvaluations: experiences.map((exp) => ({
+          experienceGroupId: exp.experienceGroupId,
+          thumbsUp: !!selected[exp.experienceGroupId],
+        })),
+      }
+
+      const res = await api.post('/api/reviews', payload)
+      console.log('✅ 리뷰 등록 성공:', res.data)
+      alert('리뷰가 성공적으로 등록되었습니다.')
+      onClose()
+    } catch (err) {
+      console.error('❌ 리뷰 등록 실패:', err)
+      alert('리뷰 등록에 실패했습니다.')
+    }
   }
 
   return (
@@ -63,7 +69,7 @@ export default function CoffeechatReviewModal({
           </button>
         </div>
 
-        {/* 본문 (스크롤 가능) */}
+        {/* 본문 */}
         <div className="p-spacing-lg gap-spacing-lg flex flex-1 flex-col overflow-y-auto">
           {/* 별점 */}
           <div className="text-center">
@@ -86,26 +92,29 @@ export default function CoffeechatReviewModal({
           {/* 경험 평가 */}
           <div>
             <p className="mb-spacing-sm font-body1 text-label-strong">
-              1. 이야기 나누었던 경험들을 모두 선택해주시고, 각각에
-              대한 만족도를 평가해주세요.
+              1. 이야기 나누었던 경험들을 선택해주세요.
             </p>
             <div className="gap-spacing-xs flex flex-col">
               {experiences.map((exp) => {
-                const isSelected = selectedExperiences.includes(exp)
+                const checked = !!selected[exp.experienceGroupId]
                 return (
                   <div
-                    key={exp}
-                    onClick={() => toggleExperience(exp)}
+                    key={exp.experienceGroupId}
+                    onClick={() =>
+                      toggleExperience(exp.experienceGroupId)
+                    }
                     className={`p-spacing-xs flex cursor-pointer items-center justify-between rounded-sm border ${
-                      isSelected
+                      checked
                         ? 'border-fill-tooltip-orange bg-fill-input-gray'
                         : 'border-border-subtle'
                     }`}
                   >
-                    <span className="font-body2">{exp}</span>
+                    <span className="font-body2">
+                      {exp.experienceTitle}
+                    </span>
                     <ThumbsUp
                       className={`h-5 w-5 ${
-                        isSelected
+                        checked
                           ? 'text-fill-tooltip-orange'
                           : 'text-label-subtler'
                       }`}
@@ -119,22 +128,22 @@ export default function CoffeechatReviewModal({
           {/* 후기 작성 */}
           <div>
             <p className="mb-spacing-sm font-body1 text-label-strong">
-              2. 선배와의 커피챗에 대한 후기를 들려주세요.
+              2. 커피챗에 대한 후기를 작성해주세요.
             </p>
             <textarea
               value={review}
               onChange={(e) => setReview(e.target.value)}
               placeholder="후기를 작성해주세요. (최소 10자 이상)"
               className="border-border-subtle p-spacing-sm font-body2 text-label-default h-32 w-full resize-none rounded-sm border"
-              maxLength={100}
+              maxLength={500}
             />
             <div className="text-label-subtle mt-1 text-right text-sm">
-              {review.length}/100
+              {review.length}/500
             </div>
           </div>
         </div>
 
-        {/* 푸터 (고정) */}
+        {/* 푸터 */}
         <div className="border-border-subtler p-spacing-md border-t">
           <SquareButton
             variant="primary"
