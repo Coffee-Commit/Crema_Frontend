@@ -1,8 +1,10 @@
 'use client'
 
 import Image from 'next/image'
-import { useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Suspense, useEffect, useState, useRef, useMemo } from 'react'
+
+import { useAuthStore } from '@/store/useAuthStore'
 
 import LocalVideo from '@/features/video-call/components/LocalVideo'
 import RemoteVideo from '@/features/video-call/components/RemoteVideo'
@@ -28,53 +30,24 @@ import {
   useVideoCallStore,
 } from '@/features/video-call/store'
 import type { ChatMessage } from '@/features/video-call/types'
+import { createCleanupCall } from '@/features/video-call/utils/cleanup'
 import { globalSessionManager } from '@/features/video-call/utils/sessionManager'
 import { featureFlags } from '@/lib/config/env'
-import { openViduTestApi } from '@/lib/openvidu/api'
+import { openViduApi } from '@/lib/openvidu/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
-const logger = createOpenViduLogger('TestRoomPage')
+// Local components (split for maintainability)
+import ChatPanel from './components/ChatPanel'
+import FilesPanel from './components/FilesPanel'
+import type { LocalChatMessage, SharedFile, TabType } from './types'
+import { formatHMS, pad } from './utils'
 
-type TabType = 'chat' | 'files'
-
-type SharedFile = {
-  id: string
-  name: string
-  sizeBytes: number
-  content: string
-  mime: string
-}
-
-type LocalChatMessage = {
-  id: string
-  who: 'me' | 'other'
-  name: string
-  time: string
-  text: string
-}
-
-function pad(n: number) {
-  return n.toString().padStart(2, '0')
-}
-
-function formatHMS(totalSeconds: number) {
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  const s = totalSeconds % 60
-  return h > 0
-    ? `${pad(h)}:${pad(m)}:${pad(s)}`
-    : `${pad(m)}:${pad(s)}`
-}
-
-function prettySize(bytes: number) {
-  if (bytes >= 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(2)} KB`
-  return `${bytes} B`
-}
+const logger = createOpenViduLogger('CoffeeChatPage')
 
 function VideoCallRoomContent() {
-  const searchParams = useSearchParams()
+  const params = useParams<{ id: string }>()
+  const parsedId = params?.id ? Number(params.id) : null
+  const reservationId = parsedId && Number.isFinite(parsedId) ? parsedId : null
 
   // Hook들을 먼저 모두 호출 (조건부 반환 전에)
   const sessionStatus = useSessionStatus()
@@ -86,11 +59,16 @@ function VideoCallRoomContent() {
   const actions = useVideoCallActions()
   const environmentInfo = useEnvironmentInfo()
   const messages = useChatMessages()
+  const user = useAuthStore((state) => state.user)
 
   const toggleAudio = useToggleAudio()
   const toggleVideo = useToggleVideo()
   const { execute: toggleScreenShare } = useScreenShare()
   const { execute: leaveSession } = useLeaveSession()
+  // 뒤로가기 등 네비게이션 시에는 확인창 없이 즉시 종료
+  const { execute: _leaveWithoutConfirm } = useLeaveSession({
+    confirmBeforeLeave: false,
+  })
 
   // 새로운 훅들 (항상 호출, React Hooks 규칙 준수)
   const useNewComponents = featureFlags.useNewCameraComponents
@@ -173,29 +151,118 @@ function VideoCallRoomContent() {
     _publisherBridge,
   ])
 
-  const sessionNameParam = searchParams.get('sessionName')
-  const usernameParam = searchParams.get('username')
+  // 비디오 요소 레퍼런스 (클린업에서 사용)
+  const myCamVideoRef = useRef<HTMLVideoElement>(null)
+  const remoteCamVideoRef = useRef<HTMLVideoElement>(null)
+  const shareVideoRef = useRef<HTMLVideoElement>(null)
+  const initializingRef = useRef(false)
+  const sessionKeyRef = useRef<string | null>(null)
 
-  const myNickname = useMemo(
-    () => (usernameParam ? usernameParam.trim() : ''),
-    [usernameParam],
-  )
-  const peerNickname = useMemo(
-    () => searchParams.get('peer') ?? '게스트',
-    [searchParams],
+  // 멱등 클린업 함수 생성
+  const cleanupCall = useMemo(
+    () =>
+      createCleanupCall({
+        actions,
+        localMediaController,
+        publisherBridge: _publisherBridge,
+        videoElements: [
+          myCamVideoRef,
+          remoteCamVideoRef,
+          shareVideoRef,
+        ],
+      }),
+    [actions, localMediaController, _publisherBridge],
   )
 
-  const startAt = useMemo(() => {
-    const s = searchParams.get('start')
-    const d = s ? new Date(s) : new Date()
-    return isNaN(d.getTime()) ? new Date() : d
-  }, [searchParams])
+  // 브라우저 뒤로가기(popstate) 및 페이지 숨김(pagehide) 시 지연 정리(레이스 방지)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const onPopState = () => {
+      try {
+        const status = actions.getState?.().status
+        logger.info('브라우저 뒤로가기 감지', { status })
+        if (status && status !== 'idle' && sessionKeyRef.current) {
+          // 즉시 정리 대신 지연 정리 + 시퀀스 가드로 레이스 방지
+          const sessionKey = sessionKeyRef.current
+          const scheduledSeq = actions.getState().joinSequence
+          globalSessionManager.scheduleCleanup(
+            sessionKey,
+            async () => {
+              const currentSeq = actions.getState().joinSequence
+              if (currentSeq !== scheduledSeq) {
+                logger.info('cleanup 스킵: 새 연결 시퀀스 감지', {
+                  sessionKey,
+                  scheduledSeq,
+                  currentSeq,
+                })
+                return
+              }
+              try {
+                await cleanupCall('popstate-scheduled')
+              } catch {}
+            },
+            500,
+          )
+        }
+      } catch (e) {
+        console.error('뒤로가기 처리 중 오류', e)
+      }
+    }
+
+    const onPageHide = () => {
+      try {
+        if (sessionKeyRef.current) {
+          const sessionKey = sessionKeyRef.current
+          const scheduledSeq = actions.getState().joinSequence
+          globalSessionManager.scheduleCleanup(
+            sessionKey,
+            async () => {
+              const currentSeq = actions.getState().joinSequence
+              if (currentSeq !== scheduledSeq) {
+                logger.info('cleanup 스킵: 새 연결 시퀀스 감지', {
+                  sessionKey,
+                  scheduledSeq,
+                  currentSeq,
+                })
+                return
+              }
+              try {
+                await cleanupCall('pagehide-scheduled')
+              } catch {}
+            },
+            500,
+          )
+        }
+      } catch {}
+    }
+
+    window.addEventListener('popstate', onPopState)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [actions, cleanupCall])
+
+  const myNickname = user?.nickname || '사용자'
+  const peerNickname = '상대방'
+
+  const startAt = useMemo(() => new Date(), [])
+
+  // 파라미터 로깅
+  useEffect(() => {
+    if (reservationId) {
+      logger.debug('파라미터 파싱 완료', { id: params?.id, reservationId })
+    }
+  }, [reservationId, params?.id])
 
   // useState, useRef 등 모든 hooks를 조건부 반환 전에 호출
   const [now, setNow] = useState<Date>(() => new Date())
   const [tab, setTab] = useState<TabType>('chat')
-  const [input, setInput] = useState('')
-  const [isComposing, setIsComposing] = useState(false)
+  const [participantInfoError, setParticipantInfoError] = useState<
+    string | null
+  >(null)
 
   // Store의 메시지를 로컬 형식으로 변환
   const chatList = useMemo(() => {
@@ -219,18 +286,11 @@ function VideoCallRoomContent() {
       }
     })
   }, [messages, actions])
-  const [sharedFiles] = useState<SharedFile[]>([])
+  const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([])
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewName, setPreviewName] = useState<string>('')
   const [previewMime, setPreviewMime] =
     useState<string>('application/pdf')
-
-  const chatScrollRef = useRef<HTMLDivElement>(null)
-  const myCamVideoRef = useRef<HTMLVideoElement>(null)
-  const remoteCamVideoRef = useRef<HTMLVideoElement>(null)
-  const shareVideoRef = useRef<HTMLVideoElement>(null)
-  const initializingRef = useRef(false)
-  const sessionKeyRef = useRef<string | null>(null)
 
   // 타이머는 세션 연결 후에만 실행 (불필요한 재렌더링 방지)
   useEffect(() => {
@@ -240,12 +300,7 @@ function VideoCallRoomContent() {
     }
   }, [sessionStatus])
 
-  useEffect(() => {
-    chatScrollRef.current?.scrollTo({
-      top: chatScrollRef.current.scrollHeight,
-      behavior: 'smooth',
-    })
-  }, [chatList, tab])
+  // ChatPanel 내부에서 자동 스크롤 처리
 
   useEffect(() => {
     // React StrictMode에서 중복 실행 방지 - 전역 세션 관리자 사용
@@ -264,27 +319,23 @@ function VideoCallRoomContent() {
       return
     }
 
-    const username = usernameParam?.trim() || ''
-    const sessionName = sessionNameParam?.trim() || ''
-
-    if (!username || !sessionName) {
+    if (!reservationId || isNaN(reservationId)) {
       initializingRef.current = false
       return
     }
 
-    const sessionKey = `testroom-${username}@${sessionName}`
+    const sessionKey = `coffeechat-${reservationId}`
     sessionKeyRef.current = sessionKey
 
     const initializeSession = async () => {
       try {
         logger.info('화상통화 세션 초기화 시작', {
-          username,
-          sessionName,
+          reservationId,
         })
 
         // 1. Config API 호출
         try {
-          await openViduTestApi.getConfig()
+          await openViduApi.getConfig()
           logger.debug('설정 정보 조회 완료')
         } catch (error) {
           logger.warn('설정 정보 조회 실패, 기본값 사용', {
@@ -294,10 +345,8 @@ function VideoCallRoomContent() {
         }
 
         // 2. Quick Join API로 토큰 받기
-        const quickJoinResponse = await openViduTestApi.quickJoin(
-          username,
-          sessionName,
-        )
+        const quickJoinResponse =
+          await openViduApi.quickJoin(reservationId)
         logger.info('토큰 획득 완료', {
           sessionId: quickJoinResponse.sessionId,
           username: quickJoinResponse.username,
@@ -350,40 +399,6 @@ function VideoCallRoomContent() {
           } catch (error) {
             console.error('Publisher 생성 실패:', error)
           }
-        } else {
-          // 새 파이프라인: 카메라 시작 후 해당 스트림으로 게시
-          try {
-            await localMediaController.startCamera()
-            const stream =
-              localMediaController.currentStreamRef.current
-            if (stream) {
-              await _publisherBridge.publishFrom(stream, {
-                publishAudio: true,
-                publishVideo: true,
-              })
-              logger.info('새 파이프라인으로 게시 완료')
-
-              actions.addParticipant({
-                id: `local-${Date.now()}`,
-                connectionId:
-                  session?.connection?.connectionId ||
-                  `local-connection-${Date.now()}`,
-                nickname: quickJoinResponse.username,
-                isLocal: true,
-                streams: {},
-                audioLevel: 0,
-                speaking: false,
-                audioEnabled: true,
-                videoEnabled: true,
-                isScreenSharing: false,
-                joinedAt: new Date(),
-              })
-            } else {
-              logger.warn('카메라 스트림이 없어 게시 생략')
-            }
-          } catch (error) {
-            console.error('새 파이프라인 게시 실패:', error)
-          }
         }
       } catch (error) {
         console.error('세션 초기화 실패:', error)
@@ -420,8 +435,7 @@ function VideoCallRoomContent() {
             logger.info('지연된 세션 cleanup 실행', { sessionKey })
             if (actions.getState().status === 'connected') {
               try {
-                await actions.destroyPublisher?.()
-                await actions.disconnect()
+                await cleanupCall('unmount-scheduled')
                 logger.info('세션 cleanup 완료', { sessionKey })
               } catch (error) {
                 logger.error('세션 cleanup 실패:', { error })
@@ -434,12 +448,52 @@ function VideoCallRoomContent() {
 
       initializingRef.current = false
     }
-  }, [
-    usernameParam,
-    sessionNameParam,
-    sessionStatus,
-    environmentInfo?.hasVideoDevice,
-  ]) // actions 제거
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservationId, sessionStatus, environmentInfo?.hasVideoDevice]) // actions, cleanupCall, useNewComponents 의도적으로 제외 - 무한 재렌더링 방지
+
+  // 참가자 정보 가져오기
+  useEffect(() => {
+    if (sessionStatus !== 'connected') return
+
+    const fetchParticipantInfo = async () => {
+      try {
+        const currentSessionId = actions.getState().sessionInfo?.id
+        if (currentSessionId) {
+          logger.info('참가자 정보 조회 시도', {
+            sessionId: currentSessionId,
+          })
+
+          // 실제 API 호출
+          const participantInfo =
+            await openViduApi.getParticipantInfo(currentSessionId)
+
+          logger.info('참가자 정보 조회 성공', {
+            sessionId: currentSessionId,
+            participantId: participantInfo.participantId,
+            nickname: participantInfo.nickname,
+          })
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : '알 수 없는 오류'
+        logger.warn('참가자 정보 조회 실패:', {
+          message: errorMessage,
+        })
+        setParticipantInfoError(errorMessage)
+      }
+    }
+
+    fetchParticipantInfo()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionStatus]) // actions 의도적으로 제외 - 안정적 reference
+
+  // 세션 연결 시 공유 자료 목록 로드
+  useEffect(() => {
+    if (sessionStatus === 'connected') {
+      refreshMaterialsList()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionStatus]) // refreshMaterialsList 의도적으로 제외 - 함수는 안정적
 
   // 전환은 handleToggleShare에서만 수행(중복 방지)
 
@@ -456,7 +510,8 @@ function VideoCallRoomContent() {
         actions.setLocalParticipantId?.(localParticipants[0].id)
       }
     }
-  }, [publisher, sessionStatus, participants]) // actions 제거
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publisher, sessionStatus, participants]) // actions 의도적으로 제외
 
   // 컴포넌트 언마운트 감지 (전역 세션 관리자 사용으로 제거)
 
@@ -581,7 +636,8 @@ function VideoCallRoomContent() {
       })
       toRemove.forEach((id) => actions.removeParticipant?.(id))
     }
-  }, [participants, myConnectionId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participants, myConnectionId]) // actions 의도적으로 제외
 
   useEffect(() => {
     // 새로운 컴포넌트 사용 시 직접 바인딩 스킵
@@ -634,60 +690,33 @@ function VideoCallRoomContent() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(window as any).__vc = { getState, dumpParticipants }
     logger.info('전역 디버그 헬퍼 등록: window.__vc')
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // actions 의도적으로 제외 - 디버그 헬퍼는 한 번만 등록
 
-  // 쿼리 파라미터 로그는 useEffect에서만 (렌더링 중 로그 방지)
-  useEffect(() => {
-    logger.debug('쿼리 파라미터 확인', {
-      username: usernameParam,
-      sessionName: sessionNameParam,
-      hasUsername: !!usernameParam,
-      hasSessionName: !!sessionNameParam,
-      paramsSize: searchParams.toString().length,
-    })
-  }, [usernameParam, sessionNameParam, searchParams])
-
-  if (!usernameParam || !sessionNameParam) {
-    logger.warn('필수 파라미터 누락', {
-      missingUsername: !usernameParam,
-      missingSessionName: !sessionNameParam,
-    })
-
+  // reservationId 유효성 검증
+  if (
+    reservationId === null ||
+    !reservationId ||
+    isNaN(reservationId)
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
         <div className="text-center text-[var(--color-fill-white)]">
-          <h2 className="font-title3 mb-[var(--spacing-spacing-6xs)]">
-            잘못된 접근
-          </h2>
-          <p className="font-body2 text-[var(--color-label-subtle)]">
-            사용자명과 세션명이 모두 필요합니다.
-          </p>
-          <p className="font-body2 mt-2 text-[var(--color-label-subtle)]">
-            예시: /testroom?sessionName=session123&username=user1
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  const username = usernameParam.trim()
-  const sessionName = sessionNameParam.trim()
-
-  if (!username || !sessionName) {
-    logger.warn('빈 파라미터', {
-      emptyUsername: !username,
-      emptySessionName: !sessionName,
-    })
-
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--color-gray-900)]">
-        <div className="text-center text-[var(--color-fill-white)]">
-          <h2 className="font-title3 mb-[var(--spacing-spacing-6xs)]">
-            잘못된 파라미터
-          </h2>
-          <p className="font-body2 text-[var(--color-label-subtle)]">
-            사용자명과 세션명은 비어있을 수 없습니다.
-          </p>
+          {reservationId === null ? (
+            <>
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-label-primary)]"></div>
+              <p className="font-body2">로딩 중...</p>
+            </>
+          ) : (
+            <>
+              <h2 className="font-title3 mb-[var(--spacing-spacing-6xs)]">
+                잘못된 접근
+              </h2>
+              <p className="font-body2 text-[var(--color-label-subtle)]">
+                유효한 예약 ID가 필요합니다.
+              </p>
+            </>
+          )}
         </div>
       </div>
     )
@@ -698,11 +727,10 @@ function VideoCallRoomContent() {
     Math.floor((now.getTime() - startAt.getTime()) / 1000),
   )
 
-  const handleSend = () => {
-    const text = input.trim()
-    if (!text) return
-    setInput('')
-    actions.sendMessage(text)
+  const handleSend = async (text: string) => {
+    const t = text.trim()
+    if (!t) return
+    await actions.sendMessage(t)
   }
 
   const openPreview = (file: SharedFile) => {
@@ -719,20 +747,261 @@ function VideoCallRoomContent() {
     setPreviewName('')
   }
 
+  // 공유 자료 목록 새로고침
+  const refreshMaterialsList = async () => {
+    const currentSessionId = actions.getState().sessionInfo?.id
+    if (!currentSessionId) return
+
+    try {
+      const materialsResponse =
+        await openViduApi.getMaterials(currentSessionId)
+      const materials = materialsResponse.files.map(
+        (file: {
+          fileId: string
+          fileName: string
+          fileSize?: number
+          fileType?: string
+          fileUrl: string
+        }) => ({
+          id: file.fileId,
+          name: file.fileName,
+          sizeBytes: file.fileSize || 0,
+          content: '', // API 방식에서는 content가 아닌 URL 사용
+          mime: file.fileType || 'application/octet-stream',
+          url: file.fileUrl, // 파일 다운로드 URL
+        }),
+      )
+      setSharedFiles(materials)
+      logger.info('공유 자료 목록 갱신 완료', {
+        fileCount: materials.length,
+        sessionId: currentSessionId,
+      })
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
+      // JWT 인증 에러인지 확인
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized')
+      ) {
+        logger.warn(
+          '공유 자료 목록 조회 인증 실패 - JWT 토큰 필요:',
+          { sessionId: currentSessionId },
+        )
+        // 인증 실패 시 빈 배열로 설정하여 UI가 깨지지 않도록 함
+        setSharedFiles([])
+      } else {
+        logger.error('공유 자료 목록 조회 실패:', {
+          error: errorMessage,
+          sessionId: currentSessionId,
+        })
+      }
+    }
+  }
+
+  // 파일 삭제 처리
+  const handleFileDelete = async (
+    fileId: string,
+    imageKey: string,
+  ) => {
+    const currentSessionId = actions.getState().sessionInfo?.id
+    if (!currentSessionId) return
+
+    try {
+      await openViduApi.deleteMaterial(currentSessionId, imageKey)
+      logger.info('파일 삭제 완료', {
+        fileId,
+        sessionId: currentSessionId,
+      })
+
+      // 목록 갱신
+      await refreshMaterialsList()
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
+      // JWT 인증 에러인지 확인
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized')
+      ) {
+        logger.warn('파일 삭제 인증 실패 - JWT 토큰 필요:', {
+          fileId,
+          sessionId: currentSessionId,
+        })
+        // 사용자에게 알림 (선택사항 - 현재는 로그만)
+      } else {
+        logger.error('파일 삭제 실패:', {
+          error: errorMessage,
+          fileId,
+          sessionId: currentSessionId,
+        })
+      }
+    }
+  }
+
   const handleDownload = (file: SharedFile) => {
-    const blob = new Blob([file.content], { type: file.mime })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = file.name
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
+    // API 방식에서는 URL을 통한 다운로드
+    if (file.url) {
+      const a = document.createElement('a')
+      a.href = file.url
+      a.download = file.name
+      a.target = '_blank'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      a.remove()
+    } else {
+      // Fallback: base64 content가 있는 경우 (레거시 호환성)
+      const blob = new Blob([file.content], { type: file.mime })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      a.remove()
+      URL.revokeObjectURL(url)
+    }
+  }
+
+  const handleFileUpload = async (file: File) => {
+    const currentSessionId = actions.getState().sessionInfo?.id
+
+    if (
+      !session ||
+      sessionStatus !== 'connected' ||
+      !currentSessionId
+    ) {
+      logger.warn(
+        '세션이 연결되지 않아 파일 업로드를 할 수 없습니다.',
+      )
+      return
+    }
+
+    try {
+      logger.info('파일 업로드 시작', {
+        fileName: file.name,
+        fileSize: file.size,
+        sessionId: currentSessionId,
+      })
+
+      // API를 통한 파일 업로드
+      const uploadedFile = await openViduApi.uploadMaterial(
+        currentSessionId,
+        file,
+      )
+
+      logger.info('파일 업로드 완료', {
+        fileName: file.name,
+        fileId: uploadedFile.fileId,
+        sessionId: currentSessionId,
+      })
+
+      // 공유 자료 목록 갱신
+      await refreshMaterialsList()
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
+      // JWT 인증 에러인지 확인
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized')
+      ) {
+        logger.warn('파일 업로드 인증 실패 - JWT 토큰 필요:', {
+          fileName: file.name,
+          sessionId: currentSessionId,
+        })
+        // 사용자에게 알림 (선택사항 - 현재는 로그만)
+      } else {
+        logger.error('파일 업로드 실패:', {
+          error: errorMessage,
+          fileName: file.name,
+          sessionId: currentSessionId,
+        })
+      }
+    }
   }
 
   const handleLeaveCall = async () => {
-    await leaveSession()
+    const currentSessionId = actions.getState().sessionInfo?.id
+
+    try {
+      // 채팅 메시지를 DTO 형식으로 변환
+      const chatHistory =
+        messages.length > 0
+          ? {
+              messages: messages.map((msg) => {
+                // Codex 권장: timestamp 유효성 검증
+                const msgDate = new Date(msg.timestamp)
+                const isValidDate = Number.isFinite(msgDate.getTime())
+
+                return {
+                  username: msg.senderName,
+                  message: msg.content,
+                  timestamp: isValidDate
+                    ? msgDate.toISOString()
+                    : new Date().toISOString(),
+                }
+              }),
+              sessionStartTime: startAt.toISOString(),
+              sessionEndTime: new Date().toISOString(),
+            }
+          : undefined
+
+      // 세션 종료 API 호출 (채팅 저장 + 세션 종료 통합)
+      if (currentSessionId) {
+        logger.info('세션 종료 시작', {
+          messageCount: messages.length,
+          sessionId: currentSessionId,
+        })
+
+        await openViduApi.endSession(currentSessionId, chatHistory)
+        logger.info('세션 종료 완료')
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
+      // JWT 인증 에러인지 확인
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized')
+      ) {
+        logger.warn('세션 종료 인증 실패 - JWT 토큰 필요:', {
+          sessionId: currentSessionId,
+        })
+        // 인증 실패해도 로컬 세션 종료는 계속 진행
+      } else {
+        logger.error('세션 종료 실패:', {
+          error: errorMessage,
+          sessionId: currentSessionId,
+        })
+      }
+      // 실패해도 계속 진행 (클라이언트 리소스 정리는 수행)
+    } finally {
+      // Codex 권장: finally로 절대 종료 보장
+      try {
+        await leaveSession()
+      } catch (leaveError) {
+        logger.error('세션 종료 실패:', { error: String(leaveError) })
+        // 세션 종료도 실패한 경우에도 최소한 로그는 남김
+      }
+      // 로컬 미디어/퍼블리셔/스토어까지 확실히 정리
+      await cleanupCall('explicit-leave')
+
+      // 사용자 타입별 리다이렉트
+      if (user?.role === 'ROOKIE') {
+        window.location.href = '/mypage/rookie/dashboard'
+      } else if (user?.role === 'GUIDE') {
+        window.location.href = '/mypage/guide/dashboard'
+      } else {
+        window.location.href = '/'
+      }
+    }
   }
 
   if (sessionStatus === 'connecting') {
@@ -764,7 +1033,7 @@ function VideoCallRoomContent() {
           </span>
         </div>
         <span className="text-sm text-gray-500">
-          방 ID: {sessionName}
+          예약 ID: {reservationId}
         </span>
         <div className="rounded-md bg-emerald-100 px-2 py-1 text-xs text-emerald-700">
           {sessionStatus === 'connected' ? '연결됨' : '연결 중'}
@@ -913,119 +1182,49 @@ function VideoCallRoomContent() {
 
           <div className="flex min-h-0 flex-1 flex-col p-4">
             {tab === 'chat' ? (
-              <div className="flex min-h-0 flex-1 flex-col rounded-[8px] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-                <div
-                  ref={chatScrollRef}
-                  className="min-h-0 flex-1 overflow-y-auto rounded-[8px]"
-                >
-                  <ul className="space-y-6">
-                    {chatList.map((m: LocalChatMessage) => (
-                      <li
-                        key={m.id}
-                        className="flex gap-3"
-                      >
-                        <span className="mt-[2px] inline-block h-8 w-8 shrink-0 rounded-full bg-gray-300" />
-                        <div className="flex flex-col">
-                          <div className="mb-1 text-[12px] text-[#9CA3AF]">
-                            <span className="mr-2 text-[#6B7280]">
-                              {m.name}
-                            </span>
-                            <span>{m.time}</span>
-                          </div>
-                          <div className="text-[14px] font-semibold text-[#111827]">
-                            {m.text}
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="mt-4 flex items-center justify-end gap-3">
-                  <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onCompositionStart={() => setIsComposing(true)}
-                    onCompositionEnd={() => setIsComposing(false)}
-                    onKeyDown={(e) => {
-                      const native = e.nativeEvent as unknown as {
-                        isComposing?: boolean
-                      }
-                      const nativeComposing =
-                        native.isComposing ?? false
-                      if (
-                        e.key === 'Enter' &&
-                        !isComposing &&
-                        !nativeComposing
-                      ) {
-                        e.preventDefault()
-                        handleSend()
-                      }
-                    }}
-                    placeholder="메시지를 입력하세요..."
-                    className="h-[44px] w-full rounded-[8px] border border-[#E5E7EB] px-4 text-[14px] outline-none placeholder:text-[#9CA3AF] focus:border-[#EB5F27]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSend}
-                    className="h-[44px] w-[80px] rounded-[8px] bg-[#EB5F27] px-5 text-[14px] font-semibold text-white hover:brightness-95"
-                  >
-                    전송
-                  </button>
-                </div>
-              </div>
+              <ChatPanel
+                messages={chatList}
+                onSend={handleSend}
+                isActive={tab === 'chat'}
+              />
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto py-1">
                 <section className="mb-4 rounded-md border bg-white p-4 shadow-sm">
                   <h3 className="font-label3-semibold text-label-strong mb-3">
                     후배 정보
                   </h3>
-                  <dl className="grid grid-cols-2 gap-y-2 text-sm">
-                    <dt className="text-gray-500">이름(닉네임)</dt>
-                    <dd className="text-gray-900">{peerNickname}</dd>
-                    <dt className="text-gray-500">화상통화 분야</dt>
-                    <dd className="text-gray-900">테스트</dd>
-                    <dt className="text-gray-500">화상통화 주제</dt>
-                    <dd className="text-gray-900">OpenVidu 테스트</dd>
-                  </dl>
+                  {participantInfoError ? (
+                    <div className="py-4 text-center">
+                      <p className="mb-2 text-sm text-gray-500">
+                        정보를 불러올 수 없습니다
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {participantInfoError}
+                      </p>
+                    </div>
+                  ) : (
+                    <dl className="grid grid-cols-2 gap-y-2 text-sm">
+                      <dt className="text-gray-500">이름(닉네임)</dt>
+                      <dd className="text-gray-900">
+                        {peerNickname}
+                      </dd>
+                      <dt className="text-gray-500">화상통화 분야</dt>
+                      <dd className="text-gray-900">테스트</dd>
+                      <dt className="text-gray-500">화상통화 주제</dt>
+                      <dd className="text-gray-900">
+                        OpenVidu 테스트
+                      </dd>
+                    </dl>
+                  )}
                 </section>
 
-                <section className="rounded-md border bg-white p-4 shadow-sm">
-                  <h3 className="font-label3-semibold text-label-strong mb-3">
-                    공유 파일 리스트
-                  </h3>
-                  <ul className="space-y-2">
-                    {sharedFiles.map((file) => (
-                      <li
-                        key={file.id}
-                        className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-gray-50"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => openPreview(file)}
-                          className="flex flex-1 items-center gap-2 text-left"
-                          title="미리보기"
-                        >
-                          <span className="text-red-500">📄</span>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-900">
-                              {file.name}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {prettySize(file.sizeBytes)}
-                            </span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => handleDownload(file)}
-                          className="ml-2 rounded-md border px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
-                        >
-                          다운로드
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+                <FilesPanel
+                  files={sharedFiles}
+                  onPreview={openPreview}
+                  onDownload={handleDownload}
+                  onUpload={handleFileUpload}
+                  onDelete={handleFileDelete}
+                />
               </div>
             )}
           </div>
@@ -1124,7 +1323,7 @@ function VideoCallRoomContent() {
   )
 }
 
-export default function TestRoomPage() {
+export default function CoffeeChatPage() {
   return (
     <Suspense
       fallback={
