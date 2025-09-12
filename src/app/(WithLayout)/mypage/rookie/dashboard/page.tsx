@@ -496,8 +496,7 @@ export default function DashboardPage() {
 
   const scheduleData = useMemo(() => {
     const now = nowRef.current
-    const confirmed = chats.filter((c) => c.status === 'CONFIRMED')
-    const withEnd = confirmed.map((c) => ({
+    const withEnd = chats.map((c) => ({
       c,
       end: parseStartEnd(c.preferredDateOnly, c.preferredTimeRange)
         .end,
@@ -521,8 +520,9 @@ export default function DashboardPage() {
       id: String(c.reservationId),
       nickname: c.guide.nickname,
       avatarUrl: c.guide.profileImageUrl ?? '',
-      date: c.preferredDateOnly,
+      date: `${c.preferredDateOnly} (${c.preferredDayOfWeek})`, // ✅ 요일 표시
       time: c.preferredTimeRange,
+      status: c.status, // ✅ 상태 내려주기
       isActive:
         scheduleFilter === 'all'
           ? (parseStartEnd(c.preferredDateOnly, c.preferredTimeRange)
@@ -531,6 +531,8 @@ export default function DashboardPage() {
             ? true
             : false,
       canJoin: (() => {
+        // ✅ 확정(CONFIRMED) 상태일 때만 입장 가능
+        if (c.status !== 'CONFIRMED') return false
         const { start, end } = parseStartEnd(
           c.preferredDateOnly,
           c.preferredTimeRange,
@@ -715,9 +717,14 @@ export default function DashboardPage() {
         </div>
 
         <ScheduleTable
-          items={scheduleData}
+          items={scheduleData} // ✅ API 데이터 연동
           onEnter={(id) => {
+            // 커피챗 입장
             window.location.href = `/coffeechat/${id}`
+          }}
+          onMaterials={(id) => {
+            // 사전자료 보기 (예시)
+            window.location.href = `/coffeechat/${id}/materials`
           }}
         />
       </section>

@@ -21,6 +21,28 @@ interface ModalRespondedStatusProps {
   title: string
 }
 
+// ✅ 날짜 포맷 함수 추가
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString)
+  const yy = String(date.getFullYear()).slice(2)
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${yy}.${mm}.${dd} ${hh}:${min}`
+}
+
+// ✅ 상태별 label + 색상 매핑
+const STATUS_MAP: Record<
+  string,
+  { label: string; className: string }
+> = {
+  PENDING: { label: '대기중', className: 'text-label-subtle' },
+  CONFIRMED: { label: '확정됨', className: 'text-label-primary' },
+  COMPLETED: { label: '완료됨', className: 'text-label-default' },
+  CANCELLED: { label: '취소됨', className: 'text-label-error' },
+}
+
 export default function ModalRespondedStatus({
   open,
   onClose,
@@ -104,67 +126,63 @@ export default function ModalRespondedStatus({
               </thead>
 
               <tbody className="[&>tr]:border-border-subtler [&>tr]:border-t">
-                {applicants.map((a) => (
-                  <tr
-                    key={a.id}
-                    className="h-14"
-                  >
-                    {/* 닉네임 */}
-                    <td className="px-spacing-5xs">
-                      <div className="gap-spacing-2xs flex items-center">
-                        <Image
-                          src={
-                            a.profileImageUrl ||
-                            '/images/profileMypage.png'
-                          }
-                          alt="프로필"
-                          width={32}
-                          height={32}
-                          className="rounded-full"
-                        />
-                        <span className="font-caption2-medium text-label-strong max-w-[280px] truncate">
-                          {a.nickname}
+                {applicants.map((a) => {
+                  const statusInfo =
+                    STATUS_MAP[a.status ?? 'PENDING'] ??
+                    STATUS_MAP['PENDING']
+
+                  return (
+                    <tr
+                      key={a.id}
+                      className="h-14"
+                    >
+                      {/* 닉네임 */}
+                      <td className="px-spacing-5xs">
+                        <div className="gap-spacing-2xs flex items-center">
+                          <Image
+                            src={
+                              a.profileImageUrl ||
+                              '/images/profileMypage.png'
+                            }
+                            alt="프로필"
+                            width={32}
+                            height={32}
+                            className="rounded-full"
+                          />
+                          <span className="font-caption2-medium text-label-strong max-w-[280px] truncate">
+                            {a.nickname}
+                          </span>
+                        </div>
+                      </td>
+                      {/* 신청일자 */}
+                      <td className="px-spacing-5xs">
+                        <span className="font-label4-semibold text-label-subtle">
+                          {formatDateTime(a.appliedAt)}
                         </span>
-                      </div>
-                    </td>
-                    {/* 신청일자 */}
-                    <td className="px-spacing-5xs">
-                      <span className="font-label4-semibold text-label-subtle">
-                        {a.appliedAt}
-                      </span>
-                    </td>
-                    {/* 희망 날짜 */}
-                    <td className="px-spacing-5xs">
-                      <span className="font-caption2-medium text-label-strong">
-                        {a.preferredDate}
-                      </span>
-                    </td>
-                    {/* 희망 시간 */}
-                    <td className="px-spacing-5xs">
-                      <span className="font-caption2-medium text-label-strong">
-                        {a.preferredTime}
-                      </span>
-                    </td>
-                    {/* 응답 상태 */}
-                    <td className="px-spacing-5xs text-center">
-                      {a.status === 'rejected' && (
-                        <span className="font-caption2-medium text-label-error">
-                          거절됨
+                      </td>
+                      {/* 희망 날짜 */}
+                      <td className="px-spacing-5xs">
+                        <span className="font-caption2-medium text-label-strong">
+                          {a.preferredDate}
                         </span>
-                      )}
-                      {a.status === 'accepted' && (
-                        <span className="font-caption2-medium text-label-primary">
-                          수락됨
+                      </td>
+                      {/* 희망 시간 */}
+                      <td className="px-spacing-5xs">
+                        <span className="font-caption2-medium text-label-strong">
+                          {a.preferredTime}
                         </span>
-                      )}
-                      {a.status === 'pending' && (
-                        <span className="font-caption2-medium text-label-subtle">
-                          대기중
+                      </td>
+                      {/* 응답 상태 */}
+                      <td className="px-spacing-5xs text-center">
+                        <span
+                          className={`font-caption2-medium ${statusInfo.className}`}
+                        >
+                          {statusInfo.label}
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}
