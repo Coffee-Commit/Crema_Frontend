@@ -159,6 +159,54 @@ export default function CreateVideoCallPage() {
     logger.groupEnd()
   }
 
+  const handleTestRoom2Join = () => {
+    // 이미 진행 중인 경우 중복 클릭 방지
+    if (isJoining) {
+      logger.warn(
+        '🚅 [ACTION] 이미 세션 참여 진행 중, TestRoom2 참여 무시',
+      )
+      return
+    }
+
+    logger.group('🧪 [ACTION] handleTestRoom2Join 호출')
+    logger.log('🗨️ TestRoom2 빠른 참여 모드 시작')
+
+    const inputSessionName = prompt('세션명을 입력하세요:')
+    if (!inputSessionName?.trim()) {
+      logger.log('ℹ️ [ACTION] 사용자 취소 또는 빈 세션명')
+      logger.groupEnd()
+      return
+    }
+
+    logger.log('📋 사용자 입력:', {
+      sessionName: inputSessionName.trim(),
+    })
+
+    const targetUrl = `/testroom2?sessionName=${encodeURIComponent(inputSessionName.trim())}&username=테스트사용자`
+    logger.log('📍 내비게이션 시도:', {
+      targetUrl,
+      sessionName: inputSessionName.trim(),
+    })
+
+    // 빠른 참여시도 로딩 상태 설정
+    setIsJoining(true)
+
+    try {
+      router.push(targetUrl)
+      logger.log('✅ [ACTION] TestRoom2 빠른 참여 성공')
+    } catch (error) {
+      logger.error('💥 [ACTION] TestRoom2 빠른 참여 실패', { error })
+      alert('TestRoom2 참여에 실패했습니다.')
+    } finally {
+      // 라우터 네비게이션은 비동기이므로 약간의 딥레이 후 리셋
+      setTimeout(() => {
+        setIsJoining(false)
+      }, 1000)
+    }
+
+    logger.groupEnd()
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-default)] p-[var(--spacing-spacing-xs)]">
       <div className="w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--color-fill-white)] p-[var(--spacing-spacing-lg)] shadow-[var(--shadow-card)]">
@@ -240,6 +288,16 @@ export default function CreateVideoCallPage() {
             disabled={isJoining}
           >
             {isJoining ? '지행 중...' : '빠른 참여'}
+          </CircleButton>
+
+          <CircleButton
+            variant="tertiary"
+            size="xl"
+            className="w-full"
+            onClick={handleTestRoom2Join}
+            disabled={isJoining}
+          >
+            TestRoom2 빠른 참여 (정식 API)
           </CircleButton>
         </div>
 

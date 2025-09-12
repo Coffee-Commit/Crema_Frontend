@@ -9,6 +9,16 @@ import {
   ApiErrorCode,
   OPENVIDU_CONSTANTS,
 } from '@/components/openvidu/types'
+import {
+  isApiResponseLike,
+  isErrorLike,
+} from '@/features/video-call/types/guards.types'
+import {
+  featureFlags as _featureFlags,
+  getOpenViduConfig,
+} from '@/lib/config/env'
+import api from '@/lib/http/api'
+import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 // 추가 타입 정의 (임시)
 interface ParticipantInfoResponse {
@@ -38,16 +48,6 @@ interface SharedFileResponse {
   fileUrl: string
   uploadTime: string
 }
-import {
-  isApiResponseLike,
-  isErrorLike,
-} from '@/features/video-call/types/guards.types'
-import {
-  featureFlags as _featureFlags,
-  getOpenViduConfig,
-} from '@/lib/config/env'
-import api from '@/lib/http/api'
-import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 // ============================================================================
 // API 응답 정규화 함수
@@ -234,6 +234,39 @@ class OpenViduApiService {
     } catch (error) {
       logger.error('세션 참가 실패', {
         reservationId,
+        msg:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * 1-1. 테스트 세션 참가 (정식 API)
+   * POST /api/video-call/test-quick-join?sessionName={sessionName}
+   */
+  async testQuickJoin(
+    sessionName: string,
+  ): Promise<QuickJoinResponse> {
+    logger.debug('테스트 세션 참가 시도 (정식 API)', { sessionName })
+
+    try {
+      const result = await this.request<QuickJoinResponse>(
+        `/test-quick-join?sessionName=${encodeURIComponent(sessionName)}`,
+        { method: 'POST' },
+      )
+
+      logger.info('테스트 세션 참가 성공', {
+        sid: result.sessionId.substring(0, 8) + '...',
+        sessionName: result.sessionName,
+        username: result.username,
+        isNew: result.isNewSession,
+      })
+
+      return result
+    } catch (error) {
+      logger.error('테스트 세션 참가 실패', {
+        sessionName,
         msg:
           error instanceof Error ? error.message : '알 수 없는 오류',
       })

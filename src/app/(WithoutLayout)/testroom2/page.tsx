@@ -31,7 +31,7 @@ import type { ChatMessage } from '@/features/video-call/types'
 import { createCleanupCall } from '@/features/video-call/utils/cleanup'
 import { globalSessionManager } from '@/features/video-call/utils/sessionManager'
 import { featureFlags } from '@/lib/config/env'
-import { openViduApi, openViduTestApi } from '@/lib/openvidu/api'
+import { openViduApi } from '@/lib/openvidu/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
 // Local components (split for maintainability)
@@ -303,7 +303,7 @@ function VideoCallRoomContent() {
 
         // 1. Config API 호출
         try {
-          await openViduTestApi.getConfig()
+          await openViduApi.getConfig()
           logger.debug('설정 정보 조회 완료')
         } catch (error) {
           logger.warn('설정 정보 조회 실패, 기본값 사용', {
@@ -313,10 +313,8 @@ function VideoCallRoomContent() {
         }
 
         // 2. Quick Join API로 토큰 받기
-        const quickJoinResponse = await openViduTestApi.quickJoin(
-          username,
-          sessionName,
-        )
+        const quickJoinResponse =
+          await openViduApi.testQuickJoin(sessionName)
         logger.info('토큰 획득 완료', {
           sessionId: quickJoinResponse.sessionId,
           username: quickJoinResponse.username,
@@ -416,7 +414,7 @@ function VideoCallRoomContent() {
     sessionNameParam,
     sessionStatus,
     environmentInfo?.hasVideoDevice,
-  ]) // actions, cleanupCall, useNewComponents 의도적으로 제외
+  ]) // actions, cleanupCall, useNewComponents 의도적으로 제외 - 무한 재렌더링 방지
 
   // 참가자 정보 가져오기
   useEffect(() => {
@@ -452,7 +450,7 @@ function VideoCallRoomContent() {
 
     fetchParticipantInfo()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionStatus]) // actions 의도적으로 제외
+  }, [sessionStatus]) // actions 의도적으로 제외 - 안정적 reference
 
   // 세션 연결 시 공유 자료 목록 로드
   useEffect(() => {
@@ -460,7 +458,7 @@ function VideoCallRoomContent() {
       refreshMaterialsList()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionStatus]) // refreshMaterialsList 의도적으로 제외
+  }, [sessionStatus]) // refreshMaterialsList 의도적으로 제외 - 함수는 안정적
 
   // 전환은 handleToggleShare에서만 수행(중복 방지)
 
@@ -658,7 +656,7 @@ function VideoCallRoomContent() {
     ;(window as any).__vc = { getState, dumpParticipants }
     logger.info('전역 디버그 헬퍼 등록: window.__vc')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // actions 의도적으로 제외
+  }, []) // actions 의도적으로 제외 - 디버그 헬퍼는 한 번만 등록
 
   // 쿼리 파라미터 로그는 useEffect에서만 (렌더링 중 로그 방지)
   useEffect(() => {
