@@ -52,6 +52,14 @@ export const usePublisherBridge = (
           logger.debug('외부 Publisher 동기화 완료', {
             streamId: existing.stream?.streamId,
           })
+
+          // store에 publisher 저장
+          try {
+            const { useVideoCallStore } = await import('../store')
+            useVideoCallStore.getState().setPublisher(existing)
+          } catch (error) {
+            logger.debug('store에 publisher 저장 실패', { error })
+          }
         }
       } catch {}
     })()
@@ -73,6 +81,15 @@ export const usePublisherBridge = (
         logger.debug('기존 Publisher 참조 획득', {
           streamId: existing.stream?.streamId,
         })
+
+        // store에 publisher 저장
+        try {
+          const { useVideoCallStore } = await import('../store')
+          useVideoCallStore.getState().setPublisher(existing)
+        } catch (error) {
+          logger.debug('store에 publisher 저장 실패', { error })
+        }
+
         return true
       }
     } catch {}
@@ -169,6 +186,14 @@ export const usePublisherBridge = (
         publisherRef.current = publisher
         pendingRef.current = null
 
+        // store에 publisher 저장
+        try {
+          const { useVideoCallStore } = await import('../store')
+          useVideoCallStore.getState().setPublisher(publisher)
+        } catch (error) {
+          logger.debug('store에 publisher 저장 실패', { error })
+        }
+
         logger.info('Publisher 생성 및 게시 완료', {
           streamId: publisher.stream?.streamId,
           hasAudio: publisherOptions.publishAudio,
@@ -193,6 +218,19 @@ export const usePublisherBridge = (
               await publisherRef.current.replaceTrack?.(
                 stream.getVideoTracks()[0],
               )
+
+              // store에 복구된 publisher 저장
+              try {
+                const { useVideoCallStore } = await import('../store')
+                useVideoCallStore
+                  .getState()
+                  .setPublisher(publisherRef.current)
+              } catch (storeError) {
+                logger.debug('store에 복구된 publisher 저장 실패', {
+                  storeError,
+                })
+              }
+
               logger.info('기존 Publisher에 트랙 교체로 복구 완료')
               return publisherRef.current
             } catch (e) {
