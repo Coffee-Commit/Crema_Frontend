@@ -18,6 +18,7 @@ import type {
   Participant,
 } from '../types'
 import { MEDIA_CONSTRAINTS as _MEDIA_CONSTRAINTS } from '../types'
+import { eventBridge } from './EventBridge'
 
 const logger = createOpenViduLogger('OpenViduClient')
 
@@ -83,8 +84,14 @@ export class OpenViduClient implements OpenViduClientInterface {
       // 세션 생성
       this.session = this.openVidu!.initSession()
 
-      // 이벤트 리스너 등록
-      this.setupEventListeners()
+      // 이벤트 리스너는 EventBridge에서 통합 관리합니다.
+      // 늦게 접속한 사용자가 기존 퍼블리셔의 streamCreated 이벤트를 놓치지 않도록
+      // connect 이전에 브리지 활성화로 리스너를 선등록합니다.
+      try {
+        eventBridge.activate(this.session)
+      } catch {
+        // noop: 활성화 실패 시 이후 단계에서 재시도됨
+      }
 
       // 세션 연결
       await this.session.connect(sessionInfo.token, {

@@ -23,7 +23,8 @@ const defaultFeatures: FeatureFlags = {
   enableDynacast: false,
   enableSvc: false,
   debugMode: process.env.NODE_ENV === 'development',
-  useNewCameraComponents: false, // 기본값은 false (기존 구현 사용)
+  // 기본값은 true (새 구현 기본 사용)
+  useNewCameraComponents: true,
 }
 
 /**
@@ -50,9 +51,11 @@ function loadFeatureFlags(): FeatureFlags {
     features.debugMode = process.env.NEXT_PUBLIC_DEBUG_MODE === 'true'
   }
 
-  // 새 카메라 컴포넌트 사용 여부
-  features.useNewCameraComponents =
-    process.env.NEXT_PUBLIC_NEW_CAMERA === 'true'
+  // 새 카메라 컴포넌트 사용 여부 (기본 ON, 환경변수 정의 시에만 덮어쓰기)
+  if (process.env.NEXT_PUBLIC_NEW_CAMERA !== undefined) {
+    features.useNewCameraComponents =
+      process.env.NEXT_PUBLIC_NEW_CAMERA === 'true'
+  }
 
   return features
 }
