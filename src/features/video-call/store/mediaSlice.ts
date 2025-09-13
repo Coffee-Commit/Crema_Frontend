@@ -31,6 +31,68 @@ export const createMediaSlice: StateCreator<
   // 액션
   // ============================================================================
 
+  setPublisher: (publisher: _Publisher | null) => {
+    logger.info('Publisher 설정', {
+      hasPublisher: !!publisher,
+      streamId: publisher?.stream?.streamId,
+      hasAudio: publisher?.stream?.hasAudio,
+      hasVideo: publisher?.stream?.hasVideo,
+    })
+    set({ publisher })
+  },
+
+  createPublisher: async (options?: {
+    publishAudio?: boolean
+    publishVideo?: boolean
+    resolution?: string
+    frameRate?: number
+  }) => {
+    try {
+      logger.info('Publisher 생성 시작')
+
+      // Store에서 세션 가져오기
+      const { useVideoCallStore } = await import('./index')
+      const currentSession = useVideoCallStore.getState().session
+
+      if (!currentSession) {
+        throw new Error('세션이 연결되지 않았습니다')
+      }
+
+      // OpenViduClient를 통해 Publisher 생성
+      const { openViduClient } = await import(
+        '../services/OpenViduClient'
+      )
+
+      const publisher = await openViduClient.publish({
+        audioSource: options?.publishAudio ?? true,
+        videoSource: options?.publishVideo ?? true,
+        publishAudio:
+          options?.publishAudio ?? get().settings.audioEnabled,
+        publishVideo:
+          options?.publishVideo ?? get().settings.videoEnabled,
+        resolution: options?.resolution ?? '1280x720',
+        frameRate: options?.frameRate ?? 30,
+      })
+
+      // 상태 저장
+      set({ publisher })
+
+      logger.info('Publisher 생성 및 게시 성공', {
+        streamId: publisher.stream?.streamId,
+        hasAudio: publisher.stream?.hasAudio,
+        hasVideo: publisher.stream?.hasVideo,
+      })
+
+      return publisher
+    } catch (error) {
+      logger.error('Publisher 생성 실패', {
+        error:
+          error instanceof Error ? error.message : '알 수 없는 오류',
+      })
+      throw error
+    }
+  },
+
   updateSettings: (updates: Partial<MediaSettings>) => {
     const currentSettings = get().settings
     const newSettings = { ...currentSettings, ...updates }

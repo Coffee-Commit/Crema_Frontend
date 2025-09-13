@@ -170,6 +170,13 @@ export interface MediaSlice {
   screenPublisher: Publisher | null
 
   // 액션
+  setPublisher: (publisher: Publisher | null) => void
+  createPublisher: (options?: {
+    publishAudio?: boolean
+    publishVideo?: boolean
+    resolution?: string
+    frameRate?: number
+  }) => Promise<Publisher>
   updateSettings: (updates: Partial<MediaSettings>) => void
   toggleAudio: () => Promise<void>
   toggleVideo: () => Promise<void>
