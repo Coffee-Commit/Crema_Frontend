@@ -992,6 +992,66 @@ export class EventBridge {
           }
           break
 
+        // 화면공유 상태 브로드캐스트
+        case 'signal:screen-share':
+          try {
+            const payload = JSON.parse(data) as {
+              active?: boolean
+            }
+            const active = !!payload?.active
+            const fromId = from?.connectionId
+            if (!fromId) break
+
+            // 자기 신호는 무시 (로컬은 이미 상태를 알고 있음)
+            try {
+              const myConn =
+                useVideoCallStore.getState().session?.connection
+                  ?.connectionId
+              if (myConn && fromId === myConn) {
+                logger.debug('자기 신호(screen-share) 에코 무시')
+                break
+              }
+            } catch {}
+
+            // 참가자 존재 확인 후 상태 업데이트
+            const store = useVideoCallStore.getState()
+            if (store.participants.has(fromId)) {
+              store.updateParticipant(fromId, {
+                isScreenSharing: active,
+              })
+              logger.info('원격 화면공유 상태 업데이트(신호)', {
+                connectionId: fromId,
+                active,
+              })
+            } else {
+              logger.debug(
+                '화면공유 신호 수신했으나 참가자 미존재. placeholder 추가',
+                { fromId, active },
+              )
+              // placeholder로 추가 후 상태만 표시
+              try {
+                useVideoCallStore.getState().addParticipant({
+                  id: fromId,
+                  connectionId: fromId,
+                  nickname: 'Unknown',
+                  isLocal: false,
+                  streams: {},
+                  audioLevel: 0,
+                  speaking: false,
+                  audioEnabled: true,
+                  videoEnabled: true,
+                  isScreenSharing: active,
+                  joinedAt: new Date(),
+                })
+              } catch {}
+            }
+          } catch (e) {
+            logger.warn('화면공유 신호 처리 실패', {
+              error: e instanceof Error ? e.message : String(e),
+            })
+          }
+          break
+
         default:
           logger.debug('알 수 없는 신호 타입', { type })
       }

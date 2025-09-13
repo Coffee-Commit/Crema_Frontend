@@ -13,12 +13,14 @@ export interface RemoteVideoProps {
   participant: Participant | null
   className?: string
   showControls?: boolean
+  streamType?: 'camera' | 'screen' | 'auto'
 }
 
 export default function RemoteVideo({
   participant,
   className = '',
   showControls = true,
+  streamType = 'auto',
 }: RemoteVideoProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [needsGesture, setNeedsGesture] = useState(false)
@@ -34,9 +36,13 @@ export default function RemoteVideo({
   // 참가자의 스트림 바인딩
   useEffect(() => {
     if (participant) {
-      // 화면공유 우선, 없으면 카메라 스트림 사용
+      // streamType에 따른 스트림 선택
       const stream =
-        participant.streams.screen || participant.streams.camera
+        streamType === 'camera'
+          ? participant.streams.camera
+          : streamType === 'screen'
+            ? participant.streams.screen
+            : participant.streams.screen || participant.streams.camera // auto
 
       if (stream) {
         logger.debug('원격 스트림 바인딩', {
@@ -82,12 +88,18 @@ export default function RemoteVideo({
     return () => {
       unbind()
     }
-  }, [participant, bind, unbind])
+  }, [participant, streamType, bind, unbind])
 
   // 실제 비디오 트랙 존재 여부를 계산하여 회색 화면 방지
   const hasVideoTrack = useMemo(() => {
+    if (!participant) return false
+
     const s =
-      participant?.streams.screen || participant?.streams.camera
+      streamType === 'camera'
+        ? participant.streams.camera
+        : streamType === 'screen'
+          ? participant.streams.screen
+          : participant.streams.screen || participant.streams.camera // auto
     try {
       const ok = !!s && s.getVideoTracks().length > 0
       if (participant && !ok) {
@@ -101,7 +113,7 @@ export default function RemoteVideo({
     } catch {
       return false
     }
-  }, [participant])
+  }, [participant, streamType])
 
   // 비디오 상태 아이콘 렌더링
   const renderVideoStatusIcon = () => {
