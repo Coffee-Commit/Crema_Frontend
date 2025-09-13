@@ -89,6 +89,18 @@ function VideoCallRoomContent() {
               await _publisherBridge.ensurePublisher(s)
             }
           }
+          // 원격에 화면공유 시작 신호 전송
+          try {
+            const sess = actions.getState?.().session
+            await sess?.signal({
+              type: 'screen-share',
+              data: JSON.stringify({ active: true }),
+            })
+          } catch (e) {
+            logger.warn('화면공유 시작 신호 전송 실패', {
+              error: e instanceof Error ? e.message : String(e),
+            })
+          }
           actions.updateSettings?.({ screenSharing: true })
         } else {
           await localMediaController.startCamera()
@@ -99,6 +111,18 @@ function VideoCallRoomContent() {
             } catch {
               await _publisherBridge.ensurePublisher(s)
             }
+          }
+          // 원격에 화면공유 종료 신호 전송
+          try {
+            const sess = actions.getState?.().session
+            await sess?.signal({
+              type: 'screen-share',
+              data: JSON.stringify({ active: false }),
+            })
+          } catch (e) {
+            logger.warn('화면공유 종료 신호 전송 실패', {
+              error: e instanceof Error ? e.message : String(e),
+            })
           }
           actions.updateSettings?.({ screenSharing: false })
         }
@@ -640,10 +664,6 @@ function VideoCallRoomContent() {
     )
   }, [remoteParticipants])
 
-  const remoteScreenStream: MediaStream | null = useMemo(() => {
-    return remoteSharingParticipant?.streams.screen ?? null
-  }, [remoteSharingParticipant])
-
   // 디버그: 참가자 요약 로그
   useEffect(() => {
     const state = actions.getState?.()
@@ -1113,25 +1133,47 @@ function VideoCallRoomContent() {
           {useNewComponents ? (
             // 새로운 컴포넌트 기반 렌더링
             (() => {
+              // 원격 화면공유가 감지되면 스트림 준비 이전에도 전체화면 전환
+              // (race: streams.screen 세팅이 늦는 경우 분할화면이 잠시 유지되는 문제 방지)
               const anyScreenActive =
-                !!remoteScreenStream || screenSharing
+                !!remoteSharingParticipant || screenSharing
+
               if (anyScreenActive) {
-                // 전체화면 모드: 원격이 공유 중이면 원격 화면 우선, 아니면 로컬 화면공유 표시
-                return remoteSharingParticipant ? (
-                  <RemoteVideo
-                    participant={remoteSharingParticipant}
-                    className="flex-1"
-                  />
-                ) : (
-                  <ScreenShareView
-                    stream={
-                      localMediaController.currentStreamRef.current
-                    }
-                    label={`${myNickname} (화면공유)`}
-                    className="flex-1"
-                    onScreenShareEnd={handleToggleShare}
-                  />
-                )
+                // 내가 화면공유 중일 때
+                if (screenSharing) {
+                  // 상대방도 화면공유 중이면 → 상대방 화면 표시 (서로 교차 시청)
+                  if (remoteSharingParticipant) {
+                    return (
+                      <RemoteVideo
+                        participant={remoteSharingParticipant}
+                        className="flex-1"
+                      />
+                    )
+                  }
+                  // 상대방은 안하면 → 내 화면공유 표시
+                  else {
+                    return (
+                      <ScreenShareView
+                        stream={
+                          localMediaController.currentStreamRef
+                            .current
+                        }
+                        label={`${myNickname} (화면공유)`}
+                        className="flex-1"
+                        onScreenShareEnd={handleToggleShare}
+                      />
+                    )
+                  }
+                }
+                // 내가 화면공유 안하고 상대방만 하면 → 상대방 화면 표시
+                else if (remoteSharingParticipant) {
+                  return (
+                    <RemoteVideo
+                      participant={remoteSharingParticipant}
+                      className="flex-1"
+                    />
+                  )
+                }
               }
 
               // 분할화면: 왼쪽 원격(없으면 자리만), 오른쪽 로컬 카메라
@@ -1144,6 +1186,7 @@ function VideoCallRoomContent() {
                         : null
                     }
                     className="flex-1"
+                    streamType="camera"
                   />
                   <LocalVideo
                     stream={
