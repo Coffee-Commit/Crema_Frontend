@@ -160,7 +160,6 @@ export default function ScheduleTable({
                   커피챗 입장하기
                   <Coffee className="h-4.5 w-4.5" />
                 </button>
-
                 <button
                   type="button"
                   onClick={() => onMaterials?.(item.id)}
