@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useMemo } from 'react'
 
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
@@ -55,9 +55,22 @@ export default function LocalVideo({
     }
   }, [stream, videoEnabled, bind, unbind, label])
 
+  // 실제 비디오 트랙 존재 여부 계산 (플래그 불일치 방지)
+  const hasVideoTrack = useMemo(() => {
+    try {
+      const ok = !!stream && stream.getVideoTracks().length > 0
+      if (!ok) {
+        logger.debug('로컬 비디오 트랙 없음')
+      }
+      return ok
+    } catch {
+      return false
+    }
+  }, [stream])
+
   // 비디오 상태 아이콘 렌더링
   const renderVideoStatusIcon = () => {
-    if (!videoEnabled) {
+    if (!videoEnabled || !hasVideoTrack) {
       return (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
           <div className="flex flex-col items-center text-white">

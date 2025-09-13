@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useMemo, useState } from 'react'
 
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
 
@@ -84,9 +84,29 @@ export default function RemoteVideo({
     }
   }, [participant, bind, unbind])
 
+  // 실제 비디오 트랙 존재 여부를 계산하여 회색 화면 방지
+  const hasVideoTrack = useMemo(() => {
+    const s =
+      participant?.streams.screen || participant?.streams.camera
+    try {
+      const ok = !!s && s.getVideoTracks().length > 0
+      if (participant && !ok) {
+        logger.debug('원격 비디오 트랙 없음', {
+          participantId: participant.id,
+          hasScreen: !!participant.streams.screen,
+          hasCamera: !!participant.streams.camera,
+        })
+      }
+      return ok
+    } catch {
+      return false
+    }
+  }, [participant])
+
   // 비디오 상태 아이콘 렌더링
   const renderVideoStatusIcon = () => {
-    if (!participant?.videoEnabled) {
+    // participant.videoEnabled 플래그 대신 실제 트랙 존재까지 확인
+    if (!hasVideoTrack) {
       return (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
           <div className="flex flex-col items-center text-white">

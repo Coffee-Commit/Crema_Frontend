@@ -75,12 +75,23 @@ export const usePublisherBridge = (
         const videoTracks = stream.getVideoTracks()
         const audioTracks = stream.getAudioTracks()
 
-        // Publisher 옵션 구성
+        // Publisher 옵션 구성 (빈 객체/falsy 값 체크 개선)
+        const isValidSource = (
+          source: unknown,
+        ): source is MediaStreamTrack => {
+          return (
+            source instanceof MediaStreamTrack ||
+            typeof source === 'boolean'
+          )
+        }
+
         const publisherOptions = {
-          audioSource:
-            options.audioSource ?? (audioTracks[0] || false),
-          videoSource:
-            options.videoSource ?? (videoTracks[0] || false),
+          audioSource: isValidSource(options.audioSource)
+            ? options.audioSource
+            : audioTracks[0] || false,
+          videoSource: isValidSource(options.videoSource)
+            ? options.videoSource
+            : videoTracks[0] || false,
           publishAudio:
             options.publishAudio ?? audioTracks.length > 0,
           publishVideo:

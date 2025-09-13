@@ -69,9 +69,30 @@ export class OpenViduClient implements OpenViduClientInterface {
       await this.init()
     }
 
+    // 싱글톤 상태 정리: 기존 연결이 있으면 정리
     if (this.session) {
-      logger.warn('이미 세션에 연결됨')
-      return this.session
+      logger.warn('기존 세션 연결 감지, 정리 후 새 연결 시도')
+      try {
+        await this.disconnect()
+      } catch (error) {
+        logger.warn('기존 세션 정리 실패, 강제 초기화', { error })
+        this.session = null
+        this.publisher = null
+        this.subscribers.clear()
+      }
+    }
+
+    // 기존 Publisher 정리 (연결 해제 없이 남아있을 수 있음)
+    if (this.publisher) {
+      logger.warn('기존 Publisher 감지, 정리')
+      try {
+        await this.unpublish(this.publisher)
+      } catch (error) {
+        logger.warn('기존 Publisher 정리 실패, 강제 초기화', {
+          error,
+        })
+      }
+      this.publisher = null
     }
 
     try {
@@ -102,6 +123,38 @@ export class OpenViduClient implements OpenViduClientInterface {
         sessionId: sessionInfo.id,
         connectionId: this.session.connection.connectionId,
       })
+
+      // 연결 직후 Publisher 자동 생성 및 게시 (중복 방지)
+      if (!this.publisher) {
+        try {
+          logger.info('자동 Publisher 생성 시작')
+
+          const publisher = await this.publish({
+            audioSource: true,
+            videoSource: true,
+            publishAudio: true,
+            publishVideo: true,
+            resolution: '1280x720',
+            frameRate: 30,
+          })
+
+          logger.info('자동 Publisher 생성 및 게시 완료', {
+            streamId: publisher.stream?.streamId,
+            hasAudio: publisher.stream?.hasAudio,
+            hasVideo: publisher.stream?.hasVideo,
+          })
+        } catch (error) {
+          logger.error('자동 Publisher 생성 실패', {
+            error:
+              error instanceof Error
+                ? error.message
+                : '알 수 없는 오류',
+          })
+          // Publisher 생성 실패해도 세션 연결은 유지
+        }
+      } else {
+        logger.debug('Publisher가 이미 존재하여 자동 생성 생략')
+      }
 
       return this.session
     } catch (error) {
@@ -141,6 +194,7 @@ export class OpenViduClient implements OpenViduClientInterface {
           }
         } catch {}
         await this.unpublish(this.publisher)
+        this.publisher = null // 싱글톤 상태 초기화
       }
 
       // Subscribers 정리
@@ -157,8 +211,11 @@ export class OpenViduClient implements OpenViduClientInterface {
           error instanceof Error ? error.message : '알 수 없는 오류',
       })
 
-      // 실패해도 상태는 초기화
+      // 실패해도 상태는 초기화 (중요: 싱글톤 정리)
       this.session = null
+      this.publisher = null
+      this.subscribers.clear()
+
       throw error
     }
   }
@@ -243,6 +300,7 @@ export class OpenViduClient implements OpenViduClientInterface {
         }
       } catch {}
 
+      // Publisher 참조 정리 (싱글톤 상태 관리)
       if (publisher === this.publisher) {
         this.publisher = null
       }
@@ -253,6 +311,12 @@ export class OpenViduClient implements OpenViduClientInterface {
         error:
           error instanceof Error ? error.message : '알 수 없는 오류',
       })
+
+      // 실패해도 참조는 정리 (싱글톤 상태 관리)
+      if (publisher === this.publisher) {
+        this.publisher = null
+      }
+
       throw error
     }
   }
@@ -384,6 +448,39 @@ export class OpenViduClient implements OpenViduClientInterface {
   }
 
   // ============================================================================
+  // 유틸리티
+  // ============================================================================
+
+  getOpenViduInstance(): OpenVidu | null {
+    return this.openVidu
+  }
+
+  getSession(): Session | null {
+    return this.session
+  }
+
+  getSessionState() {
+    if (!this.session) return null
+
+    // OpenVidu v2.x에서는 remoteStreams 프로퍼티가 없으므로 subscribers로 대체
+    const sessionState = this.session as unknown as {
+      remoteStreamsCreated?: Map<string, unknown>
+    }
+
+    return {
+      sessionId: this.session.sessionId,
+      connection: this.session.connection,
+      remoteConnections: Array.from(
+        this.session.remoteConnections.values(),
+      ),
+      remoteStreams: sessionState.remoteStreamsCreated
+        ? Array.from(sessionState.remoteStreamsCreated.values())
+        : [],
+      subscribers: this.subscribers.size,
+    }
+  }
+
+  // ============================================================================
   // 네트워크 통계
   // ============================================================================
 
@@ -424,10 +521,6 @@ export class OpenViduClient implements OpenViduClientInterface {
   // ============================================================================
   // Getter 메서드
   // ============================================================================
-
-  getSession(): Session | null {
-    return this.session
-  }
 
   getPublisher(): Publisher | null {
     return this.publisher

@@ -208,6 +208,8 @@ export const useVideoCallActions = () => {
       setSpeaking: store.setSpeaking,
 
       // 미디어
+      setPublisher: store.setPublisher,
+      createPublisher: store.createPublisher,
       updateSettings: store.updateSettings,
       toggleAudio: store.toggleAudio,
       toggleVideo: store.toggleVideo,
@@ -235,19 +237,7 @@ export const useVideoCallActions = () => {
       startMonitoring: store.startMonitoring,
       stopMonitoring: store.stopMonitoring,
 
-      // Publisher 관리 (최소 구현)
-      createPublisher: async (options?: {
-        publishAudio?: boolean
-        publishVideo?: boolean
-        resolution?: string
-        frameRate?: number
-      }) => {
-        const { openViduClient } = await import(
-          '../services/OpenViduClient'
-        )
-        const publisher = await openViduClient.publish(options)
-        useVideoCallStore.setState({ publisher })
-      },
+      // Publisher 관리
       destroyPublisher: async () => {
         const { openViduClient } = await import(
           '../services/OpenViduClient'
