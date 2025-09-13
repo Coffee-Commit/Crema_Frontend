@@ -26,6 +26,8 @@ export class OpenViduClient implements OpenViduClientInterface {
   private openVidu: OpenVidu | null = null
   private session: Session | null = null
   private publisher: Publisher | null = null
+  // 동시 호출 가드: publish 중복 실행 방지
+  private pendingPublish: Promise<Publisher> | null = null
   private subscribers: Map<string, Subscriber> = new Map()
   private eventHandlers: EventHandlers = {}
 
@@ -124,37 +126,8 @@ export class OpenViduClient implements OpenViduClientInterface {
         connectionId: this.session.connection.connectionId,
       })
 
-      // 연결 직후 Publisher 자동 생성 및 게시 (중복 방지)
-      if (!this.publisher) {
-        try {
-          logger.info('자동 Publisher 생성 시작')
-
-          const publisher = await this.publish({
-            audioSource: true,
-            videoSource: true,
-            publishAudio: true,
-            publishVideo: true,
-            resolution: '1280x720',
-            frameRate: 30,
-          })
-
-          logger.info('자동 Publisher 생성 및 게시 완료', {
-            streamId: publisher.stream?.streamId,
-            hasAudio: publisher.stream?.hasAudio,
-            hasVideo: publisher.stream?.hasVideo,
-          })
-        } catch (error) {
-          logger.error('자동 Publisher 생성 실패', {
-            error:
-              error instanceof Error
-                ? error.message
-                : '알 수 없는 오류',
-          })
-          // Publisher 생성 실패해도 세션 연결은 유지
-        }
-      } else {
-        logger.debug('Publisher가 이미 존재하여 자동 생성 생략')
-      }
+      // 자동 Publisher 생성 제거: 퍼블리시 제어는 상위 레이어에서 수행
+      logger.debug('자동 Publisher 생성 생략 (상위에서 제어)')
 
       return this.session
     } catch (error) {
@@ -229,6 +202,12 @@ export class OpenViduClient implements OpenViduClientInterface {
       throw new Error('세션에 연결되어 있지 않습니다')
     }
 
+    // 이미 퍼블리셔 생성/게시 중이면 기존 Promise 반환 (중복 방지)
+    if (this.pendingPublish) {
+      logger.warn('Publisher 생성/게시 대기 중 - 기존 작업 재사용')
+      return this.pendingPublish
+    }
+
     if (this.publisher) {
       logger.warn('이미 Publisher가 활성화됨')
       return this.publisher
@@ -251,13 +230,17 @@ export class OpenViduClient implements OpenViduClientInterface {
         mirror: false,
       }
 
-      this.publisher = await this.openVidu!.initPublisherAsync(
-        undefined, // targetElement (나중에 설정)
-        publisherOptions,
-      )
+      // 동시에 여러 publish 호출이 들어와도 한 번만 실행되도록 보호
+      this.pendingPublish = (async () => {
+        const publisher = await this.openVidu!.initPublisherAsync(
+          undefined, // targetElement (나중에 설정)
+          publisherOptions,
+        )
+        await this.session!.publish(publisher)
+        return publisher
+      })()
 
-      // 세션에 게시
-      await this.session.publish(this.publisher)
+      this.publisher = await this.pendingPublish
 
       logger.info('Publisher 생성 및 게시 완료', {
         streamId: this.publisher.stream?.streamId,
@@ -274,6 +257,9 @@ export class OpenViduClient implements OpenViduClientInterface {
 
       this.publisher = null
       throw error
+    } finally {
+      // 대기 중 플래그 해제
+      this.pendingPublish = null
     }
   }
 
