@@ -89,6 +89,18 @@ function VideoCallRoomContent() {
               await _publisherBridge.ensurePublisher(s)
             }
           }
+          // 원격에 화면공유 시작 신호 전송
+          try {
+            const sess = actions.getState?.().session
+            await sess?.signal({
+              type: 'screen-share',
+              data: JSON.stringify({ active: true }),
+            })
+          } catch (e) {
+            logger.warn('화면공유 시작 신호 전송 실패', {
+              error: e instanceof Error ? e.message : String(e),
+            })
+          }
           actions.updateSettings?.({ screenSharing: true })
         } else {
           await localMediaController.startCamera()
@@ -99,6 +111,18 @@ function VideoCallRoomContent() {
             } catch {
               await _publisherBridge.ensurePublisher(s)
             }
+          }
+          // 원격에 화면공유 종료 신호 전송
+          try {
+            const sess = actions.getState?.().session
+            await sess?.signal({
+              type: 'screen-share',
+              data: JSON.stringify({ active: false }),
+            })
+          } catch (e) {
+            logger.warn('화면공유 종료 신호 전송 실패', {
+              error: e instanceof Error ? e.message : String(e),
+            })
           }
           actions.updateSettings?.({ screenSharing: false })
         }
@@ -169,7 +193,7 @@ function VideoCallRoomContent() {
     [actions, localMediaController, _publisherBridge],
   )
 
-  // 브라우저 뒤로가기(popstate) 및 페이지 숨김(pagehide) 시 지연 정리(레이스 방지)
+  // 브라우저 뒤로가기(popstate) 및 페이지 숨김(pagehide) 시 즉시 정리
   useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -177,28 +201,12 @@ function VideoCallRoomContent() {
       try {
         const status = actions.getState?.().status
         logger.info('브라우저 뒤로가기 감지', { status })
-        if (status && status !== 'idle' && sessionKeyRef.current) {
-          // 즉시 정리 대신 지연 정리 + 시퀀스 가드로 레이스 방지
-          const sessionKey = sessionKeyRef.current
-          const scheduledSeq = actions.getState().joinSequence
-          globalSessionManager.scheduleCleanup(
-            sessionKey,
-            async () => {
-              const currentSeq = actions.getState().joinSequence
-              if (currentSeq !== scheduledSeq) {
-                logger.info('cleanup 스킵: 새 연결 시퀀스 감지', {
-                  sessionKey,
-                  scheduledSeq,
-                  currentSeq,
-                })
-                return
-              }
-              try {
-                await cleanupCall('popstate-scheduled')
-              } catch {}
-            },
-            500,
-          )
+        if (status && status !== 'idle') {
+          // 네비게이션을 막지 않도록 마이크/카메라 즉시 정리
+          setTimeout(() => {
+            cleanupCall('popstate')
+            // 서버 세션 종료 확인창 없이 로컬 단절만 보장
+          }, 0)
         }
       } catch (e) {
         console.error('뒤로가기 처리 중 오류', e)
@@ -207,28 +215,7 @@ function VideoCallRoomContent() {
 
     const onPageHide = () => {
       try {
-        if (sessionKeyRef.current) {
-          const sessionKey = sessionKeyRef.current
-          const scheduledSeq = actions.getState().joinSequence
-          globalSessionManager.scheduleCleanup(
-            sessionKey,
-            async () => {
-              const currentSeq = actions.getState().joinSequence
-              if (currentSeq !== scheduledSeq) {
-                logger.info('cleanup 스킵: 새 연결 시퀀스 감지', {
-                  sessionKey,
-                  scheduledSeq,
-                  currentSeq,
-                })
-                return
-              }
-              try {
-                await cleanupCall('pagehide-scheduled')
-              } catch {}
-            },
-            500,
-          )
-        }
+        setTimeout(() => cleanupCall('pagehide'), 0)
       } catch {}
     }
 
@@ -264,7 +251,6 @@ function VideoCallRoomContent() {
   const [participantInfoError, setParticipantInfoError] = useState<
     string | null
   >(null)
-  const [_needsAudioUnlock, _setNeedsAudioUnlock] = useState(false)
 
   // Store의 메시지를 로컬 형식으로 변환
   const chatList = useMemo(() => {
@@ -350,7 +336,7 @@ function VideoCallRoomContent() {
           })
         }
 
-        // 2. Quick Join API로 토큰 받기
+        // 2. Test Quick Join API로 토큰 받기
         const quickJoinResponse =
           await openViduApi.testQuickJoin(sessionName)
         logger.info('토큰 획득 완료', {
@@ -460,7 +446,7 @@ function VideoCallRoomContent() {
     sessionNameParam,
     sessionStatus,
     environmentInfo?.hasVideoDevice,
-  ]) // actions, cleanupCall, useNewComponents 의도적으로 제외 - 무한 재렌더링 방지
+  ]) // actions, cleanupCall, useNewComponents 의도적으로 제외
 
   // 참가자 정보 가져오기
   useEffect(() => {
@@ -496,7 +482,7 @@ function VideoCallRoomContent() {
 
     fetchParticipantInfo()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionStatus]) // actions 의도적으로 제외 - 안정적 reference
+  }, [sessionStatus]) // actions 의도적으로 제외
 
   // 세션 연결 시 공유 자료 목록 로드
   useEffect(() => {
@@ -504,7 +490,7 @@ function VideoCallRoomContent() {
       refreshMaterialsList()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionStatus]) // refreshMaterialsList 의도적으로 제외 - 함수는 안정적
+  }, [sessionStatus]) // refreshMaterialsList 의도적으로 제외
 
   // 전환은 handleToggleShare에서만 수행(중복 방지)
 
@@ -523,6 +509,28 @@ function VideoCallRoomContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publisher, sessionStatus, participants]) // actions 의도적으로 제외
+
+  // 잘못 추가된 "내 스트림이 원격으로 분류된" 참가자 자동 정리 (레거시 경로 안전장치)
+  useEffect(() => {
+    if (!(participants instanceof Map)) return
+    const state = actions.getState?.()
+    const myConnId = state?.session?.connection?.connectionId
+    if (!myConnId) return
+
+    const toRemove: string[] = []
+    participants.forEach((p) => {
+      if (!p.isLocal && p.connectionId === myConnId) {
+        toRemove.push(p.id)
+      }
+    })
+    if (toRemove.length > 0) {
+      logger.debug('로컬과 동일한 connectionId의 원격 참가자 정리', {
+        count: toRemove.length,
+      })
+      toRemove.forEach((id) => actions.removeParticipant?.(id))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participants]) // actions 의도적으로 제외 (myConnectionId는 내부에서 조회)
 
   // 컴포넌트 언마운트 감지 (전역 세션 관리자 사용으로 제거)
 
@@ -597,6 +605,54 @@ function VideoCallRoomContent() {
     )
   }, [participants, myConnectionId])
 
+  // 레거시 UI에서 원격 비디오 엘리먼트에 스트림 바인딩
+  useEffect(() => {
+    if (useNewComponents) return
+
+    const el = remoteCamVideoRef.current
+    if (!el) return
+
+    if (
+      remoteParticipants.length > 0 &&
+      (remoteParticipants[0].streams.camera ||
+        remoteParticipants[0].streams.screen)
+    ) {
+      const stream =
+        remoteParticipants[0].streams.camera ||
+        remoteParticipants[0].streams.screen!
+      logger.info('원격 비디오 바인딩', {
+        remoteId: remoteParticipants[0].id,
+        conn: remoteParticipants[0].connectionId,
+        hasCam: !!remoteParticipants[0].streams.camera,
+        hasScreen: !!remoteParticipants[0].streams.screen,
+      })
+      el.srcObject = stream
+      // 1) 무음 자동재생으로 시작 (정책 회피)
+      el.muted = true
+      el.play().catch(() => {})
+      // 2) 소리 활성화 시도 (허용되면 즉시 적용)
+      ;(async () => {
+        try {
+          el.muted = false
+          await el.play()
+        } catch {
+          // 정책 차단 시 사용자 제스처 필요. UI는 유지
+        }
+      })()
+    } else {
+      // 원격 참가자가 없거나 스트림이 비어있으면 해제
+      try {
+        el.pause()
+      } catch {}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(el as any).srcObject = null
+      try {
+        el.load?.()
+      } catch {}
+      logger.info('원격 비디오 소스 해제')
+    }
+  }, [remoteParticipants, useNewComponents])
+
   // 원격 중 화면공유 중인 참가자(있다면 첫 번째)와 스트림
   const remoteSharingParticipant = useMemo(() => {
     return (
@@ -605,10 +661,6 @@ function VideoCallRoomContent() {
       ) || null
     )
   }, [remoteParticipants])
-
-  const remoteScreenStream: MediaStream | null = useMemo(() => {
-    return remoteSharingParticipant?.streams.screen ?? null
-  }, [remoteSharingParticipant])
 
   // 디버그: 참가자 요약 로그
   useEffect(() => {
@@ -666,20 +718,7 @@ function VideoCallRoomContent() {
           conn: remoteParticipants[0].connectionId,
         })
         el.srcObject = remoteParticipants[0].streams.camera
-        // 1) 우선 무음 자동재생으로 시작
-        el.muted = true
         el.play().catch(() => {})
-        // 2) 바로 소리 활성화 시도 (허용되면 즉시 소리 재생)
-        ;(async () => {
-          try {
-            el.muted = false
-            await el.play()
-            _setNeedsAudioUnlock(false)
-          } catch {
-            // 정책에 의해 차단된 경우 사용자 제스처 요구
-            _setNeedsAudioUnlock(true)
-          }
-        })()
       } else {
         // 원격 참가자가 없을 때 비디오 초기화(재생 중지 포함)
         try {
@@ -691,21 +730,9 @@ function VideoCallRoomContent() {
           el.load?.()
         } catch {}
         logger.info('원격 비디오 소스 해제')
-        _setNeedsAudioUnlock(false)
       }
     }
   }, [remoteParticipants, useNewComponents])
-
-  const _enableRemoteAudio = async () => {
-    try {
-      const el = remoteCamVideoRef.current
-      if (el && el.srcObject) {
-        el.muted = false
-        await el.play()
-        _setNeedsAudioUnlock(false)
-      }
-    } catch {}
-  }
 
   // 전역 디버그 헬퍼 노출
   useEffect(() => {
@@ -728,7 +755,7 @@ function VideoCallRoomContent() {
     ;(window as any).__vc = { getState, dumpParticipants }
     logger.info('전역 디버그 헬퍼 등록: window.__vc')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // actions 의도적으로 제외 - 디버그 헬퍼는 한 번만 등록
+  }, []) // actions 의도적으로 제외
 
   // 쿼리 파라미터 로그는 useEffect에서만 (렌더링 중 로그 방지)
   useEffect(() => {
@@ -862,6 +889,8 @@ function VideoCallRoomContent() {
           error: errorMessage,
           sessionId: currentSessionId,
         })
+        // 기타 오류 시에도 UI 안전을 위해 비우기
+        setSharedFiles([])
       }
     }
   }
@@ -1102,25 +1131,47 @@ function VideoCallRoomContent() {
           {useNewComponents ? (
             // 새로운 컴포넌트 기반 렌더링
             (() => {
+              // 원격 화면공유가 감지되면 스트림 준비 이전에도 전체화면 전환
+              // (race: streams.screen 세팅이 늦는 경우 분할화면이 잠시 유지되는 문제 방지)
               const anyScreenActive =
-                !!remoteScreenStream || screenSharing
+                !!remoteSharingParticipant || screenSharing
+
               if (anyScreenActive) {
-                // 전체화면 모드: 원격이 공유 중이면 원격 화면 우선, 아니면 로컬 화면공유 표시
-                return remoteSharingParticipant ? (
-                  <RemoteVideo
-                    participant={remoteSharingParticipant}
-                    className="flex-1"
-                  />
-                ) : (
-                  <ScreenShareView
-                    stream={
-                      localMediaController.currentStreamRef.current
-                    }
-                    label={`${myNickname} (화면공유)`}
-                    className="flex-1"
-                    onScreenShareEnd={handleToggleShare}
-                  />
-                )
+                // 내가 화면공유 중일 때
+                if (screenSharing) {
+                  // 상대방도 화면공유 중이면 → 상대방 화면 표시 (서로 교차 시청)
+                  if (remoteSharingParticipant) {
+                    return (
+                      <RemoteVideo
+                        participant={remoteSharingParticipant}
+                        className="flex-1"
+                      />
+                    )
+                  }
+                  // 상대방은 안하면 → 내 화면공유 표시
+                  else {
+                    return (
+                      <ScreenShareView
+                        stream={
+                          localMediaController.currentStreamRef
+                            .current
+                        }
+                        label={`${myNickname} (화면공유)`}
+                        className="flex-1"
+                        onScreenShareEnd={handleToggleShare}
+                      />
+                    )
+                  }
+                }
+                // 내가 화면공유 안하고 상대방만 하면 → 상대방 화면 표시
+                else if (remoteSharingParticipant) {
+                  return (
+                    <RemoteVideo
+                      participant={remoteSharingParticipant}
+                      className="flex-1"
+                    />
+                  )
+                }
               }
 
               // 분할화면: 왼쪽 원격(없으면 자리만), 오른쪽 로컬 카메라
@@ -1133,6 +1184,7 @@ function VideoCallRoomContent() {
                         : null
                     }
                     className="flex-1"
+                    streamType="camera"
                   />
                   <LocalVideo
                     stream={
