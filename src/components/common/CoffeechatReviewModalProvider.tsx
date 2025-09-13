@@ -11,10 +11,6 @@ export default function CoffeechatReviewModalProvider() {
     <CoffeechatReviewModal
       isOpen={isOpen}
       onClose={close}
-      onSubmit={(data) => {
-        console.log('📌 리뷰 제출:', data)
-        close()
-      }}
     />
   )
 }

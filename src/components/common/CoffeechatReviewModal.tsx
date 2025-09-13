@@ -9,24 +9,24 @@ import api from '@/lib/http/api'
 interface CoffeechatReviewModalProps {
   isOpen: boolean
   onClose: () => void
-  reservationId: number
-  experiences: {
-    experienceGroupId: number
-    experienceTitle: string
-  }[]
 }
 
 export default function CoffeechatReviewModal({
   isOpen,
   onClose,
-  reservationId,
-  experiences,
 }: CoffeechatReviewModalProps) {
   const [rating, setRating] = useState(0)
   const [selected, setSelected] = useState<Record<number, boolean>>(
     {},
   )
   const [review, setReview] = useState('')
+
+  // 👉 reservationId / experiences 제거
+  const reservationId = 123 // 임시 (나중에 API나 Context에서 가져오기)
+  const experiences = [
+    { experienceGroupId: 1, experienceTitle: '이직 경험' },
+    { experienceGroupId: 2, experienceTitle: '프로젝트 경험' },
+  ]
 
   if (!isOpen) return null
 
