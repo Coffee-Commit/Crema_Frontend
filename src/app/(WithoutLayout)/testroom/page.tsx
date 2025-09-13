@@ -488,6 +488,28 @@ function VideoCallRoomContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publisher, sessionStatus, participants]) // actions 의도적으로 제외
 
+  // 잘못 추가된 "내 스트림이 원격으로 분류된" 참가자 자동 정리 (레거시 경로 안전장치)
+  useEffect(() => {
+    if (!(participants instanceof Map)) return
+    const state = actions.getState?.()
+    const myConnId = state?.session?.connection?.connectionId
+    if (!myConnId) return
+
+    const toRemove: string[] = []
+    participants.forEach((p) => {
+      if (!p.isLocal && p.connectionId === myConnId) {
+        toRemove.push(p.id)
+      }
+    })
+    if (toRemove.length > 0) {
+      logger.debug('로컬과 동일한 connectionId의 원격 참가자 정리', {
+        count: toRemove.length,
+      })
+      toRemove.forEach((id) => actions.removeParticipant?.(id))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participants]) // actions 의도적으로 제외 (myConnectionId는 내부에서 조회)
+
   // 컴포넌트 언마운트 감지 (전역 세션 관리자 사용으로 제거)
 
   useEffect(() => {
@@ -560,6 +582,54 @@ function VideoCallRoomContent() {
         (!myConnectionId || p.connectionId !== myConnectionId),
     )
   }, [participants, myConnectionId])
+
+  // 레거시 UI에서 원격 비디오 엘리먼트에 스트림 바인딩
+  useEffect(() => {
+    if (useNewComponents) return
+
+    const el = remoteCamVideoRef.current
+    if (!el) return
+
+    if (
+      remoteParticipants.length > 0 &&
+      (remoteParticipants[0].streams.camera ||
+        remoteParticipants[0].streams.screen)
+    ) {
+      const stream =
+        remoteParticipants[0].streams.camera ||
+        remoteParticipants[0].streams.screen!
+      logger.info('원격 비디오 바인딩', {
+        remoteId: remoteParticipants[0].id,
+        conn: remoteParticipants[0].connectionId,
+        hasCam: !!remoteParticipants[0].streams.camera,
+        hasScreen: !!remoteParticipants[0].streams.screen,
+      })
+      el.srcObject = stream
+      // 1) 무음 자동재생으로 시작 (정책 회피)
+      el.muted = true
+      el.play().catch(() => {})
+      // 2) 소리 활성화 시도 (허용되면 즉시 적용)
+      ;(async () => {
+        try {
+          el.muted = false
+          await el.play()
+        } catch {
+          // 정책 차단 시 사용자 제스처 필요. UI는 유지
+        }
+      })()
+    } else {
+      // 원격 참가자가 없거나 스트림이 비어있으면 해제
+      try {
+        el.pause()
+      } catch {}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(el as any).srcObject = null
+      try {
+        el.load?.()
+      } catch {}
+      logger.info('원격 비디오 소스 해제')
+    }
+  }, [remoteParticipants, useNewComponents])
 
   // 원격 중 화면공유 중인 참가자(있다면 첫 번째)와 스트림
   const remoteSharingParticipant = useMemo(() => {
@@ -759,7 +829,8 @@ function VideoCallRoomContent() {
     try {
       const materialsResponse =
         await openViduApi.getMaterials(currentSessionId)
-      const materials = materialsResponse.files.map(
+      const files = materialsResponse?.files ?? []
+      const materials = files.map(
         (file: {
           fileId: string
           fileName: string
@@ -800,6 +871,8 @@ function VideoCallRoomContent() {
           error: errorMessage,
           sessionId: currentSessionId,
         })
+        // 기타 오류 시에도 UI 안전을 위해 비우기
+        setSharedFiles([])
       }
     }
   }
@@ -1109,9 +1182,15 @@ function VideoCallRoomContent() {
                       playsInline
                       autoPlay
                     />
-                    <div className="text-label-subtle absolute inset-0 grid place-items-center">
-                      상대 화면
-                    </div>
+                    {!(
+                      remoteParticipants.length > 0 &&
+                      (remoteParticipants[0].streams.camera ||
+                        remoteParticipants[0].streams.screen)
+                    ) && (
+                      <div className="text-label-subtle absolute inset-0 grid place-items-center">
+                        상대 화면
+                      </div>
+                    )}
                     <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
                       {peerNickname}
                     </div>
