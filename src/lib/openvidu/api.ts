@@ -1331,6 +1331,21 @@ export const openViduNavigation = {
   },
 
   /**
+   * 사용자 역할에 따른 리뷰 페이지로 이동
+   */
+  goToReviewPageByRole: (userRole?: 'ROOKIE' | 'GUIDE') => {
+    if (typeof window !== 'undefined') {
+      const path =
+        userRole === 'ROOKIE'
+          ? '/mypage/rookie/review'
+          : userRole === 'GUIDE'
+            ? '/mypage/guide/review'
+            : '/' // fallback to home
+      window.location.href = path
+    }
+  },
+
+  /**
    * 개발용: 테스트 페이지로 이동
    */
   goToTestPage: () => {

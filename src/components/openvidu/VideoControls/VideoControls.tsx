@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import { openViduNavigation } from '@/lib/openvidu/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import { useAuthStore } from '@/store/useAuthStore'
 import { useOpenViduStore } from '@/store/useOpenViduStore'
 
 const logger = createOpenViduLogger('VideoControls')
@@ -121,19 +122,23 @@ export default function VideoControls() {
     setIsLeavingCall(true)
     logger.info('통화 종료 시작')
 
-    try {
-      await leaveSession()
-      logger.debug('세션 종료 완료, 홈으로 이동')
+    // 1. 즉시 리다이렉트 - API 응답 기다리지 않음
+    const { user } = useAuthStore.getState()
+    openViduNavigation.goToReviewPageByRole(user?.role)
 
-      // 라우팅은 세션 정리 후 수행
-      openViduNavigation.goToHome()
-    } catch (error) {
-      logger.error('통화 종료 실패', { error })
-      // 실패해도 홈으로 이동 (사용자 경험 개선)
-      openViduNavigation.goToHome()
-    } finally {
-      setIsLeavingCall(false)
-    }
+    // 2. 백그라운드에서 정리 작업 (fire-and-forget)
+    Promise.resolve().then(async () => {
+      try {
+        await leaveSession()
+        logger.debug('백그라운드 세션 종료 완료')
+      } catch (error) {
+        logger.debug('백그라운드 세션 종료:', {
+          error: String(error),
+        })
+      } finally {
+        setIsLeavingCall(false)
+      }
+    })
   }
 
   return (

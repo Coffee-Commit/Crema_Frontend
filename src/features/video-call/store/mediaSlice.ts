@@ -115,10 +115,26 @@ export const createMediaSlice: StateCreator<
     })
 
     try {
-      // Publisher가 있는 경우 실제 오디오 트랙 제어 (원격 전송 on/off)
-      if (currentState.publisher) {
+      // Publisher 확인 및 fallback 시도
+      let publisher = currentState.publisher
+      if (!publisher) {
+        // fallback: openViduClient에서 publisher 가져오기 시도
         try {
-          await currentState.publisher.publishAudio(newAudioEnabled)
+          const { openViduClient } = await import(
+            '../services/OpenViduClient'
+          )
+          publisher = openViduClient.getPublisher()
+          if (publisher) {
+            set({ publisher }) // store에 저장
+            logger.debug('오디오 토글용 publisher fallback 성공')
+          }
+        } catch {}
+      }
+
+      // Publisher가 있는 경우 실제 오디오 트랙 제어 (원격 전송 on/off)
+      if (publisher) {
+        try {
+          await publisher.publishAudio(newAudioEnabled)
         } catch (e) {
           logger.warn(
             'publishAudio 호출 실패, MediaStreamTrack enabled로 폴백',
@@ -127,7 +143,7 @@ export const createMediaSlice: StateCreator<
             },
           )
           try {
-            const track = currentState.publisher.stream
+            const track = publisher.stream
               ?.getMediaStream()
               ?.getAudioTracks?.()[0]
             if (track) track.enabled = newAudioEnabled
@@ -159,10 +175,26 @@ export const createMediaSlice: StateCreator<
     })
 
     try {
-      // Publisher가 있는 경우 실제 비디오 트랙 제어 (원격 전송 on/off)
-      if (currentState.publisher) {
+      // Publisher 확인 및 fallback 시도
+      let publisher = currentState.publisher
+      if (!publisher) {
+        // fallback: openViduClient에서 publisher 가져오기 시도
         try {
-          await currentState.publisher.publishVideo(newVideoEnabled)
+          const { openViduClient } = await import(
+            '../services/OpenViduClient'
+          )
+          publisher = openViduClient.getPublisher()
+          if (publisher) {
+            set({ publisher }) // store에 저장
+            logger.debug('비디오 토글용 publisher fallback 성공')
+          }
+        } catch {}
+      }
+
+      // Publisher가 있는 경우 실제 비디오 트랙 제어 (원격 전송 on/off)
+      if (publisher) {
+        try {
+          await publisher.publishVideo(newVideoEnabled)
         } catch (e) {
           logger.warn(
             'publishVideo 호출 실패, MediaStreamTrack enabled로 폴백',
@@ -171,7 +203,7 @@ export const createMediaSlice: StateCreator<
             },
           )
           try {
-            const track = currentState.publisher.stream
+            const track = publisher.stream
               ?.getMediaStream()
               ?.getVideoTracks?.()[0]
             if (track) track.enabled = newVideoEnabled
