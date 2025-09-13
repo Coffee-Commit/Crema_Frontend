@@ -200,6 +200,11 @@ export class EventBridge {
         // OpenVidu 동적 이벤트
         subscriber.on('streamPlaying', updateStreams)
 
+        // 즉시 한 번 갱신 시도하여 초기 렌더 가속화 (이벤트 대기 없이)
+        try {
+          updateStreams()
+        } catch {}
+
         logger.debug('스트림 구독 완료', {
           streamId: event.stream.streamId,
         })
@@ -272,10 +277,28 @@ export class EventBridge {
         streamId: event.streamId,
         connectionId: event.connection.connectionId,
       })
+      // 로컬 발화 이벤트는 참가자 목록에 없을 수 있어 스킵하여 경고 억제
+      try {
+        const myConnId = this.session?.connection?.connectionId
+        if (myConnId && event.connection.connectionId === myConnId) {
+          logger.debug('로컬 발화 이벤트 스킵')
+          return
+        }
+      } catch {}
 
-      useVideoCallStore
-        .getState()
-        .setSpeaking(event.connection.connectionId, true)
+      // 참가자 존재 여부 확인 후 업데이트 (경고 억제)
+      try {
+        const s = useVideoCallStore.getState()
+        if (!s.participants.has(event.connection.connectionId)) {
+          logger.debug('발화 업데이트 스킵: 참가자 미존재', {
+            connectionId: event.connection.connectionId,
+          })
+          return
+        }
+        s.setSpeaking(event.connection.connectionId, true)
+      } catch {
+        // no-op
+      }
     })
 
     this.session.on('publisherStopSpeaking', (event) => {
@@ -283,10 +306,28 @@ export class EventBridge {
         streamId: event.streamId,
         connectionId: event.connection.connectionId,
       })
+      // 로컬 발화 이벤트는 참가자 목록에 없을 수 있어 스킵
+      try {
+        const myConnId = this.session?.connection?.connectionId
+        if (myConnId && event.connection.connectionId === myConnId) {
+          logger.debug('로컬 발화 이벤트 스킵')
+          return
+        }
+      } catch {}
 
-      useVideoCallStore
-        .getState()
-        .setSpeaking(event.connection.connectionId, false)
+      // 참가자 존재 여부 확인 후 업데이트 (경고 억제)
+      try {
+        const s = useVideoCallStore.getState()
+        if (!s.participants.has(event.connection.connectionId)) {
+          logger.debug('발화 업데이트 스킵: 참가자 미존재', {
+            connectionId: event.connection.connectionId,
+          })
+          return
+        }
+        s.setSpeaking(event.connection.connectionId, false)
+      } catch {
+        // no-op
+      }
     })
 
     // 신호 수신 (채팅, 커스텀 메시지)

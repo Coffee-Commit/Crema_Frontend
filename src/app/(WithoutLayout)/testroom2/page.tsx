@@ -820,7 +820,8 @@ function VideoCallRoomContent() {
     try {
       const materialsResponse =
         await openViduApi.getMaterials(currentSessionId)
-      const materials = materialsResponse.files.map(
+      const files = materialsResponse?.files ?? []
+      const materials = files.map(
         (file: {
           fileId: string
           fileName: string
@@ -1170,9 +1171,15 @@ function VideoCallRoomContent() {
                       playsInline
                       autoPlay
                     />
-                    <div className="text-label-subtle absolute inset-0 grid place-items-center">
-                      상대 화면
-                    </div>
+                    {!(
+                      remoteParticipants.length > 0 &&
+                      (remoteParticipants[0].streams.camera ||
+                        remoteParticipants[0].streams.screen)
+                    ) && (
+                      <div className="text-label-subtle absolute inset-0 grid place-items-center">
+                        상대 화면
+                      </div>
+                    )}
                     <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
                       {peerNickname}
                     </div>
