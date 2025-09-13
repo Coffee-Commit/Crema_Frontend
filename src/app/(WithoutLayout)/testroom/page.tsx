@@ -590,7 +590,8 @@ function VideoCallRoomContent() {
         hasCam: !!p.streams.camera,
       })),
     })
-  }, [participants, remoteParticipants])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participants, remoteParticipants]) // actions 의도적으로 제외
 
   // 잘못 추가된 "내 스트림이 원격으로 분류된" 참가자 자동 정리
   useEffect(() => {

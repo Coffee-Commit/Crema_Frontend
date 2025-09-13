@@ -317,7 +317,8 @@ function ThreeColumnLayoutInner({
         }
       }
     }
-  }, [publisher, sessionStatus]) // actions 제거
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publisher, sessionStatus]) // actions 의도적으로 제외
 
   // 로딩 상태 표시
   if (loading || sessionStatus === 'connecting') {

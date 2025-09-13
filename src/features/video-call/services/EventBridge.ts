@@ -119,14 +119,15 @@ export class EventBridge {
         isLocalCalculated,
       })
 
-      // 참가자 객체 생성
+      // 참가자 객체 생성 (초기엔 MediaStream은 비워두고, 구독 완료 후 갱신)
       const participant: Participant = {
         id: event.stream.connection.connectionId,
         connectionId: event.stream.connection.connectionId,
         nickname: event.stream.connection.data || 'Unknown User',
         isLocal: isLocalCalculated,
         streams: {
-          camera: event.stream.getMediaStream(),
+          camera: undefined,
+          screen: undefined,
         },
         audioLevel: 0,
         speaking: false,
@@ -143,12 +144,62 @@ export class EventBridge {
         logger.debug('참가자 추가 후 현재 수', { size })
       } catch {}
 
-      // 자동 구독
+      // 자동 구독 및 구독 후 MediaStream 갱신
       try {
-        const _subscriber = this.session!.subscribe(
+        const subscriber = this.session!.subscribe(
           event.stream,
           undefined,
         )
+
+        const connectionId = event.stream.connection.connectionId
+
+        const updateStreams = () => {
+          try {
+            const mediaStream = subscriber.stream.getMediaStream()
+
+            const prev = useVideoCallStore
+              .getState()
+              .participants.get(connectionId)
+
+            const nextStreams = {
+              ...(prev?.streams || {}),
+              ...(event.stream.typeOfVideo === 'SCREEN'
+                ? { screen: mediaStream }
+                : { camera: mediaStream }),
+            }
+
+            useVideoCallStore
+              .getState()
+              .updateParticipant(connectionId, {
+                streams: nextStreams,
+                audioEnabled: event.stream.hasAudio,
+                videoEnabled: event.stream.hasVideo,
+                isScreenSharing:
+                  event.stream.typeOfVideo === 'SCREEN',
+              })
+
+            logger.debug('구독 후 스트림 갱신', {
+              connectionId,
+              typeOfVideo: event.stream.typeOfVideo,
+              videoTracks:
+                mediaStream?.getVideoTracks?.().length || 0,
+              audioTracks:
+                mediaStream?.getAudioTracks?.().length || 0,
+            })
+          } catch (e) {
+            logger.warn('구독 후 스트림 갱신 실패', {
+              connectionId,
+              error: e instanceof Error ? e.message : String(e),
+            })
+          }
+        }
+
+        // 비디오 요소 생성/플레이 시점에 스트림 갱신
+        // OpenVidu 동적 이벤트
+        subscriber.on('videoElementCreated', updateStreams)
+        // OpenVidu 동적 이벤트
+        subscriber.on('streamPlaying', updateStreams)
+
         logger.debug('스트림 구독 완료', {
           streamId: event.stream.streamId,
         })
