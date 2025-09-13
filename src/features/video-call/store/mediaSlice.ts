@@ -53,16 +53,30 @@ export const createMediaSlice: StateCreator<
     })
 
     try {
-      // Publisher가 있는 경우 실제 오디오 트랙 제어
+      // Publisher가 있는 경우 실제 오디오 트랙 제어 (원격 전송 on/off)
       if (currentState.publisher) {
-        // TODO: 실제 OpenVidu Publisher 오디오 제어
-        // await currentState.publisher.publishAudio(newAudioEnabled)
+        try {
+          await currentState.publisher.publishAudio(newAudioEnabled)
+        } catch (e) {
+          logger.warn(
+            'publishAudio 호출 실패, MediaStreamTrack enabled로 폴백',
+            {
+              error: e instanceof Error ? e.message : String(e),
+            },
+          )
+          try {
+            const track = currentState.publisher.stream
+              ?.getMediaStream()
+              ?.getAudioTracks?.()[0]
+            if (track) track.enabled = newAudioEnabled
+          } catch {}
+        }
         logger.debug('Publisher 오디오 제어', {
           enabled: newAudioEnabled,
         })
       }
 
-      // 상태 업데이트
+      // 상태 업데이트 (UI 반영)
       get().updateSettings({ audioEnabled: newAudioEnabled })
     } catch (error) {
       logger.error('오디오 토글 실패', {
@@ -83,16 +97,30 @@ export const createMediaSlice: StateCreator<
     })
 
     try {
-      // Publisher가 있는 경우 실제 비디오 트랙 제어
+      // Publisher가 있는 경우 실제 비디오 트랙 제어 (원격 전송 on/off)
       if (currentState.publisher) {
-        // TODO: 실제 OpenVidu Publisher 비디오 제어
-        // await currentState.publisher.publishVideo(newVideoEnabled)
+        try {
+          await currentState.publisher.publishVideo(newVideoEnabled)
+        } catch (e) {
+          logger.warn(
+            'publishVideo 호출 실패, MediaStreamTrack enabled로 폴백',
+            {
+              error: e instanceof Error ? e.message : String(e),
+            },
+          )
+          try {
+            const track = currentState.publisher.stream
+              ?.getMediaStream()
+              ?.getVideoTracks?.()[0]
+            if (track) track.enabled = newVideoEnabled
+          } catch {}
+        }
         logger.debug('Publisher 비디오 제어', {
           enabled: newVideoEnabled,
         })
       }
 
-      // 상태 업데이트
+      // 상태 업데이트 (UI 반영)
       get().updateSettings({ videoEnabled: newVideoEnabled })
     } catch (error) {
       logger.error('비디오 토글 실패', {

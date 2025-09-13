@@ -62,10 +62,10 @@ export default function RemoteVideo({
             }
           })
           .catch((error) => {
-          logger.error('원격 스트림 바인딩 실패', {
-            error,
-            participantId: participant.id,
-          })
+            logger.error('원격 스트림 바인딩 실패', {
+              error,
+              participantId: participant.id,
+            })
           })
       } else {
         logger.debug('원격 스트림 없음, 언바인딩', {

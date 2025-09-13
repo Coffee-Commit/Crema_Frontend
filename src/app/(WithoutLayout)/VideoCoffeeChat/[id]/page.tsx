@@ -4,8 +4,6 @@ import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { Suspense, useEffect, useState, useRef, useMemo } from 'react'
 
-import { useAuthStore } from '@/store/useAuthStore'
-
 import LocalVideo from '@/features/video-call/components/LocalVideo'
 import RemoteVideo from '@/features/video-call/components/RemoteVideo'
 import ScreenShareView from '@/features/video-call/components/ScreenShareView'
@@ -35,6 +33,7 @@ import { globalSessionManager } from '@/features/video-call/utils/sessionManager
 import { featureFlags } from '@/lib/config/env'
 import { openViduApi } from '@/lib/openvidu/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import { useAuthStore } from '@/store/useAuthStore'
 
 // Local components (split for maintainability)
 import ChatPanel from './components/ChatPanel'
@@ -47,7 +46,8 @@ const logger = createOpenViduLogger('CoffeeChatPage')
 function VideoCallRoomContent() {
   const params = useParams<{ id: string }>()
   const parsedId = params?.id ? Number(params.id) : null
-  const reservationId = parsedId && Number.isFinite(parsedId) ? parsedId : null
+  const reservationId =
+    parsedId && Number.isFinite(parsedId) ? parsedId : null
 
   // Hook들을 먼저 모두 호출 (조건부 반환 전에)
   const sessionStatus = useSessionStatus()
@@ -253,7 +253,10 @@ function VideoCallRoomContent() {
   // 파라미터 로깅
   useEffect(() => {
     if (reservationId) {
-      logger.debug('파라미터 파싱 완료', { id: params?.id, reservationId })
+      logger.debug('파라미터 파싱 완료', {
+        id: params?.id,
+        reservationId,
+      })
     }
   }, [reservationId, params?.id])
 
@@ -615,7 +618,8 @@ function VideoCallRoomContent() {
         hasCam: !!p.streams.camera,
       })),
     })
-  }, [participants, remoteParticipants])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participants, remoteParticipants]) // actions 의도적으로 제외
 
   // 잘못 추가된 "내 스트림이 원격으로 분류된" 참가자 자동 정리
   useEffect(() => {
