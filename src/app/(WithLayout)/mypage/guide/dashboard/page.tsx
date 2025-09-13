@@ -75,11 +75,12 @@ export default function DashboardPage() {
   const group = useMemo(() => {
     const now = nowRef.current
     const pending = reservations.filter((r) => r.status === 'PENDING')
-    const confirmed = reservations.filter(
-      (r) => r.status === 'CONFIRMED',
+
+    const confirmedOrCompleted = reservations.filter(
+      (r) => r.status === 'CONFIRMED' || r.status === 'COMPLETED',
     )
 
-    const withEnd = confirmed.map((r) => ({
+    const withEnd = confirmedOrCompleted.map((r) => ({
       r,
       end: parseStartEnd(r.preferredDateOnly, r.preferredTimeRange)
         .end,
@@ -88,9 +89,13 @@ export default function DashboardPage() {
     const scheduled = withEnd
       .filter(({ end }) => end && end > now)
       .map(({ r }) => r)
+
     const done = withEnd
       .filter(({ end }) => end && end <= now)
-      .map(({ r }) => r)
+      .map(({ r }) => ({
+        ...r,
+        status: r.status === 'CONFIRMED' ? 'COMPLETED' : r.status,
+      }))
 
     return { pending, scheduled, done }
   }, [reservations])
@@ -123,10 +128,13 @@ export default function DashboardPage() {
   const scheduleData = useMemo(() => {
     const now = nowRef.current
 
-    // 🔥 PENDING + CONFIRMED 둘 다 표시
+    // ✅ 모든 상태(PENDING, CONFIRMED, COMPLETED)를 포함
     const withEnd = reservations
       .filter(
-        (r) => r.status === 'PENDING' || r.status === 'CONFIRMED',
+        (r) =>
+          r.status === 'PENDING' ||
+          r.status === 'CONFIRMED' ||
+          r.status === 'COMPLETED',
       )
       .map((r) => ({
         r,
@@ -207,14 +215,7 @@ export default function DashboardPage() {
       preferredDate: r.preferredDateOnly,
       preferredTime: r.preferredTimeRange,
       profileImageUrl: r.member.profileImageUrl ?? '',
-      status:
-        r.status === 'PENDING'
-          ? 'pending'
-          : r.status === 'CONFIRMED'
-            ? 'accepted'
-            : r.status === 'CANCELLED'
-              ? 'rejected'
-              : 'done',
+      status: r.status,
     }))
   }, [modalKey, group])
 
