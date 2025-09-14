@@ -137,7 +137,7 @@ export default function HomePage() {
       <ScrollReveal>
         <section className="gap-spacing-xl px-container-padding-sm py-spacing-xl lg:px-container-padding-lg mx-auto flex w-full max-w-[var(--container-width)] flex-col items-center text-center md:flex-row md:justify-between md:pb-[80px]">
           <div className="max-w-container-width md:gap-spacing-5xl flex w-full flex-col items-start text-left">
-            <h1 className="font-title2-medium md:font-display1 text-label-deep">
+            <h1 className="font-display1 md:font-title2-medium text-label-deep">
               내게 꼭 맞는 취업 조언을,
               <br />
               가장 최근에 경험한 선배에게서
@@ -150,13 +150,36 @@ export default function HomePage() {
                 onSubmit={handleSearch}
               />
               <div className="mt-spacing-xs gap-spacing-3xs flex flex-wrap justify-start">
-                <KeywordTag variant="primary">추천 태그</KeywordTag>
-                <KeywordTag variant="secondary">비전공자</KeywordTag>
-                <KeywordTag variant="secondary">
+                <KeywordTag
+                  variant="primary"
+                  disableHover
+                >
+                  추천 태그
+                </KeywordTag>
+                <KeywordTag
+                  variant="secondary"
+                  disableHover
+                >
+                  비전공자
+                </KeywordTag>
+                <KeywordTag
+                  variant="secondary"
+                  disableHover
+                >
                   코딩테스트
                 </KeywordTag>
-                <KeywordTag variant="secondary">연봉</KeywordTag>
-                <KeywordTag variant="secondary">디자이너</KeywordTag>
+                <KeywordTag
+                  variant="secondary"
+                  disableHover
+                >
+                  연봉
+                </KeywordTag>
+                <KeywordTag
+                  variant="secondary"
+                  disableHover
+                >
+                  디자이너
+                </KeywordTag>
               </div>
             </div>
           </div>
@@ -251,6 +274,9 @@ export default function HomePage() {
               <CircleButton
                 variant="secondary"
                 size="lg"
+                onClick={() =>
+                  router.push('/mypage/rookie/guideapply')
+                }
               >
                 내 경험 공유하기
               </CircleButton>

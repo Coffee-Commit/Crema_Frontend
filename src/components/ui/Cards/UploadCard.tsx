@@ -33,7 +33,7 @@ export default function UploadCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-fill-white pt-spacing-3xl pb-spacing-3xs px-spacing-3xs shadow-emphasize flex w-[300px] flex-col overflow-hidden rounded-[var(--radius-md)] ${
+      className={`bg-fill-white pt-spacing-3xl pb-spacing-3xs px-spacing-3xs shadow-emphasize rounded-coffeechat-card flex w-[300px] flex-col overflow-hidden ${
         onClick ? 'cursor-pointer' : 'cursor-default'
       }`}
     >
@@ -70,7 +70,12 @@ export default function UploadCard({
           <div className="mb-spacing-sm h-[60px]">
             <div className="gap-spacing-6xs flex flex-wrap">
               {tags.map((tag, i) => (
-                <KeywordTag key={i}>{tag}</KeywordTag>
+                <KeywordTag
+                  key={i}
+                  disableHover
+                >
+                  {tag}
+                </KeywordTag>
               ))}
             </div>
           </div>

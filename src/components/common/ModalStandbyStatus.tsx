@@ -123,7 +123,7 @@ export default function ModalStandbyStatus({
                 className="object-contain"
               />
               <span className="text-label-subtle font-caption2">
-                신청하신 커피챗이 없습니다.
+                따뜻한 대화가 당신을 기다리고 있어요.
               </span>
             </div>
           ) : (
