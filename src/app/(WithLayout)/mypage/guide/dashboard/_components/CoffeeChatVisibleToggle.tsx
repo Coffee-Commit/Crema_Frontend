@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+
 import LabeledToggle from '@/components/ui/Toggle/LabledToggle'
 import api from '@/lib/http/api'
 import { useAuthStore } from '@/store/useAuthStore'
