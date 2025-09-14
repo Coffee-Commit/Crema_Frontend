@@ -238,7 +238,7 @@ function VideoCallRoomContent({
     () => searchParams.get('peer') ?? '게스트',
     [searchParams],
   )
-  const myNickname = useMemo(() => '커피챗 사용자', [])
+  const [myNickname, setMyNickname] = useState<string>('커피챗 사용자')
 
   const startAt = useMemo(() => {
     const s = searchParams.get('start')
@@ -341,6 +341,9 @@ function VideoCallRoomContent({
           sessionId: quickJoinResponse.sessionId,
           username: quickJoinResponse.username,
         })
+
+        // API 응답에서 받은 username을 닉네임으로 설정
+        setMyNickname(quickJoinResponse.username || '커피챗 사용자')
 
         // 3. 받은 토큰으로 연결
         await actions.connect(
@@ -1243,7 +1246,9 @@ function VideoCallRoomContent({
                       </div>
                     )}
                     <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
-                      {peerNickname}
+                      {remoteParticipants.length > 0 
+                        ? remoteParticipants[0].nickname 
+                        : peerNickname}
                     </div>
                   </div>
 
@@ -1331,7 +1336,9 @@ function VideoCallRoomContent({
                     <dl className="grid grid-cols-2 gap-y-2 text-sm">
                       <dt className="text-gray-500">이름(닉네임)</dt>
                       <dd className="text-gray-900">
-                        {peerNickname}
+                        {remoteParticipants.length > 0 
+                          ? remoteParticipants[0].nickname 
+                          : peerNickname}
                       </dd>
                       <dt className="text-gray-500">화상통화 분야</dt>
                       <dd className="text-gray-900">테스트</dd>
