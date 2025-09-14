@@ -123,6 +123,10 @@ let activeQuickJoinKey: string | null = null
 let adapterInstance: OpenViduSdkAdapter | null = null
 let adapterPromise: Promise<OpenViduSdkAdapter> | null = null
 
+// 최근 조인 실패 후 즉시 재시도 방지용 쿨다운
+const JOIN_COOLDOWN_MS = 1000
+let lastJoinFailureAt: number | null = null
+
 async function getAdapter(): Promise<OpenViduSdkAdapter> {
   assertBrowserOnly('getAdapter')
 
@@ -245,6 +249,23 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
       return
     }
 
+    // 중복 조인 방지 (진행 중/이미 연결됨)
+    const { isJoining, isConnected } = get()
+    if (isJoining || isConnected) {
+      logger.debug('조인 중복 시도 무시', { isJoining, isConnected })
+      return
+    }
+
+    // 최근 실패 직후 재시도 쿨다운
+    if (lastJoinFailureAt) {
+      const sinceFail = Date.now() - lastJoinFailureAt
+      if (sinceFail < JOIN_COOLDOWN_MS) {
+        const waitMs = JOIN_COOLDOWN_MS - sinceFail
+        logger.debug('조인 쿨다운 대기', { waitMs })
+        await new Promise((r) => setTimeout(r, waitMs))
+      }
+    }
+
     logger.info('세션 연결 시작', {
       op: 'joinSessionByReservation',
       reservationId,
@@ -259,6 +280,7 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
     updateConnectionState('connecting')
     set({
       loading: true,
+      isJoining: true,
       error: null,
       currentReservationId: reservationId,
       joinSequence: myJoinSeq,
@@ -484,6 +506,9 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         msg:
           error instanceof Error ? error.message : '알 수 없는 오류',
       })
+
+      // 실패 시 타임스탬프 저장 (즉시 재시도 방지)
+      lastJoinFailureAt = Date.now()
     }
   },
 
@@ -794,6 +819,15 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
     const startTime = Date.now()
 
     try {
+      // 최근 실패 직후 재시도 쿨다운
+      if (lastJoinFailureAt) {
+        const sinceFail = Date.now() - lastJoinFailureAt
+        if (sinceFail < JOIN_COOLDOWN_MS) {
+          const waitMs = JOIN_COOLDOWN_MS - sinceFail
+          logger.debug('테스트 조인 쿨다운 대기', { waitMs })
+          await new Promise((r) => setTimeout(r, waitMs))
+        }
+      }
       // 1. 설정 정보 로드 (필요시 - 싱글톤 패턴)
       let sessionConfig = get().sessionConfig
 
@@ -1016,6 +1050,9 @@ export const useOpenViduStore = create<OpenViduStore>((set, get) => ({
         msg:
           error instanceof Error ? error.message : '알 수 없는 오류',
       })
+
+      // 실패 시 타임스탬프 저장 (즉시 재시도 방지)
+      lastJoinFailureAt = Date.now()
     }
   },
 
