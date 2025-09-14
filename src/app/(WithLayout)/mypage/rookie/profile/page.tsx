@@ -216,7 +216,7 @@ export default function ProfilePage() {
   return (
     <main className="gap-spacing-6xl py-spacing-5xl container mx-auto flex flex-col">
       {/* 내 정보 */}
-      <section className="border-border-subtler bg-fill-white p-spacing-lg gap-spacing-lg flex flex-col rounded-md border">
+      <section className="border-border-subtler bg-fill-white p-spacing-lg gap-spacing-lg ml-[41px] flex flex-col rounded-md border">
         <div className="flex items-center justify-between">
           <h2 className="font-title2-bold text-label-strong">
             내 정보
@@ -323,7 +323,7 @@ export default function ProfilePage() {
       </section>
 
       {/* 내 관심 */}
-      <section className="border-border-subtler bg-fill-white p-spacing-lg gap-spacing-lg flex flex-col rounded-md border">
+      <section className="border-border-subtler bg-fill-white p-spacing-lg gap-spacing-lg ml-[41px] flex flex-col rounded-md border">
         <div className="flex items-center justify-between">
           <h2 className="font-title2-bold text-label-strong">
             내 관심

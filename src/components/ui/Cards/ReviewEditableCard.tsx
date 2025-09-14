@@ -149,7 +149,7 @@ export default function ReviewEditableCard({
   return (
     <div className="bg-fill-white border-border-subtler rounded-sm border">
       {/* 상단 영역 */}
-      <div className="p-spacing-3xs border-border-subtler flex items-center justify-between border-b">
+      <div className="p-spacing-3xs flex items-center justify-between">
         <div className="gap-spacing-sm flex items-center">
           {/* 프로필 */}
           {avatarUrl ? (
