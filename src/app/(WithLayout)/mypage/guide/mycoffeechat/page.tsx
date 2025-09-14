@@ -393,7 +393,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 interface Experience {
   title: string
   content: string
-  categories: string[]
+  category: string | null
 }
 
 // 요일 변환
@@ -424,13 +424,13 @@ export default function CoffeechatRegisterPage() {
 
   // Step 1 데이터
   const [title, setTitle] = useState('')
-  const [jobFields, setJobFields] = useState<string[]>([])
+  const [jobField, setJobField] = useState<string | null>(null) // 단일 선택
   // const [topics] = useState<string[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
 
   // Step 2 데이터
   const [experiences, setExperiences] = useState<Experience[]>([
-    { title: '', content: '', categories: [] },
+    { title: '', content: '', category: null },
   ])
   const [intro, setIntro] = useState('')
   const [tags, setTags] = useState<string[]>(['', '', '', '', ''])
@@ -444,7 +444,7 @@ export default function CoffeechatRegisterPage() {
   const addExperience = () => {
     setExperiences([
       ...experiences,
-      { title: '', content: '', categories: [] },
+      { title: '', content: '', category: null },
     ])
   }
 
@@ -452,7 +452,7 @@ export default function CoffeechatRegisterPage() {
   const updateExperience = (
     index: number,
     field: keyof Experience,
-    value: string | string[],
+    value: string | null,
   ) => {
     const newExps = [...experiences]
     newExps[index] = { ...newExps[index], [field]: value }
@@ -477,9 +477,9 @@ export default function CoffeechatRegisterPage() {
       }
 
       // 2) 직무 분야 등록
-      if (jobFields.length > 0) {
+      if (jobField) {
         await api.post('/api/guides/me/job-field', {
-          jobName: jobFields[0],
+          jobName: jobField,
         })
         console.log('✅ 직무 분야 등록 성공')
       }
@@ -543,7 +543,7 @@ export default function CoffeechatRegisterPage() {
       if (experiences.length > 0) {
         // ✅ 경험마다 주제 선택 여부 확인
         for (const exp of experiences) {
-          if (!exp.categories[0]) {
+          if (!exp.category) {
             alert('경험마다 주제를 1개 이상 선택해야 합니다.')
             return
           }
@@ -551,7 +551,7 @@ export default function CoffeechatRegisterPage() {
 
         const expPayload = {
           groups: experiences.map((exp) => ({
-            topicName: exp.categories[0], // ✅ 이제 topicName으로 보냄
+            topicName: exp.category, // ✅ 이제 topicName으로 보냄
             experienceTitle: exp.title,
             experienceContent: exp.content,
           })),
@@ -569,6 +569,12 @@ export default function CoffeechatRegisterPage() {
       alert('등록 실패')
     }
   }
+
+  // ===== 선택 해제 핸들러 =====
+  const handleRemoveJobField = () => {
+    setJobField(null) // ✅ 단일 선택 → 그냥 비워줌
+  }
+
   // ================== UI (원본 그대로) ==================
   return (
     <main className="gap-spacing-3xl py-spacing-5xl ml-[84px] flex flex-col">
@@ -605,16 +611,12 @@ export default function CoffeechatRegisterPage() {
               </label>
               <div className="flex flex-col gap-[20px]">
                 <SelectedChips
-                  selected={jobFields}
-                  onRemove={(val) =>
-                    setJobFields((prev) =>
-                      prev.filter((f) => f !== val),
-                    )
-                  }
+                  selected={jobField ? [jobField] : []} // ✅ 배열로 변환
+                  onRemove={handleRemoveJobField}
                 />
                 <JobFieldFilter
-                  selected={jobFields}
-                  onChange={setJobFields}
+                  selected={jobField}
+                  onChange={setJobField}
                 />
               </div>
             </div>
@@ -778,9 +780,9 @@ export default function CoffeechatRegisterPage() {
                   <div className="gap-spacing-4xs flex flex-col">
                     <label>주제분류</label>
                     <CategoryFilter
-                      selected={exp.categories}
-                      onChange={(vals) =>
-                        updateExperience(idx, 'categories', vals)
+                      selected={exp.category}
+                      onChange={(val) =>
+                        updateExperience(idx, 'category', val)
                       }
                     />
                   </div>
