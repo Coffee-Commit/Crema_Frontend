@@ -41,21 +41,14 @@ const GROUPS: Group[] = [
 ]
 
 interface CategoryFilterProps {
-  selected: string[] // ENUM 값 배열
-  onChange: (values: string[]) => void
+  selected: string | null // 단일 값
+  onChange: (value: string | null) => void
 }
 
 export default function CategoryFilter({
   selected,
   onChange,
 }: CategoryFilterProps) {
-  const toggle = (value: string) => {
-    const newValues = selected.includes(value)
-      ? selected.filter((v) => v !== value)
-      : [...selected, value]
-    onChange(newValues)
-  }
-
   return (
     <div className="border-border-subtler bg-fill-white p-spacing-md rounded-2xs border">
       <div className="gap-spacing-lg grid grid-cols-1 md:grid-cols-3">
@@ -71,9 +64,13 @@ export default function CategoryFilter({
                   className="font-label4-medium flex cursor-pointer items-center gap-2"
                 >
                   <input
-                    type="checkbox"
-                    checked={selected.includes(opt.value)}
-                    onChange={() => toggle(opt.value)}
+                    type="radio"
+                    checked={selected === opt.value}
+                    onChange={() =>
+                      onChange(
+                        selected === opt.value ? null : opt.value,
+                      )
+                    }
                     className="h-4 w-4 cursor-pointer accent-[var(--color-fill-primary)]"
                   />
                   {opt.label}

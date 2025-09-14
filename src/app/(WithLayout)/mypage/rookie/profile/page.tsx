@@ -65,13 +65,16 @@ type TopicResponse = {
 
 /* ===================== 컴포넌트 ===================== */
 export default function ProfilePage() {
-  const { user, tokens } = useAuthStore()
+  const { user, tokens, setAuth } = useAuthStore()
 
   const [nickname, setNickname] = useState('')
   const [email, setEmail] = useState('')
   const [intro, setIntro] = useState('')
-  const [jobFields, setJobFields] = useState<string[]>([]) // ENUM 값
-  const [topics, setTopics] = useState<string[]>([]) // ENUM 값
+  const [profileImageUrl, setProfileImageUrl] = useState<
+    string | null
+  >(null)
+  const [jobField, setJobField] = useState<string | null>(null) // 단일 선택
+  const [topic, setTopic] = useState<string | null>(null) // 단일 선택
 
   const [isEditingInfo, setIsEditingInfo] = useState(false)
   const [isEditingInterest, setIsEditingInterest] = useState(false)
@@ -121,6 +124,7 @@ export default function ProfilePage() {
           setNickname(data.result.nickname || '')
           setEmail(data.result.email || '')
           setIntro(data.result.description || '')
+          setProfileImageUrl(data.result.profileImageUrl ?? null)
         }
 
         // 2. 관심 분야
@@ -132,7 +136,7 @@ export default function ProfilePage() {
           const data: { result: JobFieldResponse } =
             await jobFieldRes.json()
           if (data.result?.jobName) {
-            setJobFields([data.result.jobName]) // ENUM 값 저장
+            setJobField(data.result.jobName)
           }
         }
 
@@ -144,10 +148,12 @@ export default function ProfilePage() {
         if (topicRes.ok) {
           const data: { result: TopicResponse[] } =
             await topicRes.json()
-          setTopics(data.result.map((t) => t.topic.topicName)) // ENUM 값 저장
+          // 여러 개 온다고 가정해도 첫 번째만 선택함
+          if (data.result.length > 0) {
+            setTopic(data.result[0].topic.topicName)
+          }
         }
 
-        // 값이 있으면 조회 모드
         setIsEditingInfo(false)
         setIsEditingInterest(false)
       } catch (err) {
@@ -173,44 +179,54 @@ export default function ProfilePage() {
         getAuthOptions('PUT', profileBody),
       )
 
-      // 2. 관심 분야 저장 (1개만 가능)
-      if (jobFields.length > 0) {
+      // 2. 관심 분야 저장 (단일)
+      if (jobField) {
         await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/member/coffee-chat/interests/fields`,
           getAuthOptions(
             'PUT',
-            JSON.stringify({ jobName: jobFields[0] }), // ENUM 값 전송
+            JSON.stringify({ jobName: jobField }),
           ),
         )
       }
 
-      // 3. 관심 주제 저장 (여러개 가능)
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/member/coffee-chat/interests/topics`,
-        getAuthOptions(
-          'PUT',
-          JSON.stringify({
-            topicNames: topics, // ENUM 값 배열 전송
-          }),
-        ),
-      )
+      // 3. 관심 주제 저장 (단일)
+      if (topic) {
+        await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/member/coffee-chat/interests/topics`,
+          getAuthOptions(
+            'PUT',
+            JSON.stringify({ topicNames: [topic] }),
+          ),
+          // topicNames 배열이 여러개 가능하더라도 첫 원소만 사용
+        )
+      }
 
-      console.log('✅ 프로필 저장 성공')
+      // ✅ 최신 프로필 다시 불러와서 스토어 갱신
+      const meRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/member/me`,
+        getAuthOptions('GET'),
+      )
+      if (meRes.ok) {
+        const meData = await meRes.json()
+        setAuth({ user: meData.result, tokens: tokens! })
+        setProfileImageUrl(meData.result.profileImageUrl ?? null)
+        console.log('🟢 프로필 갱신됨:', meData.result)
+      }
+
       setIsEditingInfo(false)
       setIsEditingInterest(false)
     } catch (err) {
       console.error('❌ 저장 실패:', err)
     }
   }
-
   // ===== 선택 해제 핸들러 =====
-  const handleRemoveTopic = (label: string) => {
-    // 한글 label → enum 역매핑
-    const enumKey = Object.keys(TOPIC_MAP).find(
-      (k) => TOPIC_MAP[k] === label,
-    )
-    if (!enumKey) return
-    setTopics((prev) => prev.filter((t) => t !== enumKey))
+  const handleRemoveTopic = () => {
+    setTopic(null) // ✅ 단일 선택 → 그냥 비워줌
+  }
+
+  const handleRemoveJobField = () => {
+    setJobField(null) // ✅ 단일 선택 → 그냥 비워줌
   }
 
   return (
@@ -237,9 +253,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-center">
             <div className="bg-fill-disabled h-[120px] w-[120px] overflow-hidden rounded-full">
               <Image
-                src={
-                  user?.profileImageUrl ?? '/icons/profileDefault.svg'
-                }
+                src={profileImageUrl || '/icons/profileDefault.svg'}
                 alt="프로필 이미지"
                 width={120}
                 height={120}
@@ -347,13 +361,15 @@ export default function ProfilePage() {
             커피챗 분야
           </label>
           <SelectedChips
-            selected={jobFields.map((f) => JOB_FIELD_MAP[f] || f)} // 한글 변환
-            onRemove={() => setJobFields([])} // 1개만 선택 가능
+            selected={
+              jobField ? [JOB_FIELD_MAP[jobField] || jobField] : []
+            }
+            onRemove={handleRemoveJobField}
           />
           {isEditingInterest && (
             <JobFieldFilter
-              selected={jobFields}
-              onChange={setJobFields}
+              selected={jobField}
+              onChange={setJobField}
             />
           )}
         </div>
@@ -364,13 +380,13 @@ export default function ProfilePage() {
             커피챗 주제
           </label>
           <SelectedChips
-            selected={topics.map((t) => TOPIC_MAP[t] || t)} // 한글 변환
+            selected={topic ? [TOPIC_MAP[topic] || topic] : []}
             onRemove={handleRemoveTopic}
           />
           {isEditingInterest && (
             <CategoryFilter
-              selected={topics}
-              onChange={setTopics}
+              selected={topic}
+              onChange={setTopic}
             />
           )}
         </div>
