@@ -136,7 +136,7 @@ export default function DashboardReview() {
         ) : (
           <>
             <div className="gap-spacing-xs flex flex-col">
-              {reviews.map((review) => (
+              {/* {reviews.map((review) => (
                 <ReviewEditableCard
                   key={review.reservationId}
                   avatarUrl={review.guide.profileImageUrl}
@@ -159,7 +159,60 @@ export default function DashboardReview() {
                   review={review.review?.comment ?? ''}
                   reservationId={review.reservationId}
                 />
-              ))}
+              ))} */}
+              {reviews.map((review) => {
+                const start = new Date(
+                  review.reservation.matchingDateTime,
+                )
+
+                // ✅ 날짜: yy.mm.dd (요일)
+                const yy = String(start.getFullYear()).slice(2)
+                const mm = String(start.getMonth() + 1).padStart(
+                  2,
+                  '0',
+                )
+                const dd = String(start.getDate()).padStart(2, '0')
+                const weekday = [
+                  '일',
+                  '월',
+                  '화',
+                  '수',
+                  '목',
+                  '금',
+                  '토',
+                ][start.getDay()]
+                const formattedDate = `${yy}.${mm}.${dd} (${weekday})`
+
+                // ✅ 시간: hh:mm ~ hh:mm (30분 or 60분)
+                const durationMinutes =
+                  review.reservation.timeUnit === 'MINUTE_30'
+                    ? 30
+                    : 60
+                const end = new Date(
+                  start.getTime() + durationMinutes * 60 * 1000,
+                )
+
+                const formatTime = (d: Date) =>
+                  `${String(d.getHours()).padStart(2, '0')}:${String(
+                    d.getMinutes(),
+                  ).padStart(2, '0')}`
+
+                const formattedTime = `${formatTime(start)} ~ ${formatTime(end)}`
+
+                return (
+                  <ReviewEditableCard
+                    key={review.reservationId}
+                    avatarUrl={review.guide.profileImageUrl}
+                    nickname={review.guide.nickname}
+                    date={formattedDate} // ✅ 변경
+                    time={formattedTime} // ✅ 변경
+                    duration={`${durationMinutes}분`} // duration prop 유지할 경우
+                    rating={review.review?.star ?? 0}
+                    review={review.review?.comment ?? ''}
+                    reservationId={review.reservationId}
+                  />
+                )
+              })}
             </div>
 
             {totalPages > 1 && (

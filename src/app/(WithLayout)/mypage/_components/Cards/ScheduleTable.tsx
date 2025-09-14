@@ -130,7 +130,7 @@ export default function ScheduleTable({
               </div>
 
               {/* 시간 */}
-              <div className="gap-spacing-5xs flex w-[15%] items-center">
+              <div className="gap-spacing-5xs flex w-[20%] items-center">
                 <Clock
                   className={clsx(
                     'h-3 w-3',
@@ -140,7 +140,25 @@ export default function ScheduleTable({
                   )}
                 />
                 <span className="font-caption3 text-label-default">
-                  {item.time}
+                  {(() => {
+                    try {
+                      const [start, end] = item.time
+                        .split('~')
+                        .map((t) => t.trim())
+                      const [sh, sm] = start.split(':').map(Number)
+                      const [eh, em] = end.split(':').map(Number)
+
+                      const startDate = new Date(0, 0, 0, sh, sm)
+                      const endDate = new Date(0, 0, 0, eh, em)
+                      const diffMin =
+                        (endDate.getTime() - startDate.getTime()) /
+                        (1000 * 60)
+
+                      return `${item.time} (${diffMin}분)`
+                    } catch {
+                      return item.time // 파싱 실패하면 원래 값만 보여줌
+                    }
+                  })()}
                 </span>
               </div>
 
