@@ -25,7 +25,7 @@ const GROUPS: Group[] = [
     options: [
       { label: '실무', value: 'PRACTICAL_WORK' },
       { label: '조직문화', value: 'ORGANIZATION_CULTURE' },
-      { label: '인간관계', value: 'HUMAN_RELATIONSHIP' },
+      { label: '인간관계', value: 'RELATIONSHIP' },
       { label: '워라밸', value: 'WORK_LIFE_BALANCE' },
     ],
   },
@@ -33,8 +33,8 @@ const GROUPS: Group[] = [
     title: '커리어',
     options: [
       { label: '합격 경험', value: 'PASS_EXPERIENCE' },
-      { label: '업계 트렌드', value: 'INDUSTRY_TRENDS' },
-      { label: '직무 전환', value: 'CAREER_SWITCH' },
+      { label: '업계 트렌드', value: 'INDUSTRY_TREND' },
+      { label: '직무 전환', value: 'CAREER_CHANGE' },
       { label: '이직', value: 'JOB_CHANGE' },
     ],
   },

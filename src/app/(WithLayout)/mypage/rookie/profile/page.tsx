@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 
 /* ===================== 매핑 테이블 ===================== */
 const JOB_FIELD_MAP: Record<string, string> = {
+  UNDEFINED: '미정',
   DESIGN: '디자인',
   PLANNING_STRATEGY: '기획/전략',
   MARKETING_PR: '마케팅/홍보',
@@ -20,17 +21,18 @@ const JOB_FIELD_MAP: Record<string, string> = {
 }
 
 const TOPIC_MAP: Record<string, string> = {
+  UNDEFINED: '미정',
   RESUME: '이력서',
   COVER_LETTER: '자소서',
   PORTFOLIO: '포트폴리오',
   INTERVIEW: '면접',
   PRACTICAL_WORK: '실무',
   ORGANIZATION_CULTURE: '조직문화',
-  HUMAN_RELATIONSHIP: '인간관계',
+  RELATIONSHIP: '인간관계',
   WORK_LIFE_BALANCE: '워라밸',
   PASS_EXPERIENCE: '합격 경험',
-  INDUSTRY_TRENDS: '업계 트렌드',
-  CAREER_SWITCH: '직무 전환',
+  INDUSTRY_TREND: '업계 트렌드',
+  CAREER_CHANGE: '직무 전환',
   JOB_CHANGE: '이직',
 }
 
