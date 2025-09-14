@@ -110,7 +110,7 @@ export default function DetailedExperienceCard({
       {/* 리스트 박스 */}
       <div className="bg-fill-input-gray p-spacing-4xs gap-spacing-2xs rounded-xs grid grid-cols-1 md:grid-cols-2">
         {items.length === 0 ? (
-          <div className="py-spacing-md col-span-2 flex items-center justify-center">
+          <div className="py-spacing-md col-span-2 flex h-[160px] items-center justify-center">
             <span className="font-caption2-medium text-label-default">
               {emptyMessage}
             </span>
