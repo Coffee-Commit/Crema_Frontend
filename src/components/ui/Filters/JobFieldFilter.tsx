@@ -15,21 +15,14 @@ const JOB_FIELDS: Option[] = [
 ]
 
 interface JobFieldFilterProps {
-  selected: string[] // ENUM 값 배열
-  onChange: (values: string[]) => void
+  selected: string | null // 단일 값
+  onChange: (value: string | null) => void
 }
 
 export default function JobFieldFilter({
   selected,
   onChange,
 }: JobFieldFilterProps) {
-  const toggle = (value: string) => {
-    const newValues = selected.includes(value)
-      ? selected.filter((v) => v !== value)
-      : [...selected, value]
-    onChange(newValues)
-  }
-
   return (
     <div className="border-border-subtler bg-fill-white p-spacing-md rounded-2xs border">
       <div className="gap-spacing-sm grid grid-cols-3">
@@ -40,8 +33,10 @@ export default function JobFieldFilter({
           >
             <input
               type="checkbox"
-              checked={selected.includes(opt.value)}
-              onChange={() => toggle(opt.value)}
+              checked={selected === opt.value}
+              onChange={() =>
+                onChange(selected === opt.value ? null : opt.value)
+              }
               className="h-4 w-4 cursor-pointer accent-[var(--color-fill-primary)]"
             />
             {opt.label}

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
 
 import EmptyState from '@/components/common/EmptyState'
+import Loading from '@/components/common/LoadingState'
 import UploadCard from '@/components/ui/Cards/UploadCard'
 import SelectedChips from '@/components/ui/Chips/SelectedChips'
 import Pagination from '@/components/ui/Paginations/Pagination'
@@ -140,9 +141,7 @@ export default function MentorPage() {
           />
 
           {loading ? (
-            <div className="text-label-default py-20 text-center">
-              로딩 중...
-            </div>
+            <Loading />
           ) : paginatedMentors.length === 0 ? (
             <EmptyState />
           ) : (

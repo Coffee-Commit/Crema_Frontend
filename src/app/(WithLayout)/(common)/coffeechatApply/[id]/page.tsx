@@ -9,13 +9,14 @@ import SquareButton from '@/components/ui/Buttons/SquareButton'
 import DateTimeSelector from '@/components/ui/CustomSelectes/DateTimeSelector'
 import ScheduleInputView from '@/components/ui/CustomSelectes/Schedule/ScheduleInputView'
 import { Schedule } from '@/components/ui/CustomSelectes/Schedule/ScheduleSelector'
-import FileUploadCard from '@/components/ui/FileUpload/FileUploadCard'
+import CoffeechatApplyFileUpload from '@/components/ui/FileUpload/CoffeechatApplyFileUpload'
 import TextAreaCounter from '@/components/ui/Inputs/TextAreaCounter'
 import {
   getReservationApply,
   getGuideSchedules,
   postReservation,
 } from '@/lib/http/reservations'
+import { useModalStore } from '@/store/useModalStore'
 
 import ApplyComplete from '../_components/ApplyComplete'
 
@@ -120,8 +121,26 @@ export default function CoffeechatApplyPage() {
       console.log('✅ 예약 성공:', res)
       setReservationId(res.data.reservationId)
       setIsSubmitted(true)
-    } catch (err) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
       console.error('❌ 예약 실패:', err)
+      const { openModal } = useModalStore.getState()
+
+      // 에러 메시지 안에 "본인"이 포함된 경우 모달 표시
+      if (err?.response?.data?.message?.includes('본인')) {
+        openModal({
+          title: '예약 불가',
+          message: '본인에게는 커피챗을 신청할 수 없습니다.',
+          confirmText: '확인',
+        })
+      } else {
+        openModal({
+          title: '예약 실패',
+          message:
+            err?.response?.data?.message ||
+            '예약에 실패했습니다. 다시 시도해주세요.',
+        })
+      }
     }
   }
 
@@ -179,12 +198,12 @@ export default function CoffeechatApplyPage() {
                   </div>
                 </div>
 
-                {/* 사진 공유 자료 선택 */}
+                {/* 사전 공유 자료 선택 */}
                 <div className="gap-spacing-sm flex flex-col">
                   <h3 className="font-title4 text-label-strong">
-                    사진 공유 자료 선택
+                    사전 공유 자료 선택
                   </h3>
-                  <FileUploadCard
+                  <CoffeechatApplyFileUpload
                     onChange={(files) => setUploadedFiles(files)}
                   />
                 </div>
