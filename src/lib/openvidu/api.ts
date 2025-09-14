@@ -1331,15 +1331,15 @@ export const openViduNavigation = {
   },
 
   /**
-   * 사용자 역할에 따른 리뷰 페이지로 이동
+   * 사용자 역할에 따른 커피챗 종료 후 리다이렉트
    */
   goToReviewPageByRole: (userRole?: 'ROOKIE' | 'GUIDE') => {
     if (typeof window !== 'undefined') {
       const path =
         userRole === 'ROOKIE'
-          ? '/mypage/rookie/review'
+          ? '/mypage/rookie/review'  // ROOKIE는 모달 처리 후 필요시 변경
           : userRole === 'GUIDE'
-            ? '/mypage/guide/review'
+            ? '/mypage/guide/dashboard'  // GUIDE는 대시보드로 변경
             : '/' // fallback to home
       window.location.href = path
     }

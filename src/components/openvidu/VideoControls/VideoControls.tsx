@@ -122,9 +122,37 @@ export default function VideoControls() {
     setIsLeavingCall(true)
     logger.info('통화 종료 시작')
 
-    // 1. 즉시 리다이렉트 - API 응답 기다리지 않음
+    // 1. 사용자 역할에 따른 처리
     const { user } = useAuthStore.getState()
-    openViduNavigation.goToReviewPageByRole(user?.role)
+    
+    if (user?.role === 'ROOKIE') {
+      // TODO: ROOKIE 사용자 모달 처리 (다른 개발자가 구현)
+      // 
+      // 구현 방법:
+      // 1. useModalStore import 추가:
+      //    import { useModalStore } from '@/store/useModalStore'
+      // 
+      // 2. 모달 상태 관리 함수 가져오기:
+      //    const { openModal } = useModalStore.getState()
+      // 
+      // 3. 커피챗 종료 모달 표시:
+      //    openModal('커피챗 종료', '커피챗이 종료되었습니다. 리뷰를 작성해주세요.', {
+      //      onConfirm: () => {
+      //        // 모달 확인 후 원하는 페이지로 리다이렉트
+      //        window.location.href = '/원하는/페이지/경로'
+      //      },
+      //      onCancel: () => {
+      //        // 모달 취소 시 처리 (필요한 경우)
+      //        window.location.href = '/'  // 홈으로
+      //      }
+      //    })
+      // 
+      // 현재는 기존 로직 유지 (임시)
+      openViduNavigation.goToReviewPageByRole(user?.role)
+    } else {
+      // GUIDE 사용자는 대시보드로 즉시 리다이렉트
+      openViduNavigation.goToReviewPageByRole(user?.role)
+    }
 
     // 2. 백그라운드에서 정리 작업 (fire-and-forget)
     Promise.resolve().then(async () => {
