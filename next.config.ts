@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
   experimental: {
     esmExternals: 'loose',
   },
+  // ✅ 이미지 도메인 허용
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        pathname: '/goorm-crema-coffeechat/**', // <-- 여기 꼭 넣어줘야 함
+      },
+    ],
+  },
 
   // Webpack 설정 (클라이언트 전용 모듈 처리)
   webpack: (config, { isServer }) => {

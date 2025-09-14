@@ -65,7 +65,7 @@ export default function Header() {
               aria-hidden
             />
           </div>
-        ) : isLoggedIn && user ? (
+        ) : mounted && isLoggedIn && user ? (
           <div className="gap-spacing-xs flex items-center">
             <Bell
               className="text-label-strong h-[26px] w-[26px]"
