@@ -31,8 +31,9 @@ import type { ChatMessage } from '@/features/video-call/types'
 import { createCleanupCall } from '@/features/video-call/utils/cleanup'
 import { globalSessionManager } from '@/features/video-call/utils/sessionManager'
 import { featureFlags } from '@/lib/config/env'
-import { openViduApi } from '@/lib/openvidu/api'
+import { openViduApi, openViduNavigation } from '@/lib/openvidu/api'
 import { createOpenViduLogger } from '@/lib/utils/openviduLogger'
+import { useAuthStore } from '@/store/useAuthStore'
 
 // Local components (split for maintainability)
 import ChatPanel from './components/ChatPanel'
@@ -237,7 +238,7 @@ function VideoCallRoomContent({
     () => searchParams.get('peer') ?? '게스트',
     [searchParams],
   )
-  const myNickname = useMemo(() => '커피챗 사용자', [])
+  const [myNickname, setMyNickname] = useState<string>('커피챗 사용자')
 
   const startAt = useMemo(() => {
     const s = searchParams.get('start')
@@ -340,6 +341,9 @@ function VideoCallRoomContent({
           sessionId: quickJoinResponse.sessionId,
           username: quickJoinResponse.username,
         })
+
+        // API 응답에서 받은 username을 닉네임으로 설정
+        setMyNickname(quickJoinResponse.username || '커피챗 사용자')
 
         // 3. 받은 토큰으로 연결
         await actions.connect(
@@ -773,7 +777,7 @@ function VideoCallRoomContent({
             예약 ID가 필요합니다.
           </p>
           <p className="font-body2 mt-2 text-[var(--color-label-subtle)]">
-            예시: /coffeechat/123
+            예시: /VideoCoffeeChat/123
           </p>
         </div>
       </div>
@@ -1014,70 +1018,89 @@ function VideoCallRoomContent({
   const handleLeaveCall = async () => {
     const currentSessionId = actions.getState().sessionInfo?.id
 
-    try {
-      // 채팅 메시지를 DTO 형식으로 변환
-      const chatHistory =
-        messages.length > 0
-          ? {
-              messages: messages.map((msg) => {
-                // Codex 권장: timestamp 유효성 검증
-                const msgDate = new Date(msg.timestamp)
-                const isValidDate = Number.isFinite(msgDate.getTime())
+    // 1. 즉시 리다이렉트 - API 응답 기다리지 않음
+    const { user } = useAuthStore.getState()
+    openViduNavigation.goToReviewPageByRole(user?.role)
 
-                return {
-                  username: msg.senderName,
-                  message: msg.content,
-                  timestamp: isValidDate
-                    ? msgDate.toISOString()
-                    : new Date().toISOString(),
-                }
-              }),
-              sessionStartTime: startAt.toISOString(),
-              sessionEndTime: new Date().toISOString(),
-            }
-          : undefined
-
-      // 세션 종료 API 호출 (채팅 저장 + 세션 종료 통합)
-      if (currentSessionId) {
-        logger.info('세션 종료 시작', {
-          messageCount: messages.length,
-          sessionId: currentSessionId,
-        })
-
-        await openViduApi.endSession(currentSessionId, chatHistory)
-        logger.info('세션 종료 완료')
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-
-      // JWT 인증 에러인지 확인
-      if (
-        errorMessage.includes('401') ||
-        errorMessage.includes('Unauthorized')
-      ) {
-        logger.warn('세션 종료 인증 실패 - JWT 토큰 필요:', {
-          sessionId: currentSessionId,
-        })
-        // 인증 실패해도 로컬 세션 종료는 계속 진행
-      } else {
-        logger.error('세션 종료 실패:', {
-          error: errorMessage,
-          sessionId: currentSessionId,
-        })
-      }
-      // 실패해도 계속 진행 (클라이언트 리소스 정리는 수행)
-    } finally {
-      // Codex 권장: finally로 절대 종료 보장
+    // 2. 백그라운드에서 정리 작업 (fire-and-forget)
+    Promise.resolve().then(async () => {
       try {
-        await leaveSession()
-      } catch (leaveError) {
-        logger.error('세션 종료 실패:', { error: String(leaveError) })
-        // 세션 종료도 실패한 경우에도 최소한 로그는 남김
+        // 채팅 메시지를 DTO 형식으로 변환
+        const chatHistory =
+          messages.length > 0
+            ? {
+                messages: messages.map((msg) => {
+                  // Codex 권장: timestamp 유효성 검증
+                  const msgDate = new Date(msg.timestamp)
+                  const isValidDate = Number.isFinite(
+                    msgDate.getTime(),
+                  )
+
+                  return {
+                    username: msg.senderName,
+                    message: msg.content,
+                    timestamp: isValidDate
+                      ? msgDate.toISOString()
+                      : new Date().toISOString(),
+                  }
+                }),
+                sessionStartTime: startAt.toISOString(),
+                sessionEndTime: new Date().toISOString(),
+              }
+            : undefined
+
+        // 세션 종료 API 호출 (채팅 저장 + 세션 종료 통합)
+        if (currentSessionId) {
+          logger.info('백그라운드 세션 종료 시작', {
+            messageCount: messages.length,
+            sessionId: currentSessionId,
+          })
+
+          await openViduApi.endSession(currentSessionId, chatHistory)
+          logger.info('백그라운드 세션 종료 완료')
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+
+        // JWT 인증 에러인지 확인
+        if (
+          errorMessage.includes('401') ||
+          errorMessage.includes('Unauthorized')
+        ) {
+          logger.warn(
+            '백그라운드 세션 종료 인증 실패 - JWT 토큰 필요:',
+            {
+              sessionId: currentSessionId,
+            },
+          )
+        } else {
+          logger.debug('백그라운드 세션 종료 실패:', {
+            error: errorMessage,
+            sessionId: currentSessionId,
+          })
+        }
+      } finally {
+        // Codex 권장: finally로 절대 종료 보장
+        try {
+          await leaveSession()
+          logger.debug('백그라운드 로컬 세션 종료 완료')
+        } catch (leaveError) {
+          logger.debug('백그라운드 로컬 세션 종료:', {
+            error: String(leaveError),
+          })
+        }
+        // 로컬 미디어/퍼블리셔/스토어까지 확실히 정리
+        try {
+          await cleanupCall('explicit-leave')
+          logger.debug('백그라운드 cleanup 완료')
+        } catch (cleanupError) {
+          logger.debug('백그라운드 cleanup:', {
+            error: String(cleanupError),
+          })
+        }
       }
-      // 로컬 미디어/퍼블리셔/스토어까지 확실히 정리
-      await cleanupCall('explicit-leave')
-    }
+    })
   }
 
   if (sessionStatus === 'connecting') {
@@ -1223,7 +1246,9 @@ function VideoCallRoomContent({
                       </div>
                     )}
                     <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
-                      {peerNickname}
+                      {remoteParticipants.length > 0 
+                        ? remoteParticipants[0].nickname 
+                        : peerNickname}
                     </div>
                   </div>
 
@@ -1311,7 +1336,9 @@ function VideoCallRoomContent({
                     <dl className="grid grid-cols-2 gap-y-2 text-sm">
                       <dt className="text-gray-500">이름(닉네임)</dt>
                       <dd className="text-gray-900">
-                        {peerNickname}
+                        {remoteParticipants.length > 0 
+                          ? remoteParticipants[0].nickname 
+                          : peerNickname}
                       </dd>
                       <dt className="text-gray-500">화상통화 분야</dt>
                       <dd className="text-gray-900">테스트</dd>
