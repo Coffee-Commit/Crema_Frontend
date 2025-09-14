@@ -355,7 +355,7 @@ export default function DashboardPage() {
         <ScheduleTable
           items={scheduleData}
           onEnter={(id) => {
-            window.location.href = `/coffeechat/${id}`
+            window.location.href = `/VideoCoffeeChat/${id}`
           }}
         />
       </section>

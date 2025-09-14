@@ -317,11 +317,11 @@ export default function DashboardPage() {
           items={scheduleData} // ✅ API 데이터 연동
           onEnter={(id) => {
             // 커피챗 입장
-            window.location.href = `/coffeechat/${id}`
+            window.location.href = `/VideoCoffeeChat/${id}`
           }}
           onMaterials={(id) => {
             // 사전자료 보기 (예시)
-            window.location.href = `/coffeechat/${id}/materials`
+            window.location.href = `/VideoCoffeeChat/${id}/materials`
           }}
         />
       </section>
