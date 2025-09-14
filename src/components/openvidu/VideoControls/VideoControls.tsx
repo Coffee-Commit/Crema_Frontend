@@ -124,17 +124,17 @@ export default function VideoControls() {
 
     // 1. 사용자 역할에 따른 처리
     const { user } = useAuthStore.getState()
-    
+
     if (user?.role === 'ROOKIE') {
       // TODO: ROOKIE 사용자 모달 처리 (다른 개발자가 구현)
-      // 
+      //
       // 구현 방법:
       // 1. useModalStore import 추가:
       //    import { useModalStore } from '@/store/useModalStore'
-      // 
+      //
       // 2. 모달 상태 관리 함수 가져오기:
       //    const { openModal } = useModalStore.getState()
-      // 
+      //
       // 3. 커피챗 종료 모달 표시:
       //    openModal('커피챗 종료', '커피챗이 종료되었습니다. 리뷰를 작성해주세요.', {
       //      onConfirm: () => {
@@ -146,7 +146,7 @@ export default function VideoControls() {
       //        window.location.href = '/'  // 홈으로
       //      }
       //    })
-      // 
+      //
       // 현재는 기존 로직 유지 (임시)
       openViduNavigation.goToReviewPageByRole(user?.role)
     } else {

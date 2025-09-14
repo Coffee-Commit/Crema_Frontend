@@ -1337,9 +1337,9 @@ export const openViduNavigation = {
     if (typeof window !== 'undefined') {
       const path =
         userRole === 'ROOKIE'
-          ? '/mypage/rookie/review'  // ROOKIE는 모달 처리 후 필요시 변경
+          ? '/mypage/rookie/review' // ROOKIE는 모달 처리 후 필요시 변경
           : userRole === 'GUIDE'
-            ? '/mypage/guide/dashboard'  // GUIDE는 대시보드로 변경
+            ? '/mypage/guide/dashboard' // GUIDE는 대시보드로 변경
             : '/' // fallback to home
       window.location.href = path
     }

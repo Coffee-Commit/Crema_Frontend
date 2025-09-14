@@ -238,7 +238,8 @@ function VideoCallRoomContent({
     () => searchParams.get('peer') ?? '게스트',
     [searchParams],
   )
-  const [myNickname, setMyNickname] = useState<string>('커피챗 사용자')
+  const [myNickname, setMyNickname] =
+    useState<string>('커피챗 사용자')
 
   const startAt = useMemo(() => {
     const s = searchParams.get('start')
@@ -1246,8 +1247,8 @@ function VideoCallRoomContent({
                       </div>
                     )}
                     <div className="absolute bottom-2 left-2 rounded bg-black px-2 py-[2px] text-[12px] text-white">
-                      {remoteParticipants.length > 0 
-                        ? remoteParticipants[0].nickname 
+                      {remoteParticipants.length > 0
+                        ? remoteParticipants[0].nickname
                         : peerNickname}
                     </div>
                   </div>
@@ -1336,8 +1337,8 @@ function VideoCallRoomContent({
                     <dl className="grid grid-cols-2 gap-y-2 text-sm">
                       <dt className="text-gray-500">이름(닉네임)</dt>
                       <dd className="text-gray-900">
-                        {remoteParticipants.length > 0 
-                          ? remoteParticipants[0].nickname 
+                        {remoteParticipants.length > 0
+                          ? remoteParticipants[0].nickname
                           : peerNickname}
                       </dd>
                       <dt className="text-gray-500">화상통화 분야</dt>
@@ -1486,6 +1487,10 @@ function VideoCoffeeChatWrapper({
   useEffect(() => {
     params.then((resolved) => {
       setReservationId(resolved.id)
+      // ✅ 여기서 로컬스토리지에 저장
+      if (resolved.id) {
+        localStorage.setItem('reservationId', resolved.id)
+      }
     })
   }, [params])
 
