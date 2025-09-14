@@ -71,7 +71,7 @@
 
   /* Color Semantic */
   /* Brand - Primitive 색상 참조 */
-  --color-kakao-bg: var(--color-yellow-500);
+  --color-kakao-bg: #fee500;
   --color-google-bg: var(--color-white);
   --color-google-border: var(--color-gray-300);
 
