@@ -6,7 +6,7 @@ import EmptyState from '@/components/common/EmptyState'
 import DashboardRatingCard from '@/components/ui/Cards/DashbaordRatingCard'
 import DashboardHelpfulCard from '@/components/ui/Cards/DashboardHelpfulCard'
 import DetailedExperienceCard from '@/components/ui/Cards/DetailedExperienceCard'
-import ReviewCard from '@/components/ui/Cards/ReviewCard'
+import ReviewList from '@/components/ui/List/ReviewList'
 import Pagination from '@/components/ui/Paginations/Pagination'
 
 export default function DashboardReview() {
@@ -82,7 +82,7 @@ export default function DashboardReview() {
             className="mb-spacing-xs"
           />
           <DashboardRatingCard
-            label="평균"
+            label="별점"
             score={averageScore}
           />
         </div>
@@ -99,20 +99,20 @@ export default function DashboardReview() {
             <EmptyState />
           </div>
         ) : (
-          <>
+          <div className="gap-spacing-xl px-spacing-xs flex w-full flex-col">
             {currentReviews.map((review, idx) => (
-              <ReviewCard
+              <ReviewList
                 key={idx}
                 rating={review.rating}
                 text={review.text}
                 nickname={review.nickname}
                 date={review.date}
-                className="shadow-card rounded-md"
+                isLast={idx === currentReviews.length - 1}
               />
             ))}
 
             {totalPages > 1 && (
-              <div className="mt-spacing-md flex w-full justify-center">
+              <div className="flex w-full justify-center">
                 <Pagination
                   total={totalPages}
                   initialPage={page}
@@ -120,7 +120,7 @@ export default function DashboardReview() {
                 />
               </div>
             )}
-          </>
+          </div>
         )}
       </section>
     </main>

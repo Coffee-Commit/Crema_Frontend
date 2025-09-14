@@ -123,7 +123,7 @@ export default function DetailedExperienceCard({
             >
               {/* 아이콘 + 라벨 */}
               <div className="flex-1">
-                <div className="mb-spacing-5xs flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <span className="font-caption3 text-label-default">
                     {item.label}
                   </span>

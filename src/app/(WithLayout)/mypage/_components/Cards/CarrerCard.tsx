@@ -124,20 +124,22 @@ export default function CareerCard() {
 
   return (
     <main className="gap-spacing-3xl ml-[65px] flex flex-col">
-      <div className="flex items-center justify-between">
-        <h1 className="font-heading2 text-label-strong">대표 경력</h1>
-        <SquareButton
-          variant={isEditing ? 'primary' : 'secondary'}
-          size="md"
-          onClick={() =>
-            isEditing ? handleSave() : setIsEditing(true)
-          }
-        >
-          {isEditing ? '저장' : '편집'}
-        </SquareButton>
-      </div>
-
       <section className="py-spacing-md px-spacing-xs gap-spacing-3xl border-border-subtler flex flex-col rounded-sm border">
+        <div className="flex items-center justify-between">
+          <h1 className="font-heading2 text-label-strong">
+            대표 경력
+          </h1>
+          <SquareButton
+            variant={isEditing ? 'primary' : 'secondary'}
+            size="md"
+            onClick={() =>
+              isEditing ? handleSave() : setIsEditing(true)
+            }
+          >
+            {isEditing ? '저장' : '편집'}
+          </SquareButton>
+        </div>
+
         {!isEditing ? (
           <div className="px-spacing-xs py-spacing-md gap-spacing-xl flex flex-col">
             <div className="gap-spacing-4xs flex flex-col">

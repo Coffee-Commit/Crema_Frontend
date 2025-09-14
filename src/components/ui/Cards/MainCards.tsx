@@ -75,7 +75,7 @@ export function HeroCard({
   return (
     <div
       className={clsx(
-        'rounded-xs bg-fill-tooltip-orange px-spacing-xs py-spacing-md text-label-white flex flex-col justify-between',
+        'bg-fill-tooltip-orange px-spacing-xs py-spacing-md text-label-white flex flex-col justify-between rounded-md',
         className,
       )}
     >
