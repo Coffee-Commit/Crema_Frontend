@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
@@ -10,6 +11,7 @@ import CategoryFilter from '@/components/ui/Filters/CategoryFilter'
 import JobFieldFilter from '@/components/ui/Filters/JobFieldFilter'
 import api from '@/lib/http/api'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useModalStore } from '@/store/useModalStore'
 
 // 경험 항목 타입
 interface Experience {
@@ -41,6 +43,9 @@ const convertDayToEnum = (day: string) => {
 }
 
 export default function CoffeechatRegisterPage() {
+  const router = useRouter()
+  const { openModal } = useModalStore()
+
   // 단계 관리
   const [step, setStep] = useState(1)
 
@@ -88,12 +93,23 @@ export default function CoffeechatRegisterPage() {
   // 최종 제출
   const handleSubmit = async () => {
     try {
+      // 🔎 필수값 체크
+      if (!title.trim()) {
+        alert('커피챗 제목을 입력해주세요.')
+        return
+      }
+      if (!intro.trim()) {
+        alert('커피챗 소개글을 입력해주세요.')
+        return
+      }
+
       // 1) 커피챗 등록
       const chatRes = await api.post('/api/guides/me/coffeechat', {
         title,
         chatDescription: intro,
       })
       console.log('✅ 커피챗 등록 성공:', chatRes.data)
+
       // ✅ guideId 저장
       const newGuideId = chatRes.data?.data?.guide.id
       if (newGuideId) {
@@ -196,10 +212,21 @@ export default function CoffeechatRegisterPage() {
         console.log('✅ 경험 목록 등록 성공')
       }
 
-      alert('🎉 커피챗 등록 완료!')
+      openModal({
+        title: '등록 완료 🎉',
+        message: '커피챗이 성공적으로 등록되었습니다.',
+        confirmText: '확인',
+        onConfirm: () =>
+          router.push(`/coffeechatDetail/${newGuideId}`),
+      })
     } catch (err) {
       console.error('❌ 등록 실패:', err)
-      alert('등록 실패')
+      // 등록 실패
+      openModal({
+        title: '등록 실패 ⚠️',
+        message: '커피챗 등록에 실패했습니다. 다시 시도해주세요.',
+        confirmText: '닫기',
+      })
     }
   }
 
@@ -229,7 +256,7 @@ export default function CoffeechatRegisterPage() {
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={70}
                   placeholder="토론할 수 있는 커피챗 제목을 입력해주세요."
-                  className="border-border-subtler bg-fill-white p-spacing-3xs font-caption2-medium text-label-default placeholder:text-label-subtler rounded-2xs focus:ring-label-primary w-full border focus:outline-none focus:ring-1"
+                  className="border-border-subtler bg-fill-white p-spacing-3xs font-caption2-medium text-label-default placeholder:text-label-subtler rounded-2xs w-full border"
                 />
                 <span className="text-label-subtler right-spacing-3xs font-caption2-medium absolute top-1/2 -translate-y-1/2 text-right">
                   {title.length}/70
@@ -305,7 +332,7 @@ export default function CoffeechatRegisterPage() {
                     onChange={(e) => setWhoInput(e.target.value)}
                     maxLength={40}
                     placeholder="도움을 줄 수 있는 대상에 대해 작성해주세요."
-                    className="border-border-subtler bg-fill-white p-spacing-3xs font-caption2-medium text-label-default placeholder:text-label-subtler rounded-2xs focus:ring-label-primary w-full border focus:outline-none focus:ring-1"
+                    className="border-border-subtler bg-fill-white p-spacing-3xs font-caption2-medium text-label-default placeholder:text-label-subtler rounded-2xs w-full border"
                   />
                 </li>
               </ul>
@@ -320,7 +347,7 @@ export default function CoffeechatRegisterPage() {
                     onChange={(e) => setSolutionInput(e.target.value)}
                     maxLength={40}
                     placeholder="어떤 상황에 도움이 될 수 있을지 작성해주세요"
-                    className="border-border-subtler bg-fill-white p-spacing-3xs font-caption2-medium text-label-default placeholder:text-label-subtler rounded-2xs focus:ring-label-primary w-full border focus:outline-none focus:ring-1"
+                    className="border-border-subtler bg-fill-white p-spacing-3xs font-caption2-medium text-label-default placeholder:text-label-subtler rounded-2xs w-full border"
                   />
                 </li>
               </ul>
@@ -335,7 +362,7 @@ export default function CoffeechatRegisterPage() {
                     onChange={(e) => setHowInput(e.target.value)}
                     maxLength={40}
                     placeholder="어떤 내용의 도움을 줄 수 있을지에 대해 작성해주세요."
-                    className="border-border-subtler bg-fill-white p-spacing-3xs font-caption2-medium text-label-default placeholder:text-label-subtler rounded-2xs focus:ring-label-primary w-full border focus:outline-none focus:ring-1"
+                    className="border-border-subtler bg-fill-white p-spacing-3xs font-caption2-medium text-label-default placeholder:text-label-subtler rounded-2xs w-full border"
                   />
                 </li>
               </ul>
@@ -379,7 +406,7 @@ export default function CoffeechatRegisterPage() {
                       }
                       maxLength={40}
                       placeholder="경험의 제목을 작성해주세요. (예: N사 최종 합격)"
-                      className="border-border-subtler bg-fill-white px-spacing-3xs py-spacing-4xs font-caption2-medium text-label-default placeholder:text-label-subtle rounded-2xs focus:ring-label-primary w-full border focus:outline-none focus:ring-1"
+                      className="border-border-subtler bg-fill-white px-spacing-3xs py-spacing-4xs font-caption2-medium text-label-default placeholder:text-label-subtle rounded-2xs w-full border"
                     />
                     <span className="text-label-subtle right-spacing-3xs absolute bottom-0.5 -translate-y-1/2 text-right text-sm">
                       {exp.title.length}/40
@@ -402,7 +429,7 @@ export default function CoffeechatRegisterPage() {
                       }
                       maxLength={60}
                       placeholder="경험에 대해 간단하게 설명하는 글을 작성해주세요.(예: 면접에 10번 이상 떨어졌지만 칠전팔기 끝에 최종 합격했어요)"
-                      className="border-border-subtler bg-fill-white px-spacing-3xs py-spacing-4xs font-caption2-medium text-label-default placeholder:text-label-subtle rounded-2xs focus:ring-label-primary min-h-[102px] w-full border focus:outline-none focus:ring-1"
+                      className="border-border-subtler bg-fill-white px-spacing-3xs py-spacing-4xs font-caption2-medium text-label-default placeholder:text-label-subtle rounded-2xs min-h-[102px] w-full border"
                     />
                     <span className="text-label-subtle right-spacing-3xs bottom-spacing-4xs absolute text-right text-sm">
                       {exp.content.length}/60
@@ -442,7 +469,7 @@ export default function CoffeechatRegisterPage() {
                 onChange={(e) => setIntro(e.target.value)}
                 maxLength={500}
                 placeholder="본인의 경험과 커피챗에 대해 소개하는 글을 작성해주세요."
-                className="border-border-subtler bg-fill-white p-spacing-2xs font-body3 text-label-default placeholder:text-label-subtle rounded-2xs focus:ring-label-primary min-h-[162px] w-full border focus:outline-none focus:ring-1"
+                className="border-border-subtler bg-fill-white p-spacing-2xs font-body3 text-label-default placeholder:text-label-subtle rounded-2xs min-h-[162px] w-full border"
               />
               <span className="text-label-subtle right-spacing-3xs bottom-spacing-4xs absolute text-right text-sm">
                 {intro.length}/500
@@ -479,7 +506,7 @@ export default function CoffeechatRegisterPage() {
                       }}
                       maxLength={8}
                       placeholder="태그 입력"
-                      className="font-caption2-medium text-label-default placeholder:text-label-subtle flex-1 bg-transparent focus:outline-none"
+                      className="font-caption2-medium text-label-default placeholder:text-label-subtle flex-1 bg-transparent"
                     />
                   </div>
                 ))}
