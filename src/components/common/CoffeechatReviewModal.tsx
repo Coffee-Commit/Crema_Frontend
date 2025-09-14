@@ -1,7 +1,7 @@
 'use client'
 
 import { X, ThumbsUp } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import SquareButton from '@/components/ui/Buttons/SquareButton'
 import api from '@/lib/http/api'
@@ -20,9 +20,21 @@ export default function CoffeechatReviewModal({
     {},
   )
   const [review, setReview] = useState('')
+  const [reservationId, setReservationId] = useState<number | null>(
+    null,
+  )
 
-  // 👉 reservationId / experiences 제거
-  const reservationId = 123 // 임시 (나중에 API나 Context에서 가져오기)
+  // 👉 로컬스토리지에서 reservationId 가져오기
+  useEffect(() => {
+    if (isOpen) {
+      const storedId = localStorage.getItem('reservationId')
+      if (storedId) {
+        setReservationId(parseInt(storedId, 10))
+      }
+    }
+  }, [isOpen])
+
+  // 👉 경험(예시, 실제는 API로 불러올 수도 있음)
   const experiences = [
     { experienceGroupId: 1, experienceTitle: '이직 경험' },
     { experienceGroupId: 2, experienceTitle: '프로젝트 경험' },
@@ -35,6 +47,11 @@ export default function CoffeechatReviewModal({
   }
 
   const handleSubmit = async () => {
+    if (!reservationId) {
+      alert('예약 정보를 불러올 수 없습니다.')
+      return
+    }
+
     try {
       const payload = {
         reservationId,

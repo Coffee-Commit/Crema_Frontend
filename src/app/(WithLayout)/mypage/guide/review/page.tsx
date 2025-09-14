@@ -32,6 +32,12 @@ interface ReviewResponse {
   }
 }
 
+interface ExperienceEvaluation {
+  experienceGroupId: number
+  experienceTitle: string
+  thumbsUpRate: string
+}
+
 export default function DashboardReview() {
   const [reviews, setReviews] = useState<
     ReviewResponse['data']['content']
@@ -41,6 +47,10 @@ export default function DashboardReview() {
   const [totalPages, setTotalPages] = useState(0)
 
   const [averageScore, setAverageScore] = useState(0)
+  const [helpfulCount, setHelpfulCount] = useState(0)
+  const [experienceItems, setExperienceItems] = useState<
+    { label: string; progress: number }[]
+  >([])
 
   // ✅ API 호출
   useEffect(() => {
@@ -74,6 +84,38 @@ export default function DashboardReview() {
     fetchReviews()
   }, [page])
 
+  // ✅ 경험 평가 API 호출
+  useEffect(() => {
+    const fetchExperienceEvaluations = async () => {
+      try {
+        const res = await api.get<{
+          message: string
+          data: ExperienceEvaluation[]
+        }>(`/api/guides/me/experience-evaluations`)
+
+        console.log('📌 경험 평가 API 응답:', res.data)
+
+        const data = res.data.data || []
+
+        // 경험별 데이터 변환
+        setExperienceItems(
+          data.map((item) => ({
+            label: item.experienceTitle,
+            progress: isNaN(Number(item.thumbsUpRate))
+              ? 0
+              : Number(item.thumbsUpRate),
+          })),
+        )
+
+        setHelpfulCount(data.length || 0)
+      } catch (err) {
+        console.error('❌ 경험 평가 불러오기 실패:', err)
+      }
+    }
+
+    fetchExperienceEvaluations()
+  }, [])
+
   return (
     <main className="gap-spacing-3xl flex flex-col">
       <h1 className="font-heading2 text-label-strong">후기</h1>
@@ -81,7 +123,7 @@ export default function DashboardReview() {
         <div className="flex min-w-[300px] flex-col">
           <DashboardHelpfulCard
             label="도움 됐어요"
-            count={42} // 👉 이건 API 있으면 교체
+            count={helpfulCount}
             className="mb-spacing-xs"
           />
           <DashboardRatingCard
@@ -91,7 +133,7 @@ export default function DashboardReview() {
         </div>
         <DetailedExperienceCard
           title="경험별 도움된 비율"
-          items={[]} // 👉 이 부분도 API 연결 가능
+          items={experienceItems}
         />
       </section>
 
