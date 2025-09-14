@@ -689,11 +689,17 @@ export default function CoffeeChatDetailPage() {
   }
 
   // ✅ 오버뷰 카드
-  const overviewItems = [
-    { label: '대상', content: data.experienceDetail.who },
-    { label: '상황', content: data.experienceDetail.solution },
-    { label: '내용', content: data.experienceDetail.how },
-  ]
+  const overviewItems = data.experienceDetail
+    ? [
+        { label: '대상', content: data.experienceDetail.who },
+        { label: '상황', content: data.experienceDetail.solution },
+        { label: '내용', content: data.experienceDetail.how },
+      ]
+    : [
+        { label: '대상', content: '정보 없음' },
+        { label: '상황', content: '정보 없음' },
+        { label: '내용', content: '정보 없음' },
+      ]
 
   // ✅ 리뷰 페이지네이션
   const indexOfLast = currentPage * reviewsPerPage
