@@ -66,6 +66,7 @@ export type AuthState = {
   loading: boolean
   tokens: Tokens | null
   guideId: number | null
+  isHydrated: boolean
   init: () => Promise<void>
   login: (provider: Provider) => void
   loginTest: (nickname: string) => Promise<void>
@@ -76,6 +77,7 @@ export type AuthState = {
   setAuth: (payload: { user: User; tokens: Tokens | null }) => void
   refreshUser: () => Promise<void>
   setGuideId: (id: number) => void
+  setHydrated: () => void
 }
 
 //  추가
@@ -101,6 +103,9 @@ export const useAuthStore = create<AuthState>()(
       tokens: null,
       guideId: null,
       loading: false,
+      isHydrated: false,
+
+      setHydrated: () => set({ isHydrated: true }),
 
       init: async () => {
         set({ loading: true })
@@ -205,6 +210,12 @@ export const useAuthStore = create<AuthState>()(
         tokens: s.tokens,
         guideId: s.guideId,
       }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('rehydration error', error)
+        }
+        state?.setHydrated?.() // ⬅️ 여기서 안전하게 불러줌
+      },
     },
   ),
 )
