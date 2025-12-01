@@ -47,8 +47,8 @@
   - 짧고 부담 없는 '1:1 온라인 커피챗 경험'을 통해 멘토, 멘티 모두의 진입 장벽을 낮춤
   - '예약, 화상채팅, 일정 관리' 기능을 통합하여 원스톱 커리어 네트워킹 서비스 구축
 - ### 프로젝트 기간: 2025.08.11 ~ 2025.09.15 (35일)
-  ![Developer Day #1](docs/img/calendar1.png)
-  ![Developer Day #2](docs/img/calendar2.png)
+  ![Developer Day #1](https://github.com/Coffee-Commit/Crema_Infra/blob/main/docs/img/calendar1.png)
+  ![Developer Day #2](https://github.com/Coffee-Commit/Crema_Infra/raw/main/docs/img/calendar2.png)
 
 ## 주요 기능
 - ### 로그인 / 회원가입 
@@ -154,7 +154,7 @@
 
 # 화면 구성
 ## 데모 영상
-- 아직 없음
+- [데모 영상 바로가기](https://youtu.be/Mw2rVH66TLg)
 ## 스크린샷
 - 아직 없음
 ---
@@ -166,6 +166,7 @@
 ![Next JS](https://img.shields.io/badge/Next-black?style=for-the-badge&logo=next.js&logoColor=white)
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind](https://img.shields.io/badge/tailwindcss-06B6D4.svg?&style=for-the-badge&logo=tailwindcss&logoColor=white)
 
 ### 🔧 BackEnd
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
@@ -206,14 +207,14 @@
 <br><br><br>
 
 ## 아키텍처
-![Architecture Diagram](docs/img/system_architecture.png)
+![Architecture Diagram](https://github.com/Coffee-Commit/Crema_Infra/raw/main/docs/img/system_architecture.png)
 
 ---
 
 <br><br><br>
 
 ## ERD Diagram
-![ERD Diagram](docs/img/erd_diagram.png)
+![ERD Diagram](https://github.com/Coffee-Commit/Crema_Infra/blob/main/docs/img/erd_diagram.png)
 
 - **회원/사용자 관련**
   - `멤버(루키) 테이블`: 멘토/멘티 계정 정보 저장
@@ -234,101 +235,17 @@
 - **태그/중간 테이블**
   - `해시태그 테이블`, `멤버 커피챗 중간 테이블`, `커피챗 테이블`: 주제/태그/연관 관계 관리
 
-📄 [ERD 상세 문서 보기](docs/sql_schema.md)
-
 ---
 
-<br><br><br>
-
-## Challenges & Troubleshooting
-- **프론트엔드**: 
-- **백엔드**: 
-- **인프라**: 
-
-📄 [자세한 Troubleshooting 기록 보기](docs/troubleshooting.md)
-
----
 <br><br><br>
 
 ## 시작 가이드
-```
-Local 환경에서 진행할 수 있는 방법을 작성합니다.
-인프라 배포의 경우 전반적인 인프라 지식이 필요하여 문서에는 제외됩니다.
 
-[사전 작업]
-- 구성: Redis, MySQL, S3
-- API: Google, Kakao Oauth
-- 필수 설치 : Docker
-```
----
-### 1. 프로젝트 복제
-> 현재 프로젝트의 'Crema_Frontend'와 'Crema_Backend'를 clone합니다.
----
-### 2. FrontEnd
-#### A. Docker Image 생성
-- FrontEnd로 디렉터리 이동 후 다음 명령을 통해 Docker Image를 생성합니다.
-    > docker build -t nextjs-app --build-arg NEXT_PUBLIC_API_URL=http://backend-service:8080 .
-
-#### B. Docker Container 실행
-- 다음 명령을 통해 컨테이너로 실행합니다.
-    > docker run -p 3000:3000 nextjs-app
-
-#### C. 실행 확인
-- 정상적으로 구동되었는 지 'localhost:3000'으로 접속하여 확인합니다.
----
-### 3. OpenVidu
-#### A. 
----
-### 4. Backend
-#### A. 환경 변수 설정 및 생성 (.env)
-- 환경 변수가 없으면 백엔드는 구동할 수 없습니다. 백엔드 디렉터리에 .env 생성 후 값을 포함합니다.
-```
-# AWS S3
-AWS_S3_BUCKET={AWS_S3_BUCKET_NAME}
-AWS_REGION={AWS_S3_REGION}
-AWS_ACCESS_KEY={AWS_S3_ACCESS_KEY}
-AWS_SECRET_KEY={AWS_S3_SECRET_KEY}
-
-# 배포 환경
-SPRING_PROFILES_ACTIVE=dev
-
-# Redis
-SPRING_DATA_REDIS_HOST=localhost
-SPRING_DATA_REDIS_PORT='6379'
-
-# FrontEnd Url
-FRONTEND_URL=http://localhost:3000
-
-# 쿠키 관련
-COOKIE_DOMAIN=localhost
-COOKIE_SAMESITE=None
-
-# DB (MySQL)
-DB_HOST={DB_HOST}
-DB_PORT={DB_PORT}
-DB_NAME={DB_NAME}
-DB_USERNAME={DB_USERNAME}
-DB_PASSWORD={DB_PASSWORD}
-
-# Oauth2
-GOOGLE_CLIENT_ID={OAUTH_GOOGLE_CLIENT_ID}
-GOOGLE_CLIENT_SECRET={OAUTH_GOOGLE_CLIENT_SECRET}
-
-KAKAO_CLIENT_ID={OAUTH_GOOGLE_CLIENT_ID}
-KAKAO_CLIENT_SECRET={OAUTH_GOOGLE_CLIENT_SECRET}
-
-# Jwt Key
-JWT_KEY={JWT_KEY}
-```
-
-#### B. Docker Image 생성
-- BackEnd로 디렉터리 이동 후 다음 명령을 통해 Docker Image를 생성합니다.
-    > docker build -t spring-app .
-
-#### C. Docker Container 실행
-- 다음 명령을 통해 컨테이너로 실행합니다.
-  > docker run -p 8080:8080 --env-file .env spring-app
-
+> ⚠️ **현재 배포 서버는 종료되어 직접 실행할 수 없습니다.**
+> 
+> Crema 서비스의 주요 기능 및 사용자 경험은 아래 시연 영상을 통해 확인하실 수 있습니다.
+> 
+> 🔗 **[시연 영상 링크]** (여기에 YouTube 또는 기타 영상 링크를 삽입해 주세요.)
 ---
 
 <br><br><br>
